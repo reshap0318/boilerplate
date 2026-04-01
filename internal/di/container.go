@@ -20,6 +20,7 @@ type Container struct {
 	Redis        *database.RedisCache
 	EmailClient  *clientEmail.EmailClient
 	Logger       *helpers.Logger
+	RateLimiter  *helpers.RateLimiter
 	Repositories *repositories.Repositories
 	Services     *services.Services
 	Handlers     *handlers.Handlers
@@ -108,6 +109,12 @@ func NewContainer() (*Container, error) {
 
 	// Initialize Email Client (optional)
 	container.EmailClient = clientEmail.NewEmailClient()
+
+	// Initialize Rate Limiter
+	rateLimitRequests := helpers.GetEnvInt("RATE_LIMIT_REQUESTS", 100)
+	rateLimitWindow := helpers.GetEnvInt("RATE_LIMIT_WINDOW", 60)
+	container.RateLimiter = helpers.NewRateLimiter(rateLimitRequests, rateLimitWindow)
+	log.Printf("Rate limiting enabled: %d requests per %d seconds", rateLimitRequests, rateLimitWindow)
 
 	// DB is required for repositories and services
 	if container.DB == nil {
