@@ -1,0 +1,303 @@
+package services
+
+import (
+	"context"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
+
+	"github.com/reshap0318/go-boilerplate/internal/dtos"
+	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/models"
+)
+
+// Claims represents JWT claims.
+type Claims struct {
+	UserID uint   `json:"user_id"`
+	Email  string `json:"email"`
+	Name   string `json:"name"`
+	jwt.RegisteredClaims
+}
+
+// AuthValidateToken validates a JWT token and returns the claims.
+func (s *Services) AuthValidateToken(tokenString string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, helpers.ErrInvalidToken
+		}
+		return []byte(s.cfg.Secret), nil
+	})
+
+	if err != nil {
+		return nil, helpers.ErrInvalidToken
+	}
+
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid {
+		return nil, helpers.ErrInvalidToken
+	}
+
+	if claims.ExpiresAt.Before(time.Now()) {
+		return nil, helpers.ErrExpiredToken
+	}
+
+	return claims, nil
+}
+
+// AuthLogin authenticates a user and returns tokens.
+func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos.LoginResponse, error) {
+	s.Logger.LogStart("AuthLogin", "User login attempt: %s", email)
+
+	user, err := s.repo.User.FindByEmail(email)
+	if err != nil {
+		s.Logger.LogStep("AuthLogin", "User not found: %s", email)
+		s.Logger.LogEndWithError("AuthLogin", "Login failed - user not found")
+		return nil, helpers.ErrInvalidCredential
+	}
+
+	s.Logger.LogStep("AuthLogin", "User found: %s", email)
+
+	if !s.checkPassword(password, user.Password) {
+		s.Logger.LogStep("AuthLogin", "Invalid password for user: %s", email)
+		s.Logger.LogEndWithError("AuthLogin", "Login failed - invalid password")
+		return nil, helpers.ErrInvalidCredential
+	}
+
+	s.Logger.LogStep("AuthLogin", "Password validated successfully")
+
+	token, err := s.generateToken(user)
+	if err != nil {
+		s.Logger.LogError("AuthLogin", "Failed to generate token: %v", err)
+		s.Logger.LogEndWithError("AuthLogin", "Login failed - token generation error")
+		return nil, err
+	}
+
+	s.Logger.LogStep("AuthLogin", "Access token generated")
+
+	refreshToken, err := s.generateRefreshToken(user)
+	if err != nil {
+		s.Logger.LogError("AuthLogin", "Failed to generate refresh token: %v", err)
+		s.Logger.LogEndWithError("AuthLogin", "Login failed - refresh token generation error")
+		return nil, err
+	}
+
+	s.Logger.LogStep("AuthLogin", "Refresh token generated")
+	s.Logger.LogEnd("AuthLogin", "Login successful for user: %s", email)
+
+	return &dtos.LoginResponse{
+		Token:        token,
+		RefreshToken: refreshToken,
+		User:         dtos.ToUserDTO(user.Email, user.Name, user.ID),
+	}, nil
+}
+
+// AuthRefreshToken refreshes the access token using a refresh token.
+func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*dtos.LoginResponse, error) {
+	s.Logger.LogStart("AuthRefreshToken", "Token refresh attempt")
+
+	claims, err := s.AuthValidateToken(refreshToken)
+	if err != nil {
+		s.Logger.LogStep("AuthRefreshToken", "Invalid refresh token: %v", err)
+		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - invalid token")
+		return nil, err
+	}
+
+	s.Logger.LogStep("AuthRefreshToken", "Refresh token validated")
+
+	user, err := s.repo.User.FindByID(s.repo.User.DB, claims.UserID)
+	if err != nil {
+		s.Logger.LogStep("AuthRefreshToken", "User not found: %v", err)
+		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - user not found")
+		return nil, helpers.ErrInvalidCredential
+	}
+
+	s.Logger.LogStep("AuthRefreshToken", "User found: %s", user.Email)
+
+	token, err := s.generateToken(user)
+	if err != nil {
+		s.Logger.LogError("AuthRefreshToken", "Failed to generate token: %v", err)
+		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - token generation error")
+		return nil, err
+	}
+
+	s.Logger.LogStep("AuthRefreshToken", "Access token regenerated")
+
+	newRefreshToken, err := s.generateRefreshToken(user)
+	if err != nil {
+		s.Logger.LogError("AuthRefreshToken", "Failed to generate refresh token: %v", err)
+		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - refresh token generation error")
+		return nil, err
+	}
+
+	s.Logger.LogStep("AuthRefreshToken", "Refresh token regenerated")
+	s.Logger.LogEnd("AuthRefreshToken", "Token refreshed successfully for user: %s", user.Email)
+
+	return &dtos.LoginResponse{
+		Token:        token,
+		RefreshToken: newRefreshToken,
+		User:         dtos.ToUserDTO(user.Email, user.Name, user.ID),
+	}, nil
+}
+
+// AuthLogout handles user logout (client-side token clear).
+func (s *Services) AuthLogout(ctx context.Context) error {
+	// For stateless JWT, logout is handled client-side
+	return nil
+}
+
+// Helper functions
+
+func (s *Services) checkPassword(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
+func (s *Services) generateToken(user *models.User) (string, error) {
+	claims := Claims{
+		UserID: user.ID,
+		Email:  user.Email,
+		Name:   user.Name,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.Expiration)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(s.cfg.Secret))
+}
+
+func (s *Services) generateRefreshToken(user *models.User) (string, error) {
+	claims := Claims{
+		UserID: user.ID,
+		Email:  user.Email,
+		Name:   user.Name,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.RefreshExp)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(s.cfg.Secret))
+}
+
+// AuthForgetPassword generates a reset token and sends it via email.
+func (s *Services) AuthForgetPassword(ctx context.Context, email, frontendURL string) error {
+	s.Logger.LogStart("AuthForgetPassword", "Reset password request for: %s", email)
+
+	user, err := s.repo.User.FindByEmail(email)
+	if err != nil {
+		s.Logger.LogStep("AuthForgetPassword", "User not found: %s", email)
+		s.Logger.LogEnd("AuthForgetPassword", "Reset password request completed (user not found - silent fail)")
+		return nil
+	}
+
+	s.Logger.LogStep("AuthForgetPassword", "User found: %s", email)
+
+	token, err := helpers.GenerateRandomString(32)
+	if err != nil {
+		s.Logger.LogError("AuthForgetPassword", "Failed to generate token: %v", err)
+		s.Logger.LogEndWithError("AuthForgetPassword", "Reset password failed - token generation error")
+		return err
+	}
+
+	s.Logger.LogStep("AuthForgetPassword", "Reset token generated")
+
+	hashedToken, err := helpers.HashString(token)
+	if err != nil {
+		s.Logger.LogError("AuthForgetPassword", "Failed to hash token: %v", err)
+		s.Logger.LogEndWithError("AuthForgetPassword", "Reset password failed - token hashing error")
+		return err
+	}
+
+	s.Logger.LogStep("AuthForgetPassword", "Token hashed successfully")
+
+	expiresAt := time.Now().Add(1 * time.Hour)
+
+	passwordReset := &models.PasswordReset{
+		Email:     user.Email,
+		Token:     hashedToken,
+		ExpiresAt: expiresAt,
+		Used:      false,
+	}
+
+	if _, err := s.repo.PasswordReset.Create(nil, passwordReset); err != nil {
+		s.Logger.LogError("AuthForgetPassword", "Failed to save reset token: %v", err)
+		s.Logger.LogEndWithError("AuthForgetPassword", "Reset password failed - database error")
+		return err
+	}
+
+	s.Logger.LogStep("AuthForgetPassword", "Reset token saved to database")
+
+	resetURL := frontendURL + "/reset-password?token=" + token
+
+	// Async email sending dengan logger
+	go func() {
+		if err := s.EmailClient.SendResetPasswordEmail(user.Email, token, resetURL); err != nil {
+			s.Logger.LogError("AuthForgetPassword", "Failed to send reset email to %s: %v", user.Email, err)
+		} else {
+			s.Logger.LogStep("AuthForgetPassword", "Reset email sent successfully to %s", user.Email)
+		}
+	}()
+
+	s.Logger.LogEnd("AuthForgetPassword", "Reset password request processed successfully")
+
+	return nil
+}
+
+// AuthResetPassword validates token and resets user password.
+func (s *Services) AuthResetPassword(ctx context.Context, token, newPassword string) error {
+	// Hash token to find in database
+	hashedToken, err := helpers.HashString(token)
+	if err != nil {
+		return helpers.ErrTokenInvalid
+	}
+
+	_, err = s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
+		// Find reset record by token (hashed)
+		reset, err := s.repo.PasswordReset.FindByToken(hashedToken)
+		if err != nil {
+			return nil, helpers.ErrTokenInvalid
+		}
+
+		// Check if token is expired
+		if reset.ExpiresAt.Before(time.Now()) {
+			return nil, helpers.ErrTokenExpired
+		}
+
+		// Check if token already used
+		if reset.Used {
+			return nil, helpers.ErrTokenUsed
+		}
+
+		// Find user by email
+		if _, err := s.repo.User.FindByEmail(reset.Email); err != nil {
+			return nil, helpers.ErrNotFound
+		}
+
+		// Hash new password
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update user password using generic Update
+		if _, err := s.repo.User.Update(tx, &models.User{Email: reset.Email}, &models.User{Password: string(hashedPassword)}); err != nil {
+			return nil, err
+		}
+
+		// Invalidate the token using generic Update
+		if _, err := s.repo.PasswordReset.Update(tx, &models.PasswordReset{Token: reset.Token}, &models.PasswordReset{Used: true}); err != nil {
+			return nil, err
+		}
+
+		return nil, nil
+	})
+
+	return err
+}
