@@ -279,6 +279,60 @@ go-boilerplate/
 
 ---
 
+## 📝 Logging Rules (MANDATORY)
+
+> ⚠️ **Logger tersedia di Services**: `s.Logger`
+
+### **Kapan Wajib Log?**
+
+| Operasi | Wajib? | Operasi | Wajib? |
+|---------|--------|---------|--------|
+| **CREATE** | ✅ YA | **GET Simple** | ❌ TIDAK |
+| **UPDATE** | ✅ YA | **GET Complex** | ✅ YA |
+| **DELETE** | ✅ YA | **Auth** | ✅ YA |
+
+### **Cara Menggunakan**
+
+```go
+s.Logger.LogStart("FuncName", "Message: %s", value)      // Mulai
+s.Logger.LogStep("FuncName", "Step: %s", value)          // Step
+s.Logger.LogStepWithPrefix("Func", "[OK]", "Done")       // Step dengan prefix
+s.Logger.LogEnd("FuncName", "Success: %s", value)        // Selesai
+s.Logger.LogEndWithError("Func", "Error: %v", err)       // Selesai + error
+s.Logger.LogError("FuncName", "Error: %v", err)          // Error
+s.Logger.LogWarn("FuncName", "Warning: %s", value)       // Warning
+s.Logger.LogInfo("FuncName", "Info: %s", value)          // Info
+```
+
+### **Contoh - CREATE (WAJIB LOG)**
+
+```go
+func (s *Services) CreateUser(ctx context.Context, email string) error {
+    s.Logger.LogStart("CreateUser", "Creating user: %s", email)
+    
+    user := &models.User{Email: email}
+    if err := s.repo.User.Create(s.repo.User.DB, user); err != nil {
+        s.Logger.LogEndWithError("CreateUser", "Failed: %v", err)
+        return err
+    }
+    
+    s.Logger.LogEnd("CreateUser", "User created: %s (ID: %d)", email, user.ID)
+    return nil
+}
+```
+
+### **Contoh - GET Simple (TANPA LOG)**
+
+```go
+func (s *Services) GetUserByID(ctx context.Context, id uint) (*models.User, error) {
+    return s.repo.User.FindByID(s.repo.User.DB, id)
+}
+```
+
+**Output**: `logs/YYYY-MM-DD.log` | Auto rotation & cleanup (30 hari)
+
+---
+
 ## 📚 Available Helpers & Clients
 
 ### **Helpers** (`internal/helpers/`)
