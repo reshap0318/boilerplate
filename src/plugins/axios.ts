@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import storage from '@/helpers/storage'
+import { useAuthStore } from '@/stores/auth'
 
 export interface IApiResponse<TData> {
   code: number
@@ -8,7 +9,7 @@ export interface IApiResponse<TData> {
 }
 
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -18,8 +19,9 @@ const api: AxiosInstance = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    const token = storage.getItem<string>('token')
-    if (token) {
+    const authStore = useAuthStore()
+    const token = authStore.token
+    if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
@@ -32,7 +34,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      storage.removeItem('token')
+      storage.clearAll()
       window.location.href = '/login'
     }
     return Promise.reject(error)

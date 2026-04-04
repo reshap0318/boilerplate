@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import storage from '@/helpers/storage'
+import { useAuthStore } from '@/stores/auth'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -11,9 +12,15 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/',
-    name: 'Home',
-    component: () => import('@/pages/HomePage.vue'),
+    component: DefaultLayout,
     meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'Home',
+        component: () => import('@/pages/HomePage.vue'),
+      },
+    ],
   },
 ]
 
@@ -24,7 +31,8 @@ const router = createRouter({
 
 // Navigation guard
 router.beforeEach((to, _from) => {
-  const token = storage.getItem<string>('token')
+  const authStore = useAuthStore()
+  const token = authStore.token
 
   if (to.meta.requiresAuth && !token) {
     return { name: 'Login' }

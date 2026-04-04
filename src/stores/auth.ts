@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { post } from '@/plugins/axios'
 import storage from '@/helpers/storage'
 import type { IApiResponse } from '@/plugins/axios'
@@ -23,6 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(storage.getItem<string>('token'))
   const user = ref<ILoginResponse['user'] | null>(storage.getItem<ILoginResponse['user']>('user'))
   const isLoading = ref(false)
+  const isAuthenticated = computed((): boolean => !!token.value)
 
   const form = reactive<ILoginPayload>({
     email: '',
@@ -61,11 +62,9 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     token.value = null
     user.value = null
-    storage.removeItem('token')
-    storage.removeItem('user')
+    storage.clearAll()
   }
 
-  const isAuthenticated = (): boolean => !!token.value
 
   return { 
     token, 
