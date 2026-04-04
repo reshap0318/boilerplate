@@ -13,6 +13,7 @@ import (
 type RedisConfig struct {
 	Host     string
 	Port     string
+	User     string
 	Password string
 	DB       int
 }
@@ -23,6 +24,7 @@ func NewRedis(cfg RedisConfig) (*redis.Client, error) {
 
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
+		Username: cfg.User,
 		Password: cfg.Password,
 		DB:       cfg.DB,
 	})

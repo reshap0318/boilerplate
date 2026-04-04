@@ -98,6 +98,7 @@ func NewContainer() (*Container, error) {
 		redisClient, err := database.NewRedis(database.RedisConfig{
 			Host:     helpers.GetEnv("REDIS_HOST", "localhost"),
 			Port:     helpers.GetEnv("REDIS_PORT", "6379"),
+			User:     helpers.GetEnv("REDIS_USER", "root"),
 			Password: helpers.GetEnv("REDIS_PASSWORD", ""),
 			DB:       helpers.GetEnvInt("REDIS_DB", 0),
 		})
