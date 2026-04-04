@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios'
-import storage from '../helpers/storage'
+import storage from '@/helpers/storage'
 
 export interface IApiResponse<TData> {
   code: number

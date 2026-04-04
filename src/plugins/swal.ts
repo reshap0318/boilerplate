@@ -2,8 +2,6 @@ import Swal from 'sweetalert2'
 import type { SweetAlertOptions, SweetAlertResult } from 'sweetalert2'
 
 const defaultConfig: SweetAlertOptions = {
-  confirmButtonColor: '#3b82f6', // primary
-  cancelButtonColor: '#6b7280', // gray-500
   confirmButtonText: 'Confirm',
   cancelButtonText: 'Cancel',
   showCancelButton: false,
@@ -26,12 +24,12 @@ const defaultConfig: SweetAlertOptions = {
     validationMessage: 'text-danger mt-2',
     actions: 'flex gap-2 mt-6',
     confirmButton:
-      'px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90 active:scale-95',
+      'px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90 active:scale-95 bg-blue-600 text-white',
     cancelButton:
-      'px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90 active:scale-95 ml-2',
+      'px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90 active:scale-95 bg-gray-200 text-gray-700',
     loader: 'text-primary',
   },
-  buttonsStyling: false, // default true
+  buttonsStyling: false,
 }
 
 const success = (title: string, text?: string): Promise<SweetAlertResult> => {
@@ -49,7 +47,11 @@ const error = (title: string, text?: string): Promise<SweetAlertResult> => {
     icon: 'error',
     title,
     text,
-    confirmButtonColor: '#ef4444',
+    customClass: {
+      ...defaultConfig.customClass,
+      confirmButton:
+        'px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90 active:scale-95 bg-red-600 text-white',
+    },
   })
 }
 
@@ -61,6 +63,11 @@ const warning = (title: string, text?: string): Promise<SweetAlertResult> => {
     text,
     showCancelButton: true,
     confirmButtonText: 'Yes',
+    customClass: {
+      ...defaultConfig.customClass,
+      confirmButton:
+        'px-6 py-2.5 rounded-lg font-semibold transition-all hover:opacity-90 active:scale-95 bg-yellow-500 text-white',
+    },
   })
 }
 
