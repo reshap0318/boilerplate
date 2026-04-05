@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/reshap0318/go-boilerplate/internal/helpers"
 )
 
 // HealthCheck handles health check endpoint.
@@ -15,11 +16,11 @@ import (
 // @Router /api/health [get]
 func (h *Handlers) HealthCheck(c *gin.Context) {
 	status := h.svcs.HealthGetStatus(c.Request.Context())
-	
+
 	if status.Status == "unhealthy" {
-		c.JSON(http.StatusServiceUnavailable, status)
+		helpers.ErrorResponse(c, http.StatusServiceUnavailable, "Service unavailable")
 		return
 	}
-	
-	c.JSON(http.StatusOK, status)
+
+	helpers.OK(c, "Service healthy", status)
 }

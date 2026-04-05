@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
@@ -24,21 +22,17 @@ func (h *Handlers) AuthLogin(c *gin.Context) {
 	var req dtos.LoginRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		helpers.BadRequest(c, err.Error())
 		return
 	}
 
 	response, err := h.svcs.AuthLogin(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
-		})
+		helpers.Unauthorized(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	helpers.OK(c, "Login successful", response)
 }
 
 // AuthRefreshToken handles token refresh.
@@ -56,21 +50,17 @@ func (h *Handlers) AuthRefreshToken(c *gin.Context) {
 	var req dtos.RefreshTokenRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		helpers.BadRequest(c, err.Error())
 		return
 	}
 
 	response, err := h.svcs.AuthRefreshToken(c.Request.Context(), req.RefreshToken)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
-		})
+		helpers.Unauthorized(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	helpers.OK(c, "Token refreshed successfully", response)
 }
 
 // AuthLogout handles user logout.
@@ -82,9 +72,7 @@ func (h *Handlers) AuthRefreshToken(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Router /api/auth/logout [post]
 func (h *Handlers) AuthLogout(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Logout successful. Please clear your token on the client side.",
-	})
+	helpers.OK(c, "Logout successful. Please clear your token on the client side.", nil)
 }
 
 // AuthForgetPassword handles forget password request.
@@ -93,29 +81,29 @@ func (h *Handlers) AuthLogout(c *gin.Context) {
 // @Tags auth
 // @Accept json
 // @Produce json
-// @Param request body dtos.ForgetPasswordRequest true "Email and frontend URL"
+// @Param request body dtos.ForgetPasswordRequest true "Email"
 // @Success 200 {object} dtos.MessageResponse
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Router /api/auth/forgot-password [post]
 func (h *Handlers) AuthForgetPassword(c *gin.Context) {
 	var req dtos.ForgetPasswordRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		helpers.BadRequest(c, err.Error())
 		return
 	}
 
-	if err := h.svcs.AuthForgetPassword(c.Request.Context(), req.Email, req.FrontendURL); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+	if err := h.svcs.AuthForgetPassword(c.Request.Context(), req.Email); err != nil {
+		if err == helpers.ErrNotFound {
+			helpers.NotFound(c, "Email not found")
+			return
+		}
+		helpers.InternalServerError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, dtos.MessageResponse{
-		Message: "If the email exists, a reset link has been sent",
-	})
+	helpers.OK(c, "Reset password email sent", nil)
 }
 
 // AuthResetPassword handles reset password request.
@@ -133,32 +121,22 @@ func (h *Handlers) AuthResetPassword(c *gin.Context) {
 	var req dtos.ResetPasswordRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		helpers.BadRequest(c, err.Error())
 		return
 	}
 
 	if err := h.svcs.AuthResetPassword(c.Request.Context(), req.Token, req.NewPassword); err != nil {
 		if err == helpers.ErrTokenInvalid || err == helpers.ErrTokenExpired || err == helpers.ErrTokenUsed {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": err.Error(),
-			})
+			helpers.Unauthorized(c, err.Error())
 			return
 		}
 		if err == helpers.ErrNotFound {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": err.Error(),
-			})
+			helpers.NotFound(c, err.Error())
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		helpers.InternalServerError(c, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, dtos.MessageResponse{
-		Message: "Password has been reset successfully",
-	})
+	helpers.OK(c, "Password has been reset successfully", nil)
 }
