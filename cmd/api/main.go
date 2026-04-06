@@ -14,7 +14,6 @@ import (
 )
 
 func main() {
-	// Load .env file
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
@@ -26,7 +25,6 @@ func main() {
 
 	gin.SetMode(helpers.GetEnv("GIN_MODE", "release"))
 
-	// Initialize DI container
 	container, err := di.NewContainer()
 	if err != nil {
 		log.Fatalf("Failed to initialize container: %v", err)
@@ -35,37 +33,31 @@ func main() {
 
 	r := gin.Default()
 
-	// Set trusted proxy
 	if trustedProxies != "" {
 		if err := r.SetTrustedProxies(strings.Split(trustedProxies, ",")); err != nil {
 			log.Printf("Warning: failed to set trusted proxies: %v", err)
 		}
 	}
 
-	// Global middleware
 	r.Use(middleware.RateLimit(container.RateLimiter))
 	r.Use(middleware.CORS(allowedOrigins))
 
-	// API group (public routes)
 	apiGroup := r.Group("/api")
 	{
 		routes.RegisterHealthRoutes(apiGroup, container.Handlers)
 		routes.RegisterAuthRoutes(apiGroup, container.Handlers)
 	}
 
-	// Protected group (with JWT middleware)
 	protected := apiGroup.Group("")
 	protected.Use(middleware.JWTAuth(container.Services))
 	{
 		routes.RegisterAuthProtectedRoutes(protected, container.Handlers)
 		routes.RegisterPermissionRoutes(protected, container.Handlers)
+		routes.RegisterRoleRoutes(protected, container.Handlers)
 	}
 
-	// Health check
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "ok",
-		})
+		c.JSON(200, gin.H{"status": "ok"})
 	})
 
 	addr := host + ":" + port
