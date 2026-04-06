@@ -16,3 +16,8 @@ func NewRoleHasPermissionRepository(db *gorm.DB) *RoleHasPermissionRepository {
 		GenericRepository: NewGenericRepository(db, &models.RoleHasPermission{}),
 	}
 }
+
+// DeleteByRoleID deletes all role_has_permissions for a given role ID.
+func (r *RoleHasPermissionRepository) DeleteByRoleID(tx *gorm.DB, roleID uint) error {
+	return tx.Where("role_id = ?", roleID).Delete(&models.RoleHasPermission{}).Error
+}

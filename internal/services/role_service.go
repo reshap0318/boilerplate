@@ -89,7 +89,7 @@ func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest
 		}
 
 		// Replace all permissions
-		if err := tx.Where("role_id = ?", result.ID).Delete(&models.RoleHasPermission{}).Error; err != nil {
+		if err := s.repo.RoleHasPerm.DeleteByRoleID(tx, result.ID); err != nil {
 			return err
 		}
 
@@ -119,7 +119,7 @@ func (s *Services) RoleDelete(ctx context.Context, id uint) error {
 	s.Logger.LogStart("RoleDelete", "Deleting role ID: %d", id)
 
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		if err := tx.Where("role_id = ?", id).Delete(&models.RoleHasPermission{}).Error; err != nil {
+		if err := s.repo.RoleHasPerm.DeleteByRoleID(tx, id); err != nil {
 			return err
 		}
 		_, err := s.repo.Role.Delete(tx, id)
