@@ -108,7 +108,7 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 
 	// Cache UserDTO to Redis with fallback
 	if s.RedisClient.IsCacheAvailable() {
-		userDTO := dtos.ToUserDTO(user.Email, user.Name, user.ID)
+		userDTO := dtos.ToUserDTO(user)
 		sessionKey := fmt.Sprintf("session:%d", user.ID)
 		if err := s.RedisClient.SetJSON(sessionKey, userDTO, s.cfg.Expiration); err != nil {
 			s.Logger.LogWarn("AuthLogin", "Failed to cache session to Redis: %v", err)
@@ -122,7 +122,7 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 	return &dtos.LoginResponse{
 		Token:        token,
 		RefreshToken: refreshToken,
-		User:         dtos.ToUserDTO(user.Email, user.Name, user.ID),
+		User:         dtos.ToUserDTO(user),
 	}, nil
 }
 
@@ -170,7 +170,7 @@ func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*
 	return &dtos.LoginResponse{
 		Token:        token,
 		RefreshToken: newRefreshToken,
-		User:         dtos.ToUserDTO(user.Email, user.Name, user.ID),
+		User:         dtos.ToUserDTO(user),
 	}, nil
 }
 

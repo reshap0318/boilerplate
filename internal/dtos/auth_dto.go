@@ -1,5 +1,7 @@
 package dtos
 
+import "time"
+
 // LoginRequest represents the login request payload.
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
@@ -27,18 +29,11 @@ type RegisterRequest struct {
 
 // UserDTO represents user data transfer object.
 type UserDTO struct {
-	ID    uint   `json:"id"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
-}
-
-// ToUserDTO converts User model to UserDTO.
-func ToUserDTO(email, name string, id uint) UserDTO {
-	return UserDTO{
-		ID:    id,
-		Email: email,
-		Name:  name,
-	}
+	ID        uint      `json:"id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	Roles     []RoleDTO `json:"roles"`
 }
 
 // ForgetPasswordRequest represents the forget password request payload.

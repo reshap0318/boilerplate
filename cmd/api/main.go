@@ -60,6 +60,7 @@ func main() {
 		routes.RegisterAuthProtectedRoutes(protected, container.Handlers)
 		routes.RegisterPermissionRoutes(protected, container.Handlers)
 		routes.RegisterRoleRoutes(protected, container.Handlers)
+		routes.RegisterUserRoutes(protected, container.Handlers)
 	}
 
 	// Health check

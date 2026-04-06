@@ -106,6 +106,10 @@ func runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName strin
 		err := db.AutoMigrate(
 			&models.User{},
 			&models.PasswordReset{},
+			&models.Permission{},
+			&models.Role{},
+			&models.RoleHasPermission{},
+			&models.UserHasRole{},
 		)
 		if err != nil {
 			log.Fatalf("Migration failed: %v", err)
@@ -118,6 +122,10 @@ func runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName strin
 
 		// Drop tables in correct order (foreign key constraints)
 		err := db.Migrator().DropTable(
+			&models.UserHasRole{},
+			&models.RoleHasPermission{},
+			&models.Role{},
+			&models.Permission{},
 			&models.PasswordReset{},
 			&models.User{},
 		)
@@ -158,7 +166,11 @@ func runSeed(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName string) {
 	fmt.Println("\n🌱 Seeding default data...\n")
 
 	// Seed in correct order
-	seeders.SeedUsers(db)
+	permIDs := seeders.SeedPermissions(db)
+	roleIDs := seeders.SeedRoles(db)
+	userEmails := seeders.SeedUsers(db)
+	seeders.SeedRolePermissions(db, roleIDs, permIDs)
+	seeders.SeedUserRoles(db, userEmails, roleIDs)
 
 	fmt.Println("\n✅ Seeding completed!")
 }
