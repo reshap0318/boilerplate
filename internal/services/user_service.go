@@ -38,36 +38,42 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserRequest) (*dtos.
 		Password: string(hashedPassword),
 	}
 
-	var result *models.User
-	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		var err error
-		result, err = s.repo.User.Create(tx, user)
+	res, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
+		result, err := s.repo.User.Create(tx, user)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
+		// Assign roles
+		var roles []models.Role
 		for _, roleID := range req.Roles {
-			userRole := &models.UserHasRole{
-				UserID: result.ID,
-				RoleID: roleID,
-			}
-			if _, err := s.repo.UserRole.Create(tx, userRole); err != nil {
-				s.Logger.LogStep("UserCreate", "Skipping role ID %d: %v", roleID, err)
-			}
+			roles = append(roles, models.Role{ID: roleID})
 		}
-		return nil
-	}); err != nil {
+		if err := tx.Model(&result).Association("Roles").Append(roles); err != nil {
+			s.Logger.LogStep("UserCreate", "Failed to assign roles: %v", err)
+		}
+
+		// Reload user with roles
+		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
+		if err != nil {
+			return nil, err
+		}
+
+		return reloaded, nil
+	})
+	if err != nil {
 		s.Logger.LogEndWithError("UserCreate", "Failed to create user: %v", err)
 		return nil, err
 	}
 
+	result := res.(*models.User)
 	dto := dtos.ToUserDTO(result)
 	s.Logger.LogEnd("UserCreate", "User created: %s (ID: %d)", dto.Email, dto.ID)
 	return &dto, nil
 }
 
 // UserGetAll returns paginated users with roles.
-func (s *Services) UserGetAll(ctx context.Context, opts *repositories.QueryOptions) (*dtos.UserPageResult, error) {
+func (s *Services) UserGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.User], error) {
 	if opts == nil {
 		opts = &repositories.QueryOptions{}
 	}
@@ -77,20 +83,14 @@ func (s *Services) UserGetAll(ctx context.Context, opts *repositories.QueryOptio
 	if opts.Order == "" {
 		opts.Order = "ASC"
 	}
-	opts.Preloads = []string{"UserHasRoles.Role"}
+	opts.Preloads = []string{"Roles"}
 
-	pageResult, err := s.repo.User.FindAllWithOpts(nil, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	result := dtos.ToUserPageResult(pageResult)
-	return &result, nil
+	return s.repo.User.FindAllWithOpts(nil, opts)
 }
 
 // UserGetByID returns a user by ID with roles.
 func (s *Services) UserGetByID(ctx context.Context, id uint) (*dtos.UserDTO, error) {
-	user, err := s.repo.User.FindByID(nil, id, "UserHasRoles.Role")
+	user, err := s.repo.User.FindByID(nil, id, "Roles")
 	if err != nil {
 		return nil, helpers.ErrNotFound
 	}
@@ -134,33 +134,39 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserRequest
 		updates["password"] = string(hashedPassword)
 	}
 
-	var result *models.User
-	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		var err error
-		result, err = s.repo.User.UpdateMap(tx, &models.User{ID: id}, updates)
+	res, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
+		result, err := s.repo.User.UpdateMap(tx, &models.User{ID: id}, updates)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		if err := s.repo.UserRole.DeleteByUserID(tx, result.ID); err != nil {
-			return err
+		// Replace roles - clear then assign
+		if err := tx.Model(&result).Association("Roles").Clear(); err != nil {
+			return nil, err
 		}
 
+		var roles []models.Role
 		for _, roleID := range req.Roles {
-			userRole := &models.UserHasRole{
-				UserID: result.ID,
-				RoleID: roleID,
-			}
-			if _, err := s.repo.UserRole.Create(tx, userRole); err != nil {
-				s.Logger.LogStep("UserUpdate", "Skipping role ID %d: %v", roleID, err)
-			}
+			roles = append(roles, models.Role{ID: roleID})
 		}
-		return nil
-	}); err != nil {
+		if err := tx.Model(&result).Association("Roles").Append(roles); err != nil {
+			s.Logger.LogStep("UserUpdate", "Failed to assign roles: %v", err)
+		}
+
+		// Reload user with roles
+		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
+		if err != nil {
+			return nil, err
+		}
+
+		return reloaded, nil
+	})
+	if err != nil {
 		s.Logger.LogEndWithError("UserUpdate", "Failed to update user: %v", err)
 		return nil, err
 	}
 
+	result := res.(*models.User)
 	dto := dtos.ToUserDTO(result)
 	s.Logger.LogEnd("UserUpdate", "User updated: %s (ID: %d)", dto.Email, dto.ID)
 	return &dto, nil
@@ -171,7 +177,8 @@ func (s *Services) UserDelete(ctx context.Context, id uint) error {
 	s.Logger.LogStart("UserDelete", "Deleting user ID: %d", id)
 
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		if err := s.repo.UserRole.DeleteByUserID(tx, id); err != nil {
+		user := models.User{ID: id}
+		if err := tx.Model(&user).Association("Roles").Clear(); err != nil {
 			return err
 		}
 		_, err := s.repo.User.Delete(tx, id)

@@ -15,7 +15,7 @@ type User struct {
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
-	UserHasRoles  []UserHasRole  `gorm:"foreignKey:UserID" json:"-"`
+	Roles         []Role         `gorm:"many2many:user_has_roles;joinForeignKey:user_id;joinReferences:role_id" json:"roles"`
 }
 
 // TableName specifies the table name for User model.

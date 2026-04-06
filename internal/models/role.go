@@ -14,6 +14,7 @@ type Role struct {
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	Permissions []Permission   `gorm:"many2many:role_has_permissions;joinForeignKey:role_id;joinReferences:permission_id" json:"permissions"`
 }
 
 // TableName specifies the table name for Role model.
