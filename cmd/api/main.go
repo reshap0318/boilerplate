@@ -58,6 +58,7 @@ func main() {
 	protected.Use(middleware.JWTAuth(container.Services))
 	{
 		routes.RegisterAuthProtectedRoutes(protected, container.Handlers)
+		routes.RegisterPermissionRoutes(protected, container.Handlers)
 	}
 
 	// Health check
