@@ -17,7 +17,7 @@ func (h *Handlers) RoleCreate(c *gin.Context) {
 		return
 	}
 
-	dto, err := h.svcs.CreateRole(c.Request.Context(), req)
+	dto, err := h.svcs.RoleCreate(c.Request.Context(), req)
 	if err != nil {
 		helpers.InternalServerError(c, "Failed to create role")
 		return
@@ -28,7 +28,7 @@ func (h *Handlers) RoleCreate(c *gin.Context) {
 
 // RoleGetAll handles GET /api/roles
 func (h *Handlers) RoleGetAll(c *gin.Context) {
-	dtos, err := h.svcs.GetAllRoles(c.Request.Context())
+	dtos, err := h.svcs.RoleGetAll(c.Request.Context())
 	if err != nil {
 		helpers.InternalServerError(c, "Failed to fetch roles")
 		return
@@ -45,7 +45,7 @@ func (h *Handlers) RoleGetByID(c *gin.Context) {
 		return
 	}
 
-	dto, err := h.svcs.GetRoleByID(c.Request.Context(), uint(id))
+	dto, err := h.svcs.RoleGetByID(c.Request.Context(), uint(id))
 	if err != nil {
 		helpers.NotFound(c, "Role not found")
 		return
@@ -68,7 +68,7 @@ func (h *Handlers) RoleUpdate(c *gin.Context) {
 		return
 	}
 
-	dto, err := h.svcs.UpdateRole(c.Request.Context(), uint(id), req)
+	dto, err := h.svcs.RoleUpdate(c.Request.Context(), uint(id), req)
 	if err != nil {
 		helpers.NotFound(c, "Role not found")
 		return
@@ -85,7 +85,7 @@ func (h *Handlers) RoleDelete(c *gin.Context) {
 		return
 	}
 
-	err = h.svcs.DeleteRole(c.Request.Context(), uint(id))
+	err = h.svcs.RoleDelete(c.Request.Context(), uint(id))
 	if err != nil {
 		helpers.NotFound(c, "Role not found")
 		return
@@ -102,7 +102,7 @@ func (h *Handlers) RoleGetPermissions(c *gin.Context) {
 		return
 	}
 
-	perms, err := h.svcs.GetRolePermissions(c.Request.Context(), uint(id))
+	perms, err := h.svcs.RoleGetPermissions(c.Request.Context(), uint(id))
 	if err != nil {
 		helpers.InternalServerError(c, "Failed to fetch role permissions")
 		return
