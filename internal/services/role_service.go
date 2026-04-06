@@ -27,7 +27,7 @@ func (s *Services) RoleCreate(ctx context.Context, req dtos.RoleRequest) (*dtos.
 			return err
 		}
 
-		for _, permID := range req.PermissionIDs {
+		for _, permID := range req.Permissions {
 			rolePerm := &models.RoleHasPermission{
 				RoleID:       result.ID,
 				PermissionID: permID,
@@ -93,7 +93,7 @@ func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest
 			return err
 		}
 
-		for _, permID := range req.PermissionIDs {
+		for _, permID := range req.Permissions {
 			rolePerm := &models.RoleHasPermission{
 				RoleID:       result.ID,
 				PermissionID: permID,
