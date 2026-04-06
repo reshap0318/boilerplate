@@ -513,6 +513,51 @@ err := s.EmailClient.SendEmail(req)
 
 ---
 
+### **Redis Cache** (`internal/database/redis_cache.go`)
+
+> 🔴 Redis client sudah di-inject ke Services via DI Container. Access via `s.RedisClient`.
+
+**PENTING**: Selalu cek `s.RedisClient.IsCacheAvailable()` sebelum akses Redis. Redis errors **TIDAK** boleh menyebabkan operasi gagal.
+
+#### Cara Pakai
+
+```go
+// Cek dulu apakah Redis aktif
+if s.RedisClient.IsCacheAvailable() {
+    // SET - simpan data
+    err := s.RedisClient.SetJSON("session:1", userDTO, time.Hour*24)
+    if err != nil {
+        s.Logger.LogWarn("FuncName", "Redis SET failed: %v", err) // fallback, jangan return error
+    }
+
+    // GET - ambil data
+    var cached dtos.UserDTO
+    if err := s.RedisClient.GetJSON("session:1", &cached); err == nil {
+        // Cache hit - pakai cached data
+    } else {
+        // Cache miss/error - fallback ke DB
+    }
+
+    // DELETE
+    s.RedisClient.Delete("session:1")
+}
+```
+
+#### Key Pattern yang Disarankan
+| Pattern | Contoh | Deskripsi |
+|---------|--------|-----------|
+| `session:{userID}` | `session:1` | User session cache |
+
+#### Methods Utama
+| Method | Deskripsi |
+|--------|-----------|
+| `IsCacheAvailable()` | Cek apakah Redis aktif |
+| `SetJSON(key, value, ttl)` | Simpan JSON dengan TTL |
+| `GetJSON(key, &dest)` | Ambil & unmarshal JSON |
+| `Delete(keys...)` | Hapus key |
+
+---
+
 ### **Creating New Helpers**
 
 > 💡 **Rule of Thumb**: If a function can be used in more than 1 place, make it a helper!
