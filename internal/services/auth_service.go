@@ -16,9 +16,11 @@ import (
 
 // Claims represents JWT claims.
 type Claims struct {
-	UserID uint   `json:"user_id"`
-	Email  string `json:"email"`
-	Name   string `json:"name"`
+	UserID      uint     `json:"user_id"`
+	Email       string   `json:"email"`
+	Name        string   `json:"name"`
+	Roles       []string `json:"roles"`
+	Permissions []string `json:"permissions"`
 	jwt.RegisteredClaims
 }
 
@@ -187,11 +189,51 @@ func (s *Services) checkPassword(password, hash string) bool {
 	return err == nil
 }
 
+// getUserRolesAndPermissions fetches role names and permission names for a user
+func (s *Services) getUserRolesAndPermissions(userID uint) (roles []string, permissions []string) {
+	var userRoles []models.UserHasRole
+	if err := s.repo.UserRole.DB.Where("user_id = ?", userID).Preload("Role").Preload("Role.RoleHasPermissions.Permission").Find(&userRoles).Error; err != nil {
+		return []string{}, []string{}
+	}
+
+	roleSet := make(map[string]bool)
+	permSet := make(map[string]bool)
+
+	for _, ur := range userRoles {
+		roleSet[ur.Role.Name] = true
+		for _, rp := range ur.Role.RoleHasPermissions {
+			if rp.Permission.Name != "" {
+				permSet[rp.Permission.Name] = true
+			}
+		}
+	}
+
+	for name := range roleSet {
+		roles = append(roles, name)
+	}
+	for name := range permSet {
+		permissions = append(permissions, name)
+	}
+
+	if roles == nil {
+		roles = []string{}
+	}
+	if permissions == nil {
+		permissions = []string{}
+	}
+
+	return roles, permissions
+}
+
 func (s *Services) generateToken(user *models.User) (string, error) {
+	roles, permissions := s.getUserRolesAndPermissions(user.ID)
+
 	claims := Claims{
-		UserID: user.ID,
-		Email:  user.Email,
-		Name:   user.Name,
+		UserID:      user.ID,
+		Email:       user.Email,
+		Name:        user.Name,
+		Roles:       roles,
+		Permissions: permissions,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.Expiration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -204,10 +246,14 @@ func (s *Services) generateToken(user *models.User) (string, error) {
 }
 
 func (s *Services) generateRefreshToken(user *models.User) (string, error) {
+	roles, permissions := s.getUserRolesAndPermissions(user.ID)
+
 	claims := Claims{
-		UserID: user.ID,
-		Email:  user.Email,
-		Name:   user.Name,
+		UserID:      user.ID,
+		Email:       user.Email,
+		Name:        user.Name,
+		Roles:       roles,
+		Permissions: permissions,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.RefreshExp)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
