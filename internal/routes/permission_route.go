@@ -10,10 +10,10 @@ import (
 func RegisterPermissionRoutes(r *gin.RouterGroup, handlers *handlers.Handlers) {
 	permissions := r.Group("/permissions")
 	{
-		permissions.POST("", handlers.CreatePermission)
-		permissions.GET("", handlers.GetAllPermissions)
-		permissions.GET("/:id", handlers.GetPermissionByID)
-		permissions.PUT("/:id", handlers.UpdatePermission)
-		permissions.DELETE("/:id", handlers.DeletePermission)
+		permissions.POST("", handlers.PermissionCreate)
+		permissions.GET("", handlers.PermissionGetAll)
+		permissions.GET("/:id", handlers.PermissionGetByID)
+		permissions.PUT("/:id", handlers.PermissionUpdate)
+		permissions.DELETE("/:id", handlers.PermissionDelete)
 	}
 }

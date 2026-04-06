@@ -9,15 +9,15 @@ import (
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 )
 
-// CreatePermission handles POST /api/permissions
-func (h *Handlers) CreatePermission(c *gin.Context) {
-	var req dtos.CreatePermissionRequest
+// PermissionCreate handles POST /api/permissions
+func (h *Handlers) PermissionCreate(c *gin.Context) {
+	var req dtos.PermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helpers.BadRequest(c, err.Error())
 		return
 	}
 
-	dto, err := h.svcs.CreatePermission(c.Request.Context(), req)
+	dto, err := h.svcs.PermissionCreate(c.Request.Context(), req)
 	if err != nil {
 		helpers.InternalServerError(c, "Failed to create permission")
 		return
@@ -26,9 +26,9 @@ func (h *Handlers) CreatePermission(c *gin.Context) {
 	helpers.Created(c, "Permission created successfully", dto)
 }
 
-// GetAllPermissions handles GET /api/permissions
-func (h *Handlers) GetAllPermissions(c *gin.Context) {
-	dtos, err := h.svcs.GetAllPermissions(c.Request.Context())
+// PermissionGetAll handles GET /api/permissions
+func (h *Handlers) PermissionGetAll(c *gin.Context) {
+	dtos, err := h.svcs.PermissionGetAll(c.Request.Context())
 	if err != nil {
 		helpers.InternalServerError(c, "Failed to fetch permissions")
 		return
@@ -37,15 +37,15 @@ func (h *Handlers) GetAllPermissions(c *gin.Context) {
 	helpers.OK(c, "Permissions fetched successfully", dtos)
 }
 
-// GetPermissionByID handles GET /api/permissions/:id
-func (h *Handlers) GetPermissionByID(c *gin.Context) {
+// PermissionGetByID handles GET /api/permissions/:id
+func (h *Handlers) PermissionGetByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		helpers.BadRequest(c, "Invalid permission ID")
 		return
 	}
 
-	dto, err := h.svcs.GetPermissionByID(c.Request.Context(), uint(id))
+	dto, err := h.svcs.PermissionGetByID(c.Request.Context(), uint(id))
 	if err != nil {
 		helpers.NotFound(c, "Permission not found")
 		return
@@ -54,21 +54,21 @@ func (h *Handlers) GetPermissionByID(c *gin.Context) {
 	helpers.OK(c, "Permission fetched successfully", dto)
 }
 
-// UpdatePermission handles PUT /api/permissions/:id
-func (h *Handlers) UpdatePermission(c *gin.Context) {
+// PermissionUpdate handles PUT /api/permissions/:id
+func (h *Handlers) PermissionUpdate(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		helpers.BadRequest(c, "Invalid permission ID")
 		return
 	}
 
-	var req dtos.UpdatePermissionRequest
+	var req dtos.PermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helpers.BadRequest(c, err.Error())
 		return
 	}
 
-	dto, err := h.svcs.UpdatePermission(c.Request.Context(), uint(id), req)
+	dto, err := h.svcs.PermissionUpdate(c.Request.Context(), uint(id), req)
 	if err != nil {
 		helpers.NotFound(c, "Permission not found")
 		return
@@ -77,15 +77,15 @@ func (h *Handlers) UpdatePermission(c *gin.Context) {
 	helpers.OK(c, "Permission updated successfully", dto)
 }
 
-// DeletePermission handles DELETE /api/permissions/:id
-func (h *Handlers) DeletePermission(c *gin.Context) {
+// PermissionDelete handles DELETE /api/permissions/:id
+func (h *Handlers) PermissionDelete(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
 		helpers.BadRequest(c, "Invalid permission ID")
 		return
 	}
 
-	err = h.svcs.DeletePermission(c.Request.Context(), uint(id))
+	err = h.svcs.PermissionDelete(c.Request.Context(), uint(id))
 	if err != nil {
 		helpers.NotFound(c, "Permission not found")
 		return

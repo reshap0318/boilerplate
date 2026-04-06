@@ -6,8 +6,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// Permission represents a permission in the system.
-type Permission struct {
+// Role represents a role in the system.
+type Role struct {
 	ID          uint           `gorm:"primaryKey" json:"id"`
 	Name        string         `gorm:"uniqueIndex;size:100;not null" json:"name"`
 	Description *string        `gorm:"size:255" json:"description"`
@@ -16,7 +16,7 @@ type Permission struct {
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
-// TableName specifies the table name for Permission model.
-func (Permission) TableName() string {
-	return "permissions"
+// TableName specifies the table name for Role model.
+func (Role) TableName() string {
+	return "roles"
 }

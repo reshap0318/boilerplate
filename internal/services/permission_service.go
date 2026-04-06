@@ -3,33 +3,40 @@ package services
 import (
 	"context"
 
+	"gorm.io/gorm"
+
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 	"github.com/reshap0318/go-boilerplate/internal/models"
 )
 
-// CreatePermission creates a new permission.
-func (s *Services) CreatePermission(ctx context.Context, req dtos.CreatePermissionRequest) (*dtos.PermissionDTO, error) {
-	s.Logger.LogStart("CreatePermission", "Creating permission: %s", req.Name)
+// PermissionCreate creates a new permission.
+func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
+	s.Logger.LogStart("PermissionCreate", "Creating permission: %s", req.Name)
 
 	permission := &models.Permission{
 		Name:        req.Name,
 		Description: req.Description,
 	}
 
-	if _, err := s.repo.Permission.Create(s.repo.Permission.DB, permission); err != nil {
-		s.Logger.LogEndWithError("CreatePermission", "Failed to create permission: %v", err)
+	var result *models.Permission
+	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+		var err error
+		result, err = s.repo.Permission.Create(tx, permission)
+		return err
+	}); err != nil {
+		s.Logger.LogEndWithError("PermissionCreate", "Failed to create permission: %v", err)
 		return nil, err
 	}
 
-	dto := dtos.ToPermissionDTO(permission)
-	s.Logger.LogEnd("CreatePermission", "Permission created: %s (ID: %d)", dto.Name, dto.ID)
+	dto := dtos.ToPermissionDTO(result)
+	s.Logger.LogEnd("PermissionCreate", "Permission created: %s (ID: %d)", dto.Name, dto.ID)
 	return &dto, nil
 }
 
-// GetAllPermissions returns all permissions.
-func (s *Services) GetAllPermissions(ctx context.Context) ([]dtos.PermissionDTO, error) {
-	permissions, err := s.repo.Permission.FindAll(s.repo.Permission.DB)
+// PermissionGetAll returns all permissions.
+func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, error) {
+	permissions, err := s.repo.Permission.FindAll(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +44,9 @@ func (s *Services) GetAllPermissions(ctx context.Context) ([]dtos.PermissionDTO,
 	return dtos.ToPermissionDTOList(permissions), nil
 }
 
-// GetPermissionByID returns a permission by ID.
-func (s *Services) GetPermissionByID(ctx context.Context, id uint) (*dtos.PermissionDTO, error) {
-	permission, err := s.repo.Permission.FindByID(s.repo.Permission.DB, id)
+// PermissionGetByID returns a permission by ID.
+func (s *Services) PermissionGetByID(ctx context.Context, id uint) (*dtos.PermissionDTO, error) {
+	permission, err := s.repo.Permission.FindByID(nil, id)
 	if err != nil {
 		return nil, helpers.ErrNotFound
 	}
@@ -48,55 +55,47 @@ func (s *Services) GetPermissionByID(ctx context.Context, id uint) (*dtos.Permis
 	return &dto, nil
 }
 
-// UpdatePermission updates an existing permission.
-func (s *Services) UpdatePermission(ctx context.Context, id uint, req dtos.UpdatePermissionRequest) (*dtos.PermissionDTO, error) {
-	s.Logger.LogStart("UpdatePermission", "Updating permission ID: %d", id)
+// PermissionUpdate updates an existing permission.
+func (s *Services) PermissionUpdate(ctx context.Context, id uint, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
+	s.Logger.LogStart("PermissionUpdate", "Updating permission ID: %d", id)
 
-	permission, err := s.repo.Permission.FindByID(s.repo.Permission.DB, id)
-	if err != nil {
-		s.Logger.LogEndWithError("UpdatePermission", "Permission not found: %v", err)
-		return nil, helpers.ErrNotFound
+	permission := &models.Permission{
+		ID: id,
 	}
-
-	s.Logger.LogStep("UpdatePermission", "Permission found: %s", permission.Name)
-
 	if req.Name != "" {
 		permission.Name = req.Name
 	}
-	if req.Description != "" {
+	if req.Description != nil {
 		permission.Description = req.Description
 	}
 
-	if _, err := s.repo.Permission.Update(s.repo.Permission.DB, permission, &models.Permission{
-		Name:        permission.Name,
-		Description: permission.Description,
+	var result *models.Permission
+	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+		var err error
+		result, err = s.repo.Permission.Update(tx, &models.Permission{ID: id}, permission)
+		return err
 	}); err != nil {
-		s.Logger.LogEndWithError("UpdatePermission", "Failed to update permission: %v", err)
+		s.Logger.LogEndWithError("PermissionUpdate", "Failed to update permission: %v", err)
 		return nil, err
 	}
 
-	dto := dtos.ToPermissionDTO(permission)
-	s.Logger.LogEnd("UpdatePermission", "Permission updated: %s (ID: %d)", dto.Name, dto.ID)
+	dto := dtos.ToPermissionDTO(result)
+	s.Logger.LogEnd("PermissionUpdate", "Permission updated: %s (ID: %d)", dto.Name, dto.ID)
 	return &dto, nil
 }
 
-// DeletePermission soft deletes a permission.
-func (s *Services) DeletePermission(ctx context.Context, id uint) error {
-	s.Logger.LogStart("DeletePermission", "Deleting permission ID: %d", id)
+// PermissionDelete soft deletes a permission.
+func (s *Services) PermissionDelete(ctx context.Context, id uint) error {
+	s.Logger.LogStart("PermissionDelete", "Deleting permission ID: %d", id)
 
-	_, err := s.repo.Permission.FindByID(s.repo.Permission.DB, id)
-	if err != nil {
-		s.Logger.LogEndWithError("DeletePermission", "Permission not found: %v", err)
-		return helpers.ErrNotFound
-	}
-
-	s.Logger.LogStep("DeletePermission", "Permission found, deleting...")
-
-	if _, err := s.repo.Permission.Delete(s.repo.Permission.DB, id); err != nil {
-		s.Logger.LogEndWithError("DeletePermission", "Failed to delete permission: %v", err)
+	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+		_, err := s.repo.Permission.Delete(tx, id)
+		return err
+	}); err != nil {
+		s.Logger.LogEndWithError("PermissionDelete", "Failed to delete permission: %v", err)
 		return err
 	}
 
-	s.Logger.LogEnd("DeletePermission", "Permission deleted: ID: %d", id)
+	s.Logger.LogEnd("PermissionDelete", "Permission deleted: ID: %d", id)
 	return nil
 }
