@@ -42,7 +42,8 @@ func main() {
 		}
 	}
 
-	// CORS middleware
+	// Global middleware
+	r.Use(middleware.RateLimit(container.RateLimiter))
 	r.Use(middleware.CORS(allowedOrigins))
 
 	// API group (public routes)

@@ -167,39 +167,43 @@ func (l *Logger) formatLog(function, message string) string {
 	return fmt.Sprintf("%s %s", timestamp, message)
 }
 
-// Printf prints formatted message to log.
+// Printf prints formatted message to log with timestamp.
 func (l *Logger) Printf(format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.logger != nil {
-		l.logger.Println(fmt.Sprintf(format, v...))
+		timestamp := time.Now().Format("2006-01-02 15:04:05")
+		l.logger.Println(fmt.Sprintf("%s %s", timestamp, fmt.Sprintf(format, v...)))
 	}
 }
 
-// Println prints message to log.
+// Println prints message to log with timestamp.
 func (l *Logger) Println(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.logger != nil {
-		l.logger.Println(fmt.Sprint(v...))
+		timestamp := time.Now().Format("2006-01-02 15:04:05")
+		l.logger.Println(fmt.Sprintf("%s %s", timestamp, fmt.Sprint(v...)))
 	}
 }
 
-// Fatal prints message and exits.
+// Fatal prints message and exits with timestamp.
 func (l *Logger) Fatal(v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.logger != nil {
-		l.logger.Fatal(fmt.Sprint(v...))
+		timestamp := time.Now().Format("2006-01-02 15:04:05")
+		l.logger.Fatal(fmt.Sprintf("%s %s", timestamp, fmt.Sprint(v...)))
 	}
 }
 
-// Fatalf prints formatted message and exits.
+// Fatalf prints formatted message and exits with timestamp.
 func (l *Logger) Fatalf(format string, v ...interface{}) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.logger != nil {
-		l.logger.Fatal(fmt.Sprintf(format, v...))
+		timestamp := time.Now().Format("2006-01-02 15:04:05")
+		l.logger.Fatal(fmt.Sprintf("%s %s", timestamp, fmt.Sprintf(format, v...)))
 	}
 }
 

@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+main
 bin/
 dist/
 tmp/
@@ -41,3 +42,6 @@ Thumbs.db
 
 # Docker
 .dockerignore
+
+# AI
+plan.md

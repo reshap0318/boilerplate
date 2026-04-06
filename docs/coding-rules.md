@@ -57,7 +57,16 @@ cp .env.example .env
 # Server
 APP_HOST=0.0.0.0
 APP_PORT=8080
+APP_FE_URL=http://localhost:3000
+
+# Gin
 GIN_MODE=release
+
+# Trusted Proxies (comma-separated IPs, leave empty to disable)
+TRUSTED_PROXIES=
+
+# CORS Allowed Origins (comma-separated or * for all)
+ALLOWED_ORIGINS=*
 
 # Database
 DB_CONNECTION=mysql
@@ -67,15 +76,28 @@ DB_DATABASE=laravel
 DB_USERNAME=root
 DB_PASSWORD=
 
-# Redis (opsional)
+# Redis
 REDIS_ENABLED=true
 REDIS_HOST=localhost
 REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 JWT_EXPIRATION=24
 JWT_REFRESH_EXPIRATION=168
+
+# Rate Limiting
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW=60
+
+# Email/SMTP (opsional - untuk password reset)
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
 ```
 
 ### Commands
@@ -283,19 +305,73 @@ go-boilerplate/
 
 ---
 
+## 📝 Logging Rules (MANDATORY)
+
+> ⚠️ **Logger tersedia di Services**: `s.Logger`
+
+### **Kapan Wajib Log?**
+
+| Operasi | Wajib? | Operasi | Wajib? |
+|---------|--------|---------|--------|
+| **CREATE** | ✅ YA | **GET Simple** | ❌ TIDAK |
+| **UPDATE** | ✅ YA | **GET Complex** | ✅ YA |
+| **DELETE** | ✅ YA | **Auth** | ✅ YA |
+
+### **Cara Menggunakan**
+
+```go
+s.Logger.LogStart("FuncName", "Message: %s", value)      // Mulai
+s.Logger.LogStep("FuncName", "Step: %s", value)          // Step
+s.Logger.LogStepWithPrefix("Func", "[OK]", "Done")       // Step dengan prefix
+s.Logger.LogEnd("FuncName", "Success: %s", value)        // Selesai
+s.Logger.LogEndWithError("Func", "Error: %v", err)       // Selesai + error
+s.Logger.LogError("FuncName", "Error: %v", err)          // Error
+s.Logger.LogWarn("FuncName", "Warning: %s", value)       // Warning
+s.Logger.LogInfo("FuncName", "Info: %s", value)          // Info
+```
+
+### **Contoh - CREATE (WAJIB LOG)**
+
+```go
+func (s *Services) CreateUser(ctx context.Context, email string) error {
+    s.Logger.LogStart("CreateUser", "Creating user: %s", email)
+    
+    user := &models.User{Email: email}
+    if err := s.repo.User.Create(s.repo.User.DB, user); err != nil {
+        s.Logger.LogEndWithError("CreateUser", "Failed: %v", err)
+        return err
+    }
+    
+    s.Logger.LogEnd("CreateUser", "User created: %s (ID: %d)", email, user.ID)
+    return nil
+}
+```
+
+### **Contoh - GET Simple (TANPA LOG)**
+
+```go
+func (s *Services) GetUserByID(ctx context.Context, id uint) (*models.User, error) {
+    return s.repo.User.FindByID(s.repo.User.DB, id)
+}
+```
+
+**Output**: `logs/YYYY-MM-DD.log` | Auto rotation & cleanup (30 hari)
+
+---
+
 ## 📚 Available Helpers & Clients
 
 ### **Helpers** (`internal/helpers/`)
 
 > ⚠️ **PENTING**: Selalu gunakan helper yang ada sebelum membuat function baru. Jika ada operasi yang bisa digeneralisasi, buat helper baru!
 
-#### **Environment Helpers** (`env.go`)
+#### **Environment Helpers** (`env_helper.go`)
 | Function | Description | Example |
 |----------|-------------|---------|
 | `GetEnv(key, default)` | Get environment variable with default | `helpers.GetEnv("APP_PORT", "8080")` |
 | `GetEnvInt(key, default)` | Get environment variable as int | `helpers.GetEnvInt("JWT_EXPIRATION", 24)` |
 
-#### **Error Helpers** (`error.go`)
+#### **Error Helpers** (`error_helper.go`)
 | Error | Description |
 |-------|-------------|
 | `ErrNotFound` | Record not found |
@@ -308,12 +384,32 @@ go-boilerplate/
 | `ErrTokenUsed` | Reset token already used |
 | `ErrTokenInvalid` | Invalid reset token |
 
-#### **Crypto Helpers** (`crypto.go`)
+#### **Crypto Helpers** (`crypto_helper.go`)
 | Function | Description | Example |
 |----------|-------------|---------|
 | `GenerateRandomString(length)` | Generate cryptographically secure random string | `helpers.GenerateRandomString(32)` |
 | `HashString(str)` | Hash string using bcrypt | `helpers.HashString("mytoken")` |
 | `VerifyString(str, hash)` | Verify string against hash | `helpers.VerifyString("token", hash)` |
+
+#### **Response Helpers** (`response_helper.go`)
+| Function | Status | Description | Example |
+|----------|--------|-------------|---------|
+| `OK(c, msg, data)` | 200 | Success response | `helpers.OK(c, "Success", user)` |
+| `Created(c, msg, data)` | 201 | Created response | `helpers.Created(c, "Created", user)` |
+| `BadRequest(c, msg)` | 400 | Bad request | `helpers.BadRequest(c, "Invalid input")` |
+| `Unauthorized(c, msg)` | 401 | Unauthorized | `helpers.Unauthorized(c, "Invalid token")` |
+| `Forbidden(c, msg)` | 403 | Forbidden | `helpers.Forbidden(c, "Access denied")` |
+| `NotFound(c, msg)` | 404 | Not found | `helpers.NotFound(c, "User not found")` |
+| `InternalServerError(c, msg)` | 500 | Server error | `helpers.InternalServerError(c, "Error")` |
+
+**Response format:**
+```json
+{
+  "code": 200,
+  "message": "Success message",
+  "data": {} // opsional
+}
+```
 
 ---
 

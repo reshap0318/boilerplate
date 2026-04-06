@@ -43,8 +43,7 @@ func ToUserDTO(email, name string, id uint) UserDTO {
 
 // ForgetPasswordRequest represents the forget password request payload.
 type ForgetPasswordRequest struct {
-	Email       string `json:"email" binding:"required,email"`
-	FrontendURL string `json:"frontend_url" binding:"required"`
+	Email string `json:"email" binding:"required,email"`
 }
 
 // ResetPasswordRequest represents the reset password request payload.

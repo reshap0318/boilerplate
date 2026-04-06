@@ -187,17 +187,19 @@ func (s *Services) generateRefreshToken(user *models.User) (string, error) {
 }
 
 // AuthForgetPassword generates a reset token and sends it via email.
-func (s *Services) AuthForgetPassword(ctx context.Context, email, frontendURL string) error {
+func (s *Services) AuthForgetPassword(ctx context.Context, email string) error {
 	s.Logger.LogStart("AuthForgetPassword", "Reset password request for: %s", email)
 
 	user, err := s.repo.User.FindByEmail(email)
 	if err != nil {
 		s.Logger.LogStep("AuthForgetPassword", "User not found: %s", email)
-		s.Logger.LogEnd("AuthForgetPassword", "Reset password request completed (user not found - silent fail)")
-		return nil
+		s.Logger.LogEndWithError("AuthForgetPassword", "Reset password failed - user not found")
+		return helpers.ErrNotFound
 	}
 
 	s.Logger.LogStep("AuthForgetPassword", "User found: %s", email)
+
+	frontendURL := helpers.GetEnv("APP_FE_URL", "http://localhost:3000")
 
 	token, err := helpers.GenerateRandomString(32)
 	if err != nil {
