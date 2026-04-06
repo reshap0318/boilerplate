@@ -27,8 +27,8 @@ func main() {
 	dbPassword := helpers.GetEnv("DB_PASSWORD", "")
 	dbName := helpers.GetEnv("DB_DATABASE", "boilerplate")
 
-	if dbHost == "" || dbPort == "" || dbUser == "" || dbPassword == "" || dbName == "" {
-		log.Fatal("Database configuration is incomplete. Please set DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, and DB_DATABASE")
+	if dbHost == "" || dbPort == "" || dbUser == "" || dbName == "" {
+		log.Fatal("Database configuration is incomplete. Please set DB_HOST, DB_PORT, DB_USERNAME, and DB_DATABASE")
 	}
 
 	// Initialize database connection

@@ -529,7 +529,7 @@ protected.Use(middleware.JWTAuth(container.Services))
 - [ ] Model has `TableName()` method
 - [ ] DTO variables use feature prefix
 - [ ] Request DTO merged (Create & Update into 1)
-- [ ] Service functions use feature prefix
+- [ ] Service functions use feature prefix ({Feature}{Action})
 - [ ] Handler functions use feature prefix (`{Feature}{Action}`)
 - [ ] Write operations use `TxManager.WithinTransaction()`
 - [ ] Read operations use `nil` (NOT `.DB`)
