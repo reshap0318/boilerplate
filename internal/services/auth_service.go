@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -41,6 +42,26 @@ func (s *Services) AuthValidateToken(tokenString string) (*Claims, error) {
 
 	if claims.ExpiresAt.Before(time.Now()) {
 		return nil, helpers.ErrExpiredToken
+	}
+
+	// Try to get cached session from Redis with fallback to DB
+	if s.RedisClient.IsCacheAvailable() {
+		sessionKey := fmt.Sprintf("session:%d", claims.UserID)
+		var cachedUserDTO dtos.UserDTO
+		if err := s.RedisClient.GetJSON(sessionKey, &cachedUserDTO); err == nil {
+			// Cache hit - user data is valid, return claims
+			return claims, nil
+		} else {
+			// Cache miss or error, fallback to DB validation
+			s.Logger.LogWarn("AuthValidateToken", "Cache miss/error for session:%d, falling back to DB: %v", claims.UserID, err)
+		}
+	}
+
+	// Fallback: validate user from database
+	_, err = s.repo.User.FindByID(s.repo.User.DB, claims.UserID)
+	if err != nil {
+		s.Logger.LogStep("AuthValidateToken", "User not found in DB: %d", claims.UserID)
+		return nil, helpers.ErrInvalidCredential
 	}
 
 	return claims, nil
@@ -84,6 +105,18 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 	}
 
 	s.Logger.LogStep("AuthLogin", "Refresh token generated")
+
+	// Cache UserDTO to Redis with fallback
+	if s.RedisClient.IsCacheAvailable() {
+		userDTO := dtos.ToUserDTO(user.Email, user.Name, user.ID)
+		sessionKey := fmt.Sprintf("session:%d", user.ID)
+		if err := s.RedisClient.SetJSON(sessionKey, userDTO, s.cfg.Expiration); err != nil {
+			s.Logger.LogWarn("AuthLogin", "Failed to cache session to Redis: %v", err)
+		} else {
+			s.Logger.LogStep("AuthLogin", "Session cached to Redis")
+		}
+	}
+
 	s.Logger.LogEnd("AuthLogin", "Login successful for user: %s", email)
 
 	return &dtos.LoginResponse{

@@ -187,3 +187,8 @@ func (r *RedisCache) FlushDB() error {
 func (r *RedisCache) Ping() error {
 	return r.client.Ping(r.ctx).Err()
 }
+
+// IsCacheAvailable checks if cache is enabled and available
+func (r *RedisCache) IsCacheAvailable() bool {
+	return r.client != nil
+}
