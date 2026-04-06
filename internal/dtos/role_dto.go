@@ -41,3 +41,19 @@ func ToRoleDTOList(roles []models.Role) []RoleDTO {
 	}
 	return result
 }
+
+// RoleMiniDTO represents a lightweight role for user response.
+type RoleMiniDTO struct {
+	ID          uint    `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+}
+
+// ToRoleMiniDTO converts Role model to RoleMiniDTO.
+func ToRoleMiniDTO(r *models.Role) RoleMiniDTO {
+	return RoleMiniDTO{
+		ID:          r.ID,
+		Name:        r.Name,
+		Description: r.Description,
+	}
+}

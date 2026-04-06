@@ -14,15 +14,23 @@ type UserRequest struct {
 // ToUserDTO converts User model to UserDTO.
 func ToUserDTO(u *models.User) UserDTO {
 	dto := UserDTO{
-		ID:        u.ID,
-		Name:      u.Name,
-		Email:     u.Email,
-		CreatedAt: u.CreatedAt,
-		Roles:     []RoleDTO{},
+		ID:          u.ID,
+		Name:        u.Name,
+		Email:       u.Email,
+		CreatedAt:   u.CreatedAt,
+		Roles:       []RoleMiniDTO{},
+		Permissions: []PermissionDTO{},
 	}
 
+	permSet := make(map[uint]bool)
 	for _, r := range u.Roles {
-		dto.Roles = append(dto.Roles, ToRoleDTO(&r))
+		dto.Roles = append(dto.Roles, ToRoleMiniDTO(&r))
+		for _, p := range r.Permissions {
+			if !permSet[p.ID] {
+				permSet[p.ID] = true
+				dto.Permissions = append(dto.Permissions, ToPermissionDTO(&p))
+			}
+		}
 	}
 
 	return dto

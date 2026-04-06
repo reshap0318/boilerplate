@@ -90,7 +90,10 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 
 	s.Logger.LogStep("AuthLogin", "Password validated successfully")
 
-	token, err := s.generateToken(user)
+	// Fetch roles & permissions once
+	roles, permissions := s.getUserRolesAndPermissions(user.ID)
+
+	token, err := s.generateTokenWithClaims(user, roles, permissions)
 	if err != nil {
 		s.Logger.LogError("AuthLogin", "Failed to generate token: %v", err)
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - token generation error")
@@ -99,7 +102,7 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 
 	s.Logger.LogStep("AuthLogin", "Access token generated")
 
-	refreshToken, err := s.generateRefreshToken(user)
+	refreshToken, err := s.generateRefreshTokenWithClaims(user, roles, permissions)
 	if err != nil {
 		s.Logger.LogError("AuthLogin", "Failed to generate refresh token: %v", err)
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - refresh token generation error")
@@ -108,10 +111,17 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 
 	s.Logger.LogStep("AuthLogin", "Refresh token generated")
 
+	// Reload user with roles for response
+	userWithRoles, err := s.repo.User.FindByID(s.repo.User.DB, user.ID, "Roles.Permissions")
+	if err != nil {
+		s.Logger.LogWarn("AuthLogin", "Failed to load user roles: %v", err)
+		userWithRoles = user
+	}
+
 	// Cache UserDTO to Redis with fallback
 	if s.RedisClient.IsCacheAvailable() {
-		userDTO := dtos.ToUserDTO(user)
-		sessionKey := fmt.Sprintf("session:%d", user.ID)
+		userDTO := dtos.ToUserDTO(userWithRoles)
+		sessionKey := fmt.Sprintf("session:%d", userWithRoles.ID)
 		if err := s.RedisClient.SetJSON(sessionKey, userDTO, s.cfg.Expiration); err != nil {
 			s.Logger.LogWarn("AuthLogin", "Failed to cache session to Redis: %v", err)
 		} else {
@@ -124,7 +134,7 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 	return &dtos.LoginResponse{
 		Token:        token,
 		RefreshToken: refreshToken,
-		User:         dtos.ToUserDTO(user),
+		User:         dtos.ToUserDTO(userWithRoles),
 	}, nil
 }
 
@@ -150,7 +160,10 @@ func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*
 
 	s.Logger.LogStep("AuthRefreshToken", "User found: %s", user.Email)
 
-	token, err := s.generateToken(user)
+	// Fetch roles & permissions once
+	roles, permissions := s.getUserRolesAndPermissions(user.ID)
+
+	token, err := s.generateTokenWithClaims(user, roles, permissions)
 	if err != nil {
 		s.Logger.LogError("AuthRefreshToken", "Failed to generate token: %v", err)
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - token generation error")
@@ -159,7 +172,7 @@ func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*
 
 	s.Logger.LogStep("AuthRefreshToken", "Access token regenerated")
 
-	newRefreshToken, err := s.generateRefreshToken(user)
+	newRefreshToken, err := s.generateRefreshTokenWithClaims(user, roles, permissions)
 	if err != nil {
 		s.Logger.LogError("AuthRefreshToken", "Failed to generate refresh token: %v", err)
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - refresh token generation error")
@@ -223,9 +236,7 @@ func (s *Services) getUserRolesAndPermissions(userID uint) (roles []string, perm
 	return roles, permissions
 }
 
-func (s *Services) generateToken(user *models.User) (string, error) {
-	roles, permissions := s.getUserRolesAndPermissions(user.ID)
-
+func (s *Services) generateTokenWithClaims(user *models.User, roles []string, permissions []string) (string, error) {
 	claims := Claims{
 		UserID:      user.ID,
 		Email:       user.Email,
@@ -243,9 +254,7 @@ func (s *Services) generateToken(user *models.User) (string, error) {
 	return token.SignedString([]byte(s.cfg.Secret))
 }
 
-func (s *Services) generateRefreshToken(user *models.User) (string, error) {
-	roles, permissions := s.getUserRolesAndPermissions(user.ID)
-
+func (s *Services) generateRefreshTokenWithClaims(user *models.User, roles []string, permissions []string) (string, error) {
 	claims := Claims{
 		UserID:      user.ID,
 		Email:       user.Email,

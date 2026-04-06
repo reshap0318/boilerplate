@@ -29,11 +29,12 @@ type RegisterRequest struct {
 
 // UserDTO represents user data transfer object.
 type UserDTO struct {
-	ID        uint      `json:"id"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
-	Roles     []RoleDTO `json:"roles"`
+	ID          uint            `json:"id"`
+	Email       string          `json:"email"`
+	Name        string          `json:"name"`
+	CreatedAt   time.Time       `json:"created_at"`
+	Roles       []RoleMiniDTO   `json:"roles"`
+	Permissions []PermissionDTO `json:"permissions"`
 }
 
 // ForgetPasswordRequest represents the forget password request payload.
