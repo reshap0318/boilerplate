@@ -59,27 +59,20 @@ func (s *Services) GetPermissionByID(ctx context.Context, id uint) (*dtos.Permis
 func (s *Services) UpdatePermission(ctx context.Context, id uint, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
 	s.Logger.LogStart("UpdatePermission", "Updating permission ID: %d", id)
 
+	permission := &models.Permission{
+		ID: id,
+	}
+	if req.Name != "" {
+		permission.Name = req.Name
+	}
+	if req.Description != nil {
+		permission.Description = req.Description
+	}
+
 	var result *models.Permission
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		permission, err := s.repo.Permission.FindByID(tx, id)
-		if err != nil {
-			s.Logger.LogEndWithError("UpdatePermission", "Permission not found: %v", err)
-			return helpers.ErrNotFound
-		}
-
-		s.Logger.LogStep("UpdatePermission", "Permission found: %s", permission.Name)
-
-		if req.Name != "" {
-			permission.Name = req.Name
-		}
-		if req.Description != nil {
-			permission.Description = req.Description
-		}
-
-		result, err = s.repo.Permission.Update(tx, permission, &models.Permission{
-			Name:        permission.Name,
-			Description: permission.Description,
-		})
+		var err error
+		result, err = s.repo.Permission.Update(tx, &models.Permission{ID: id}, permission)
 		return err
 	}); err != nil {
 		s.Logger.LogEndWithError("UpdatePermission", "Failed to update permission: %v", err)
@@ -96,15 +89,7 @@ func (s *Services) DeletePermission(ctx context.Context, id uint) error {
 	s.Logger.LogStart("DeletePermission", "Deleting permission ID: %d", id)
 
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		_, err := s.repo.Permission.FindByID(tx, id)
-		if err != nil {
-			s.Logger.LogEndWithError("DeletePermission", "Permission not found: %v", err)
-			return helpers.ErrNotFound
-		}
-
-		s.Logger.LogStep("DeletePermission", "Permission found, deleting...")
-
-		_, err = s.repo.Permission.Delete(tx, id)
+		_, err := s.repo.Permission.Delete(tx, id)
 		return err
 	}); err != nil {
 		s.Logger.LogEndWithError("DeletePermission", "Failed to delete permission: %v", err)
