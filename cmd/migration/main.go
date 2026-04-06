@@ -28,8 +28,11 @@ func main() {
 	dbName := helpers.GetEnv("DB_DATABASE", "boilerplate")
 
 	if dbHost == "" || dbPort == "" || dbUser == "" || dbName == "" {
-		log.Fatal("Database configuration is incomplete. Please set DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, and DB_DATABASE")
+		log.Fatal("Database configuration is incomplete. Please set DB_HOST, DB_PORT, DB_USERNAME, and DB_DATABASE")
 	}
+
+	// Initialize database connection
+	db := initDB(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName)
 
 	// Parse command
 	if len(os.Args) < 2 {
@@ -41,15 +44,15 @@ func main() {
 
 	switch command {
 	case "up":
-		runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName, "up")
+		runMigration(db, "up")
 	case "down":
-		runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName, "down")
+		runMigration(db, "down")
 	case "seed":
-		runSeed(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName)
+		runSeed(db)
 	case "refresh":
-		runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName, "down")
-		runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName, "up")
-		runSeed(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName)
+		runMigration(db, "down")
+		runMigration(db, "up")
+		runSeed(db)
 	default:
 		printUsage()
 		os.Exit(1)
@@ -72,32 +75,7 @@ func printUsage() {
 	fmt.Println("  go run cmd/migration/main.go refresh")
 }
 
-func runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName string, command string) {
-	var db *gorm.DB
-	var err error
-
-	if dbConnection == "postgres" || dbConnection == "postgresql" {
-		db, err = database.NewPostgreSQL(database.PostgreSQLConfig{
-			Host:     dbHost,
-			Port:     dbPort,
-			User:     dbUser,
-			Password: dbPassword,
-			DBName:   dbName,
-		})
-	} else {
-		db, err = database.NewMySQL(database.MySQLConfig{
-			Host:     dbHost,
-			Port:     dbPort,
-			User:     dbUser,
-			Password: dbPassword,
-			DBName:   dbName,
-		})
-	}
-
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
-
+func runMigration(db *gorm.DB, command string) {
 	switch command {
 	case "up":
 		fmt.Println("Running migrations...")
@@ -106,6 +84,10 @@ func runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName strin
 		err := db.AutoMigrate(
 			&models.User{},
 			&models.PasswordReset{},
+			&models.Permission{},
+			&models.Role{},
+			&models.RoleHasPermission{},
+			&models.UserHasRole{},
 		)
 		if err != nil {
 			log.Fatalf("Migration failed: %v", err)
@@ -118,6 +100,10 @@ func runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName strin
 
 		// Drop tables in correct order (foreign key constraints)
 		err := db.Migrator().DropTable(
+			&models.UserHasRole{},
+			&models.RoleHasPermission{},
+			&models.Role{},
+			&models.Permission{},
 			&models.PasswordReset{},
 			&models.User{},
 		)
@@ -129,7 +115,20 @@ func runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName strin
 	}
 }
 
-func runSeed(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName string) {
+func runSeed(db *gorm.DB) {
+	fmt.Println("\n🌱 Seeding default data...\n")
+
+	// Seed in correct order
+	permIDs := seeders.SeedPermissions(db)
+	roleIDs := seeders.SeedRoles(db)
+	userEmails := seeders.SeedUsers(db)
+	seeders.SeedRolePermissions(db, roleIDs, permIDs)
+	seeders.SeedUserRoles(db, userEmails, roleIDs)
+
+	fmt.Println("\n✅ Seeding completed!")
+}
+
+func initDB(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName string) *gorm.DB {
 	var db *gorm.DB
 	var err error
 
@@ -155,10 +154,5 @@ func runSeed(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName string) {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	fmt.Println("\n🌱 Seeding default data...\n")
-
-	// Seed in correct order
-	seeders.SeedUsers(db)
-
-	fmt.Println("\n✅ Seeding completed!")
+	return db
 }

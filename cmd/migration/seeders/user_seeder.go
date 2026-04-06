@@ -10,7 +10,7 @@ import (
 )
 
 // SeedUsers inserts default user data
-func SeedUsers(db *gorm.DB) {
+func SeedUsers(db *gorm.DB) map[string]uint {
 	fmt.Println("Seeding users...")
 
 	// Default users to seed
@@ -26,7 +26,8 @@ func SeedUsers(db *gorm.DB) {
 		},
 	}
 
-	count := 0
+	resultMap := make(map[string]uint)
+
 	for _, userData := range defaultUsers {
 		// Check if user already exists
 		var existing models.User
@@ -49,15 +50,17 @@ func SeedUsers(db *gorm.DB) {
 			if err := db.Create(&user).Error; err != nil {
 				log.Printf("Failed to create user %s: %v", userData.Email, err)
 			} else {
-				count++
+				resultMap[user.Email] = user.ID
 			}
 		} else if result.Error != nil {
 			log.Printf("Failed to check user %s: %v", userData.Email, result.Error)
 		} else {
 			// User already exists, skip
+			resultMap[userData.Email] = existing.ID
 			fmt.Printf("  ⊘ User %s already exists, skipping\n", userData.Email)
 		}
 	}
 
-	fmt.Printf("✓ Seeded %d users\n", count)
+	fmt.Printf("✓ Seeded %d users\n", len(resultMap))
+	return resultMap
 }

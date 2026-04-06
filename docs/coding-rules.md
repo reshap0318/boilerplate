@@ -171,7 +171,57 @@ curl -X GET http://localhost:8080/api/auth/me \
 
 ## Development Conventions
 
+### 🔄 Development Workflow (MANDATORY)
+
+Setiap pengembangan fitur baru atau bug fix **HARUS** mengikuti flow berikut:
+
+#### Phase 1: Planning
+
+1. **Buat `plan.md`** di root directory yang berisi:
+   - Deskripsi fitur/bug yang akan dikerjakan
+   - Analisis teknis (file yang akan dibuat/dimodifikasi)
+   - Langkah-langkah implementasi
+   - Dampak terhadap existing code (jika ada)
+
+2. **Konfirmasi ke User**: Tampilkan plan dan tunggu approval user.
+   - ✅ Jika user approve → lanjut ke step 3
+   - ❌ Jika user revisi → kembali ke step 1, update `plan.md`
+
+3. **Buat GitHub Issue** dengan format naming:
+   ```
+   [BE] [Tipe] Title
+   ```
+   Tipe yang digunakan:
+   - `[Feat]` - Fitur baru
+   - `[Bug]` - Bug fix
+   - `[Fix]` - Perbaikan kecil/improvement
+   - `[Refactor]` - Refactoring code
+   - `[Chore]` - Maintenance task
+
+   Contoh: `[BE] [Feat] Add Product CRUD API`
+
+#### Phase 2: Implementation
+
+1. **Buat Branch Baru** dari main/master:
+   ```bash
+   git checkout -b feat/product-crud
+   ```
+
+2. **Implementasi sesuai Git Issue**: Kerjakan berdasarkan plan yang sudah disetujui.
+
+3. **Buat Pull Request** ke GitHub:
+   - Reference git issue di PR description
+   - Format: `Closes #<issue-number>` atau `Fixes #<issue-number>`
+
+4. **Konfirmasi ke User**: Tampilkan summary perubahan dan minta approval.
+   - ✅ Jika user approve → merge PR dan close git issue
+   - ❌ Jika user minta perubahan → update sesuai feedback
+
+> ⚠️ **PENTING**: Git issue **WAJIB** ada sebelum implementasi. Tidak ada issue = tidak ada coding.
+
 ### ⚠️ Critical Rules (WAJIB DIPATUHI)
+
+> 📖 **LENGKAP**: Untuk detail CRUD implementation flow, naming convention, dan anti-patterns, buka **[docs/crud-flow.md](crud-flow.md)**.
 
 #### 1. JANGAN MODIFIKASI File Core Repository
 
@@ -204,50 +254,22 @@ func (User) TableName() string {
 
 **Semua service method HARUS merupakan method dari struct `Services`**, dan **semua handler method HARUS merupakan method dari struct `Handlers`**.
 
-**✅ BENAR - Service:**
+**Semua function WAJIB menggunakan prefix nama feature.**
+
+> 📖 **LENGKAP**: Lihat contoh lengkap di **[docs/crud-flow.md](crud-flow.md)** — section Service & Handler.
+
 ```go
-// internal/services/00_services.go
-type Services struct {
-    repo        *repositories.Repositories
-    RedisClient *database.RedisCache
-    cfg         *JWTConfig
-}
+// ✅ BENAR — Service dengan prefix feature
+func (s *Services) CreatePermission(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) { ... }
+func (s *Services) GetAllPermissions(ctx context.Context) ([]dtos.PermissionDTO, error) { ... }
 
-// internal/services/auth_service.go
-func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos.LoginResponse, error) {
-    // business logic
-}
+// ✅ BENAR — Handler dengan prefix feature
+func (h *Handlers) PermissionCreate(c *gin.Context) { ... }
+func (h *Handlers) PermissionGetAll(c *gin.Context) { ... }
 
-func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*dtos.LoginResponse, error) {
-    // business logic
-}
-```
-
-**✅ BENAR - Handler:**
-```go
-// internal/handlers/00_handlers.go
-type Handlers struct {
-    svcs *services.Services
-}
-
-// internal/handlers/auth_handler.go
-func (h *Handlers) AuthLogin(c *gin.Context) {
-    // handle request
-}
-
-func (h *Handlers) AuthLogout(c *gin.Context) {
-    // handle request
-}
-```
-
-**❌ SALAH - Jangan buat struct terpisah:**
-```go
-// JANGAN LAKUKAN INI
-type AuthService struct {
-    repo *repositories.Repositories
-}
-
-func (a *AuthService) Login(...) { }
+// ❌ SALAH — Tanpa prefix atau struct terpisah
+func (s *Services) Create(...) { }
+func (h *Handlers) GetByID(c *gin.Context) { }
 ```
 
 ### Project Structure
@@ -335,13 +357,13 @@ s.Logger.LogInfo("FuncName", "Info: %s", value)          // Info
 ```go
 func (s *Services) CreateUser(ctx context.Context, email string) error {
     s.Logger.LogStart("CreateUser", "Creating user: %s", email)
-    
+
     user := &models.User{Email: email}
     if err := s.repo.User.Create(s.repo.User.DB, user); err != nil {
         s.Logger.LogEndWithError("CreateUser", "Failed: %v", err)
         return err
     }
-    
+
     s.Logger.LogEnd("CreateUser", "User created: %s (ID: %d)", email, user.ID)
     return nil
 }
@@ -447,8 +469,8 @@ type EmailRequest struct {
 ```go
 // Send reset password email (recommended)
 err := s.EmailClient.SendResetPasswordEmail(
-    user.Email, 
-    token, 
+    user.Email,
+    token,
     "https://myapp.com/reset-password?token="+token,
 )
 
@@ -466,6 +488,51 @@ err := s.EmailClient.SendEmail(req)
 | Template | Description |
 |----------|-------------|
 | `ResetPasswordEmail(token, resetURL, appName)` | HTML template untuk reset password email |
+
+---
+
+### **Redis Cache** (`internal/database/redis_cache.go`)
+
+> 🔴 Redis client sudah di-inject ke Services via DI Container. Akses melalui `s.RedisClient`.
+
+**PENTING**: Selalu cek `s.RedisClient.IsCacheAvailable()` sebelum akses Redis. Redis errors **TIDAK** boleh menyebabkan operasi gagal.
+
+#### Cara Pakai
+
+```go
+// Cek dulu apakah Redis aktif
+if s.RedisClient.IsCacheAvailable() {
+    // SET - simpan data
+    err := s.RedisClient.SetJSON("session:1", userDTO, time.Hour*24)
+    if err != nil {
+        s.Logger.LogWarn("FuncName", "Redis SET failed: %v", err) // fallback, jangan return error
+    }
+
+    // GET - ambil data
+    var cached dtos.UserDTO
+    if err := s.RedisClient.GetJSON("session:1", &cached); err == nil {
+        // Cache hit - pakai cached data
+    } else {
+        // Cache miss/error - fallback ke DB
+    }
+
+    // DELETE
+    s.RedisClient.Delete("session:1")
+}
+```
+
+#### Key Pattern yang Disarankan
+| Pattern | Contoh | Deskripsi |
+|---------|--------|-----------|
+| `session:{userID}` | `session:1` | User session cache |
+
+#### Methods Utama
+| Method | Deskripsi |
+|--------|-----------|
+| `IsCacheAvailable()` | Cek apakah Redis aktif |
+| `SetJSON(key, value, ttl)` | Simpan JSON dengan TTL |
+| `GetJSON(key, &dest)` | Ambil & unmarshal JSON |
+| `Delete(keys...)` | Hapus key |
 
 ---
 
@@ -488,8 +555,8 @@ package helpers
 // FormatCurrency formats number as Indonesian Rupiah
 func FormatCurrency(amount int64) string {
     return fmt.Sprintf("Rp %s", strings.ReplaceAll(
-        strconv.FormatInt(amount, 10), 
-        "000", 
+        strconv.FormatInt(amount, 10),
+        "000",
         ".000",
     ))
 }
@@ -571,7 +638,7 @@ func (r *YourRepository) FindWithComplexJoin(id uint) (*YourModel, error) {
     query := r.DB.Joins("LEFT JOIN other_table ON other_table.your_id = your_models.id").
         Where("your_models.id = ?", id).
         First(&result)
-    
+
     if query.Error != nil {
         return nil, query.Error
     }
@@ -610,20 +677,25 @@ func NewRepositories(db *gorm.DB) (*Repositories, error) {
 ```
 
 ### 4. Tambah Service Method (WAJIB ke struct Services)
+
+> 📖 **LENGKAP**: Lihat contoh lengkap write/read operations di **[docs/crud-flow.md](crud-flow.md)** — section Service.
+
 ```go
-// internal/services/your_service.go
-func (s *Services) YourMethod(ctx context.Context, param string) error {
-    // business logic
-    return nil
-}
+// internal/services/your_feature_service.go
+// WAJIB: Prefix nama feature, pakai TxManager untuk write, nil untuk read
+func (s *Services) CreateYourFeature(ctx context.Context, req dtos.YourFeatureRequest) (*dtos.YourFeatureDTO, error) { ... }
+func (s *Services) GetYourFeatureByID(ctx context.Context, id uint) (*dtos.YourFeatureDTO, error) { ... }
 ```
 
 ### 5. Tambah Handler Method (WAJIB ke struct Handlers)
+
+> 📖 **LENGKAP**: Lihat contoh lengkap di **[docs/crud-flow.md](crud-flow.md)** — section Handler.
+
 ```go
-// internal/handlers/your_handler.go
-func (h *Handlers) YourHandler(c *gin.Context) {
-    // handle request
-}
+// internal/handlers/your_feature_handler.go
+// WAJIB: Prefix nama feature — {Feature}{Action}
+func (h *Handlers) YourFeatureCreate(c *gin.Context) { ... }
+func (h *Handlers) YourFeatureGetAll(c *gin.Context) { ... }
 ```
 
 ### 6. Tambah Routes

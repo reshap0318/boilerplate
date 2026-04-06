@@ -221,6 +221,8 @@ Setiap pengembangan fitur baru atau bug fix **HARUS** mengikuti flow berikut:
 
 ### ⚠️ Critical Rules (MANDATORY)
 
+> 📖 **LENGKAP**: Untuk detail CRUD implementation flow, naming convention, dan anti-patterns, buka **[docs/crud-flow.md](docs/crud-flow.md)**.
+
 #### 1. DO NOT Modify Core Repository Files
 
 The following files **MUST NOT be modified** in any way:
@@ -252,50 +254,22 @@ func (User) TableName() string {
 
 **All service methods MUST be methods of the `Services` struct**, and **all handler methods MUST be methods of the `Handlers` struct**.
 
-**✅ CORRECT - Service:**
+**All functions MUST use feature name as prefix.**
+
+> 📖 **LENGKAP**: Lihat contoh lengkap di **[docs/crud-flow.md](docs/crud-flow.md)** — section Service & Handler.
+
 ```go
-// internal/services/00_services.go
-type Services struct {
-    repo        *repositories.Repositories
-    RedisClient *database.RedisCache
-    cfg         *JWTConfig
-}
+// ✅ CORRECT — Service dengan prefix feature
+func (s *Services) CreatePermission(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) { ... }
+func (s *Services) GetAllPermissions(ctx context.Context) ([]dtos.PermissionDTO, error) { ... }
 
-// internal/services/auth_service.go
-func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos.LoginResponse, error) {
-    // business logic
-}
+// ✅ CORRECT — Handler dengan prefix feature
+func (h *Handlers) PermissionCreate(c *gin.Context) { ... }
+func (h *Handlers) PermissionGetAll(c *gin.Context) { ... }
 
-func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*dtos.LoginResponse, error) {
-    // business logic
-}
-```
-
-**✅ CORRECT - Handler:**
-```go
-// internal/handlers/00_handlers.go
-type Handlers struct {
-    svcs *services.Services
-}
-
-// internal/handlers/auth_handler.go
-func (h *Handlers) AuthLogin(c *gin.Context) {
-    // handle request
-}
-
-func (h *Handlers) AuthLogout(c *gin.Context) {
-    // handle request
-}
-```
-
-**❌ WRONG - Do not create separate structs:**
-```go
-// DO NOT DO THIS
-type AuthService struct {
-    repo *repositories.Repositories
-}
-
-func (a *AuthService) Login(...) { }
+// ❌ WRONG — Tanpa prefix atau struct terpisah
+func (s *Services) Create(...) { }
+func (h *Handlers) GetByID(c *gin.Context) { }
 ```
 
 ### Project Structure
@@ -513,6 +487,51 @@ err := s.EmailClient.SendEmail(req)
 
 ---
 
+### **Redis Cache** (`internal/database/redis_cache.go`)
+
+> 🔴 Redis client sudah di-inject ke Services via DI Container. Access via `s.RedisClient`.
+
+**PENTING**: Selalu cek `s.RedisClient.IsCacheAvailable()` sebelum akses Redis. Redis errors **TIDAK** boleh menyebabkan operasi gagal.
+
+#### Cara Pakai
+
+```go
+// Cek dulu apakah Redis aktif
+if s.RedisClient.IsCacheAvailable() {
+    // SET - simpan data
+    err := s.RedisClient.SetJSON("session:1", userDTO, time.Hour*24)
+    if err != nil {
+        s.Logger.LogWarn("FuncName", "Redis SET failed: %v", err) // fallback, jangan return error
+    }
+
+    // GET - ambil data
+    var cached dtos.UserDTO
+    if err := s.RedisClient.GetJSON("session:1", &cached); err == nil {
+        // Cache hit - pakai cached data
+    } else {
+        // Cache miss/error - fallback ke DB
+    }
+
+    // DELETE
+    s.RedisClient.Delete("session:1")
+}
+```
+
+#### Key Pattern yang Disarankan
+| Pattern | Contoh | Deskripsi |
+|---------|--------|-----------|
+| `session:{userID}` | `session:1` | User session cache |
+
+#### Methods Utama
+| Method | Deskripsi |
+|--------|-----------|
+| `IsCacheAvailable()` | Cek apakah Redis aktif |
+| `SetJSON(key, value, ttl)` | Simpan JSON dengan TTL |
+| `GetJSON(key, &dest)` | Ambil & unmarshal JSON |
+| `Delete(keys...)` | Hapus key |
+
+---
+
 ### **Creating New Helpers**
 
 > 💡 **Rule of Thumb**: If a function can be used in more than 1 place, make it a helper!
@@ -654,20 +673,25 @@ func NewRepositories(db *gorm.DB) (*Repositories, error) {
 ```
 
 ### 4. Add Service Method (MANDATORY: on Services struct)
+
+> 📖 **LENGKAP**: Lihat contoh lengkap write/read operations di **[docs/crud-flow.md](docs/crud-flow.md)** — section Service.
+
 ```go
-// internal/services/your_service.go
-func (s *Services) YourMethod(ctx context.Context, param string) error {
-    // business logic
-    return nil
-}
+// internal/services/your_feature_service.go
+// WAJIB: Prefix nama feature, pakai TxManager untuk write, nil untuk read
+func (s *Services) CreateYourFeature(ctx context.Context, req dtos.YourFeatureRequest) (*dtos.YourFeatureDTO, error) { ... }
+func (s *Services) GetYourFeatureByID(ctx context.Context, id uint) (*dtos.YourFeatureDTO, error) { ... }
 ```
 
 ### 5. Add Handler Method (MANDATORY: on Handlers struct)
+
+> 📖 **LENGKAP**: Lihat contoh lengkap di **[docs/crud-flow.md](docs/crud-flow.md)** — section Handler.
+
 ```go
-// internal/handlers/your_handler.go
-func (h *Handlers) YourHandler(c *gin.Context) {
-    // handle request
-}
+// internal/handlers/your_feature_handler.go
+// WAJIB: Prefix nama feature — {Feature}{Action}
+func (h *Handlers) YourFeatureCreate(c *gin.Context) { ... }
+func (h *Handlers) YourFeatureGetAll(c *gin.Context) { ... }
 ```
 
 ### 6. Add Routes
