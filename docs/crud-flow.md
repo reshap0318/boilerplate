@@ -48,13 +48,19 @@ type Request struct { ... }
 
 All functions in the Services struct MUST be prefixed with the feature name.
 
+**Pattern:** `{Feature}{Action}` — Feature FIRST, then Action.
+
 ```go
-// ✅ CORRECT
-func (s *Services) CreatePermission(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error)
-func (s *Services) GetAllPermissions(ctx context.Context) ([]dtos.PermissionDTO, error)
-func (s *Services) GetPermissionByID(ctx context.Context, id uint) (*dtos.PermissionDTO, error)
-func (s *Services) UpdatePermission(ctx context.Context, id uint, req dtos.PermissionRequest) (*dtos.PermissionDTO, error)
-func (s *Services) DeletePermission(ctx context.Context, id uint) error
+// ✅ CORRECT — Feature name FIRST
+func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error)
+func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, error)
+func (s *Services) PermissionGetByID(ctx context.Context, id uint) (*dtos.PermissionDTO, error)
+func (s *Services) PermissionUpdate(ctx context.Context, id uint, req dtos.PermissionRequest) (*dtos.PermissionDTO, error)
+func (s *Services) PermissionDelete(ctx context.Context, id uint) error
+
+// ❌ WRONG — Action first (CreatePermission, GetAllPermissions, etc.)
+func (s *Services) CreatePermission(...) { }
+func (s *Services) GetAllPermissions(...) { }
 
 // ❌ WRONG — No prefix
 func (s *Services) Create(...) { }
@@ -65,8 +71,10 @@ func (s *Services) GetByID(...) { }
 
 All functions in the Handlers struct MUST be prefixed with the feature name.
 
+**Pattern:** `{Feature}{Action}` — Feature FIRST, then Action.
+
 ```go
-// ✅ CORRECT
+// ✅ CORRECT — Feature name FIRST
 func (h *Handlers) PermissionCreate(c *gin.Context)
 func (h *Handlers) PermissionGetAll(c *gin.Context)
 func (h *Handlers) PermissionGetByID(c *gin.Context)
@@ -78,7 +86,7 @@ func (h *Handlers) Create(c *gin.Context)
 func (h *Handlers) GetByID(c *gin.Context)
 ```
 
-**Handler naming pattern:** `{Feature}{Action}` where Action = Create, GetAll, GetByID, Update, Delete
+**Naming pattern for both Services & Handlers:** `{Feature}{Action}` where Action = Create, GetAll, GetByID, Update, Delete
 
 ---
 
@@ -235,10 +243,10 @@ func NewRepositories(db *gorm.DB) (*Repositories, error) {
 ### Write Operations (Create/Update/Delete) — MANDATORY Transaction
 
 ```go
-// ⚠️ MANDATORY: Prefix feature name in function
+// ⚠️ MANDATORY: Feature name FIRST ({Feature}{Action})
 // ⚠️ MANDATORY: Use TxManager for write operations
-func (s *Services) CreatePermission(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
-    s.Logger.LogStart("CreatePermission", "Creating permission: %s", req.Name)
+func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
+    s.Logger.LogStart("PermissionCreate", "Creating permission: %s", req.Name)
 
     permission := &models.Permission{
         Name:        req.Name,
@@ -251,12 +259,12 @@ func (s *Services) CreatePermission(ctx context.Context, req dtos.PermissionRequ
         result, err = s.repo.Permission.Create(tx, permission)
         return err
     }); err != nil {
-        s.Logger.LogEndWithError("CreatePermission", "Failed to create permission: %v", err)
+        s.Logger.LogEndWithError("PermissionCreate", "Failed to create permission: %v", err)
         return nil, err
     }
 
     dto := dtos.ToPermissionDTO(result)
-    s.Logger.LogEnd("CreatePermission", "Permission created: %s (ID: %d)", dto.Name, dto.ID)
+    s.Logger.LogEnd("PermissionCreate", "Permission created: %s (ID: %d)", dto.Name, dto.ID)
     return &dto, nil
 }
 ```
@@ -264,9 +272,9 @@ func (s *Services) CreatePermission(ctx context.Context, req dtos.PermissionRequ
 ### Read Operations (Get/Find) — MANDATORY use `nil`
 
 ```go
-// ⚠️ MANDATORY: Prefix feature name in function
+// ⚠️ MANDATORY: Feature name FIRST ({Feature}{Action})
 // ⚠️ MANDATORY: Use nil for read operations (NOT s.repo.Permission.DB)
-func (s *Services) GetAllPermissions(ctx context.Context) ([]dtos.PermissionDTO, error) {
+func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, error) {
     permissions, err := s.repo.Permission.FindAll(nil)  // ← nil, NOT .DB
     if err != nil {
         return nil, err
@@ -275,7 +283,7 @@ func (s *Services) GetAllPermissions(ctx context.Context) ([]dtos.PermissionDTO,
 }
 
 // ⚠️ Simple GET does NOT need logging
-func (s *Services) GetPermissionByID(ctx context.Context, id uint) (*dtos.PermissionDTO, error) {
+func (s *Services) PermissionGetByID(ctx context.Context, id uint) (*dtos.PermissionDTO, error) {
     permission, err := s.repo.Permission.FindByID(nil, id)  // ← nil, NOT .DB
     if err != nil {
         return nil, helpers.ErrNotFound
@@ -287,8 +295,8 @@ func (s *Services) GetPermissionByID(ctx context.Context, id uint) (*dtos.Permis
 ### Update with Transaction
 
 ```go
-func (s *Services) UpdatePermission(ctx context.Context, id uint, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
-    s.Logger.LogStart("UpdatePermission", "Updating permission ID: %d", id)
+func (s *Services) PermissionUpdate(ctx context.Context, id uint, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
+    s.Logger.LogStart("PermissionUpdate", "Updating permission ID: %d", id)
 
     permission := &models.Permission{
         ID: id,
@@ -306,12 +314,12 @@ func (s *Services) UpdatePermission(ctx context.Context, id uint, req dtos.Permi
         result, err = s.repo.Permission.Update(tx, &models.Permission{ID: id}, permission)
         return err
     }); err != nil {
-        s.Logger.LogEndWithError("UpdatePermission", "Failed to update permission: %v", err)
+        s.Logger.LogEndWithError("PermissionUpdate", "Failed to update permission: %v", err)
         return nil, err
     }
 
     dto := dtos.ToPermissionDTO(result)
-    s.Logger.LogEnd("UpdatePermission", "Permission updated: %s (ID: %d)", dto.Name, dto.ID)
+    s.Logger.LogEnd("PermissionUpdate", "Permission updated: %s (ID: %d)", dto.Name, dto.ID)
     return &dto, nil
 }
 ```
@@ -319,18 +327,18 @@ func (s *Services) UpdatePermission(ctx context.Context, id uint, req dtos.Permi
 ### Delete with Transaction
 
 ```go
-func (s *Services) DeletePermission(ctx context.Context, id uint) error {
-    s.Logger.LogStart("DeletePermission", "Deleting permission ID: %d", id)
+func (s *Services) PermissionDelete(ctx context.Context, id uint) error {
+    s.Logger.LogStart("PermissionDelete", "Deleting permission ID: %d", id)
 
     if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
         _, err := s.repo.Permission.Delete(tx, id)
         return err
     }); err != nil {
-        s.Logger.LogEndWithError("DeletePermission", "Failed to delete permission: %v", err)
+        s.Logger.LogEndWithError("PermissionDelete", "Failed to delete permission: %v", err)
         return err
     }
 
-    s.Logger.LogEnd("DeletePermission", "Permission deleted: ID: %d", id)
+    s.Logger.LogEnd("PermissionDelete", "Permission deleted: ID: %d", id)
     return nil
 }
 ```
@@ -338,7 +346,7 @@ func (s *Services) DeletePermission(ctx context.Context, id uint) error {
 **Service key points:**
 - ✅ **Write** (Create/Update/Delete) → `s.repo.TxManager.WithinTransaction()`
 - ✅ **Read** (Get/Find) → `nil` parameter (NOT `s.repo.Feature.DB`)
-- ✅ **Function name** → feature prefix (`CreatePermission`, `GetAllPermissions`, etc.)
+- ✅ **Function name** → Feature FIRST (`PermissionCreate`, `PermissionGetAll`, etc.)
 - ✅ **Logging** → Create/Update/Delete MUST log, Simple GET does NOT need logging
 - ✅ **Error handling** → use `helpers.ErrNotFound` for record not found
 - ✅ **Single struct** → all methods on `(s *Services)`, do NOT create separate structs
@@ -362,7 +370,7 @@ import (
     "github.com/reshap0318/go-boilerplate/internal/helpers"
 )
 
-// ⚠️ MANDATORY: Prefix feature name — {Feature}{Action}
+// ⚠️ MANDATORY: Feature name FIRST — {Feature}{Action}
 func (h *Handlers) PermissionCreate(c *gin.Context) {
     var req dtos.PermissionRequest
     if err := c.ShouldBindJSON(&req); err != nil {
@@ -370,7 +378,7 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
         return
     }
 
-    dto, err := h.svcs.CreatePermission(c.Request.Context(), req)
+    dto, err := h.svcs.PermissionCreate(c.Request.Context(), req)
     if err != nil {
         helpers.InternalServerError(c, "Failed to create permission")
         return
@@ -380,7 +388,7 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
 }
 
 func (h *Handlers) PermissionGetAll(c *gin.Context) {
-    dtos, err := h.svcs.GetAllPermissions(c.Request.Context())
+    dtos, err := h.svcs.PermissionGetAll(c.Request.Context())
     if err != nil {
         helpers.InternalServerError(c, "Failed to fetch permissions")
         return
@@ -396,7 +404,7 @@ func (h *Handlers) PermissionGetByID(c *gin.Context) {
         return
     }
 
-    dto, err := h.svcs.GetPermissionByID(c.Request.Context(), uint(id))
+    dto, err := h.svcs.PermissionGetByID(c.Request.Context(), uint(id))
     if err != nil {
         helpers.NotFound(c, "Permission not found")
         return
@@ -418,7 +426,7 @@ func (h *Handlers) PermissionUpdate(c *gin.Context) {
         return
     }
 
-    dto, err := h.svcs.UpdatePermission(c.Request.Context(), uint(id), req)
+    dto, err := h.svcs.PermissionUpdate(c.Request.Context(), uint(id), req)
     if err != nil {
         helpers.NotFound(c, "Permission not found")
         return
@@ -434,7 +442,7 @@ func (h *Handlers) PermissionDelete(c *gin.Context) {
         return
     }
 
-    err = h.svcs.DeletePermission(c.Request.Context(), uint(id))
+    err = h.svcs.PermissionDelete(c.Request.Context(), uint(id))
     if err != nil {
         helpers.NotFound(c, "Permission not found")
         return
@@ -450,6 +458,7 @@ func (h *Handlers) PermissionDelete(c *gin.Context) {
 - ✅ **Bind JSON** → `c.ShouldBindJSON()` with validation
 - ✅ **Response helper** → `helpers.Created`, `helpers.OK`, `helpers.BadRequest`, etc.
 - ✅ **Single struct** → all methods on `(h *Handlers)`, do NOT create separate structs
+- ✅ **Service calls** → MUST match service function name (`h.svcs.PermissionCreate`, NOT `h.svcs.CreatePermission`)
 
 ---
 
@@ -503,8 +512,10 @@ protected.Use(middleware.JWTAuth(container.Services))
 |----------|------------|
 | `type DTO struct` | `type PermissionDTO struct` |
 | `type Request struct` | `type PermissionRequest struct` |
-| `func (s *Services) Create(...)` | `func (s *Services) CreatePermission(...)` |
+| `func (s *Services) CreatePermission(...)` | `func (s *Services) PermissionCreate(...)` |
+| `func (s *Services) GetAllPermissions(...)` | `func (s *Services) PermissionGetAll(...)` |
 | `func (h *Handlers) GetByID(...)` | `func (h *Handlers) PermissionGetByID(...)` |
+| `h.svcs.CreatePermission(...)` | `h.svcs.PermissionCreate(...)` |
 | `s.repo.Permission.FindByID(s.repo.Permission.DB, id)` | `s.repo.Permission.FindByID(nil, id)` |
 | Direct DB write without transaction | `s.repo.TxManager.WithinTransaction(...)` |
 | Separate struct (`type PermissionService struct`) | Method on `(s *Services)` |
@@ -518,7 +529,7 @@ protected.Use(middleware.JWTAuth(container.Services))
 - [ ] Model has `TableName()` method
 - [ ] DTO variables use feature prefix
 - [ ] Request DTO merged (Create & Update into 1)
-- [ ] Service functions use feature prefix
+- [ ] Service functions use feature prefix ({Feature}{Action})
 - [ ] Handler functions use feature prefix (`{Feature}{Action}`)
 - [ ] Write operations use `TxManager.WithinTransaction()`
 - [ ] Read operations use `nil` (NOT `.DB`)
