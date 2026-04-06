@@ -10,7 +10,7 @@ import (
 	"github.com/reshap0318/go-boilerplate/internal/models"
 )
 
-// CreateRole creates a new role.
+// CreateRole creates a new role with permissions.
 func (s *Services) CreateRole(ctx context.Context, req dtos.RoleRequest) (*dtos.RoleDTO, error) {
 	s.Logger.LogStart("CreateRole", "Creating role: %s", req.Name)
 
@@ -23,7 +23,20 @@ func (s *Services) CreateRole(ctx context.Context, req dtos.RoleRequest) (*dtos.
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
 		var err error
 		result, err = s.repo.Role.Create(tx, role)
-		return err
+		if err != nil {
+			return err
+		}
+
+		for _, permID := range req.PermissionIDs {
+			rolePerm := &models.RoleHasPermission{
+				RoleID:       result.ID,
+				PermissionID: permID,
+			}
+			if _, err := s.repo.RoleHasPerm.Create(tx, rolePerm); err != nil {
+				s.Logger.LogStep("CreateRole", "Skipping duplicate or error for perm ID %d: %v", permID, err)
+			}
+		}
+		return nil
 	}); err != nil {
 		s.Logger.LogEndWithError("CreateRole", "Failed to create role: %v", err)
 		return nil, err
@@ -55,7 +68,7 @@ func (s *Services) GetRoleByID(ctx context.Context, id uint) (*dtos.RoleDTO, err
 	return &dto, nil
 }
 
-// UpdateRole updates an existing role.
+// UpdateRole updates an existing role with permissions.
 func (s *Services) UpdateRole(ctx context.Context, id uint, req dtos.RoleRequest) (*dtos.RoleDTO, error) {
 	s.Logger.LogStart("UpdateRole", "Updating role ID: %d", id)
 
@@ -63,11 +76,8 @@ func (s *Services) UpdateRole(ctx context.Context, id uint, req dtos.RoleRequest
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
 		role, err := s.repo.Role.FindByID(tx, id)
 		if err != nil {
-			s.Logger.LogEndWithError("UpdateRole", "Role not found: %v", err)
 			return helpers.ErrNotFound
 		}
-
-		s.Logger.LogStep("UpdateRole", "Role found: %s", role.Name)
 
 		if req.Name != "" {
 			role.Name = req.Name
@@ -80,7 +90,26 @@ func (s *Services) UpdateRole(ctx context.Context, id uint, req dtos.RoleRequest
 			Name:        role.Name,
 			Description: role.Description,
 		})
-		return err
+		if err != nil {
+			return err
+		}
+
+		// Replace all permissions
+		if err := tx.Where("role_id = ?", result.ID).Delete(&models.RoleHasPermission{}).Error; err != nil {
+			return err
+		}
+
+		for _, permID := range req.PermissionIDs {
+			rolePerm := &models.RoleHasPermission{
+				RoleID:       result.ID,
+				PermissionID: permID,
+			}
+			if _, err := s.repo.RoleHasPerm.Create(tx, rolePerm); err != nil {
+				s.Logger.LogStep("UpdateRole", "Skipping duplicate or error for perm ID %d: %v", permID, err)
+			}
+		}
+
+		return nil
 	}); err != nil {
 		s.Logger.LogEndWithError("UpdateRole", "Failed to update role: %v", err)
 		return nil, err
@@ -96,15 +125,10 @@ func (s *Services) DeleteRole(ctx context.Context, id uint) error {
 	s.Logger.LogStart("DeleteRole", "Deleting role ID: %d", id)
 
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		_, err := s.repo.Role.FindByID(tx, id)
-		if err != nil {
-			s.Logger.LogEndWithError("DeleteRole", "Role not found: %v", err)
-			return helpers.ErrNotFound
+		if err := tx.Where("role_id = ?", id).Delete(&models.RoleHasPermission{}).Error; err != nil {
+			return err
 		}
-
-		s.Logger.LogStep("DeleteRole", "Role found, deleting...")
-
-		_, err = s.repo.Role.Delete(tx, id)
+		_, err := s.repo.Role.Delete(tx, id)
 		return err
 	}); err != nil {
 		s.Logger.LogEndWithError("DeleteRole", "Failed to delete role: %v", err)
@@ -137,52 +161,4 @@ func (s *Services) GetRolePermissions(ctx context.Context, roleID uint) ([]dtos.
 	}
 
 	return dtos.ToPermissionDTOList(permissions), nil
-}
-
-// AttachPermissions attaches permissions to a role.
-func (s *Services) AttachPermissions(ctx context.Context, roleID uint, req dtos.AttachPermissionsRequest) error {
-	s.Logger.LogStart("AttachPermissions", "Attaching %d permissions to role ID: %d", len(req.PermissionIDs), roleID)
-
-	_, err := s.repo.Role.FindByID(nil, roleID)
-	if err != nil {
-		s.Logger.LogEndWithError("AttachPermissions", "Role not found: %v", err)
-		return helpers.ErrNotFound
-	}
-
-	s.Logger.LogStep("AttachPermissions", "Role found, attaching permissions...")
-
-	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		for _, permID := range req.PermissionIDs {
-			rolePerm := &models.RoleHasPermission{
-				RoleID:       roleID,
-				PermissionID: permID,
-			}
-			if _, err := s.repo.RoleHasPerm.Create(tx, rolePerm); err != nil {
-				s.Logger.LogStep("AttachPermissions", "Skipping duplicate or error for perm ID %d: %v", permID, err)
-				continue
-			}
-		}
-		return nil
-	}); err != nil {
-		s.Logger.LogEndWithError("AttachPermissions", "Failed to attach permissions: %v", err)
-		return err
-	}
-
-	s.Logger.LogEnd("AttachPermissions", "Attached %d permissions to role ID: %d", len(req.PermissionIDs), roleID)
-	return nil
-}
-
-// DetachPermissions detaches all permissions from a role.
-func (s *Services) DetachPermissions(ctx context.Context, roleID uint) error {
-	s.Logger.LogStart("DetachPermissions", "Detaching all permissions from role ID: %d", roleID)
-
-	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		return tx.Where("role_id = ?", roleID).Delete(&models.RoleHasPermission{}).Error
-	}); err != nil {
-		s.Logger.LogEndWithError("DetachPermissions", "Failed to detach permissions: %v", err)
-		return err
-	}
-
-	s.Logger.LogEnd("DetachPermissions", "All permissions detached from role ID: %d", roleID)
-	return nil
 }

@@ -4,8 +4,9 @@ import "github.com/reshap0318/go-boilerplate/internal/models"
 
 // RoleRequest represents the request to create or update a role.
 type RoleRequest struct {
-	Name        string  `json:"name" binding:"required,min=3,max=100"`
-	Description *string `json:"description" binding:"omitempty,max=255"`
+	Name          string  `json:"name" binding:"required,min=3,max=100"`
+	Description   *string `json:"description" binding:"omitempty,max=255"`
+	PermissionIDs []uint  `json:"permission_ids" binding:"required"`
 }
 
 // RoleDTO represents role data transfer object.
@@ -31,9 +32,4 @@ func ToRoleDTOList(roles []models.Role) []RoleDTO {
 		result[i] = ToRoleDTO(&r)
 	}
 	return result
-}
-
-// AttachPermissionsRequest represents the request to attach permissions to a role.
-type AttachPermissionsRequest struct {
-	PermissionIDs []uint `json:"permission_ids" binding:"required,min=1"`
 }
