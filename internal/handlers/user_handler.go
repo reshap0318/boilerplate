@@ -47,7 +47,19 @@ func (h *Handlers) UserGetAll(c *gin.Context) {
 		return
 	}
 
-	helpers.OK(c, "Users fetched successfully", result)
+	// Convert to DTO list for response
+	userDTOs := make([]dtos.UserDTO, len(result.Data))
+	for i, u := range result.Data {
+		userDTOs[i] = dtos.ToUserDTO(&u)
+	}
+
+	helpers.OK(c, "Users fetched successfully", gin.H{
+		"data":        userDTOs,
+		"total":       result.Total,
+		"page":        result.Page,
+		"page_size":   result.PageSize,
+		"total_pages": result.TotalPages,
+	})
 }
 
 // UserGetByID handles GET /api/users/:id

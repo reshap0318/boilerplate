@@ -7,6 +7,7 @@ import (
 
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/repositories"
 )
 
 // RoleCreate handles POST /api/roles
@@ -26,15 +27,23 @@ func (h *Handlers) RoleCreate(c *gin.Context) {
 	helpers.Created(c, "Role created successfully", dto)
 }
 
-// RoleGetAll handles GET /api/roles
+// RoleGetAll handles GET /api/roles with pagination
 func (h *Handlers) RoleGetAll(c *gin.Context) {
-	dtos, err := h.svcs.RoleGetAll(c.Request.Context())
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	opts := &repositories.QueryOptions{
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	result, err := h.svcs.RoleGetAll(c.Request.Context(), opts)
 	if err != nil {
 		helpers.InternalServerError(c, "Failed to fetch roles")
 		return
 	}
 
-	helpers.OK(c, "Roles fetched successfully", dtos)
+	helpers.OK(c, "Roles fetched successfully", result)
 }
 
 // RoleGetByID handles GET /api/roles/:id

@@ -11,18 +11,26 @@ type RoleRequest struct {
 
 // RoleDTO represents role data transfer object.
 type RoleDTO struct {
-	ID          uint    `json:"id"`
-	Name        string  `json:"name"`
-	Description *string `json:"description"`
+	ID          uint              `json:"id"`
+	Name        string            `json:"name"`
+	Description *string           `json:"description"`
+	Permissions []PermissionDTO   `json:"permissions"`
 }
 
 // ToRoleDTO converts Role model to RoleDTO.
 func ToRoleDTO(r *models.Role) RoleDTO {
-	return RoleDTO{
+	dto := RoleDTO{
 		ID:          r.ID,
 		Name:        r.Name,
 		Description: r.Description,
+		Permissions: []PermissionDTO{},
 	}
+
+	for _, p := range r.Permissions {
+		dto.Permissions = append(dto.Permissions, ToPermissionDTO(&p))
+	}
+
+	return dto
 }
 
 // ToRoleDTOList converts a slice of Role models to RoleDTOs.

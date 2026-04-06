@@ -191,20 +191,18 @@ func (s *Services) checkPassword(password, hash string) bool {
 
 // getUserRolesAndPermissions fetches role names and permission names for a user
 func (s *Services) getUserRolesAndPermissions(userID uint) (roles []string, permissions []string) {
-	var userRoles []models.UserHasRole
-	if err := s.repo.UserRole.DB.Where("user_id = ?", userID).Preload("Role").Preload("Role.RoleHasPermissions.Permission").Find(&userRoles).Error; err != nil {
+	user, err := s.repo.User.FindByID(s.repo.User.DB, userID, "Roles.Permissions")
+	if err != nil {
 		return []string{}, []string{}
 	}
 
 	roleSet := make(map[string]bool)
 	permSet := make(map[string]bool)
 
-	for _, ur := range userRoles {
-		roleSet[ur.Role.Name] = true
-		for _, rp := range ur.Role.RoleHasPermissions {
-			if rp.Permission.Name != "" {
-				permSet[rp.Permission.Name] = true
-			}
+	for _, r := range user.Roles {
+		roleSet[r.Name] = true
+		for _, p := range r.Permissions {
+			permSet[p.Name] = true
 		}
 	}
 

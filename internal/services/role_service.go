@@ -8,6 +8,7 @@ import (
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 	"github.com/reshap0318/go-boilerplate/internal/models"
+	"github.com/reshap0318/go-boilerplate/internal/repositories"
 )
 
 // RoleCreate creates a new role with permissions.
@@ -20,46 +21,61 @@ func (s *Services) RoleCreate(ctx context.Context, req dtos.RoleRequest) (*dtos.
 	}
 
 	var result *models.Role
-	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+	res, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
 		var err error
 		result, err = s.repo.Role.Create(tx, role)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
+		// Assign permissions
+		var perms []models.Permission
 		for _, permID := range req.Permissions {
-			rolePerm := &models.RoleHasPermission{
-				RoleID:       result.ID,
-				PermissionID: permID,
-			}
-			if _, err := s.repo.RoleHasPerm.Create(tx, rolePerm); err != nil {
-				s.Logger.LogStep("RoleCreate", "Skipping duplicate or error for perm ID %d: %v", permID, err)
-			}
+			perms = append(perms, models.Permission{ID: permID})
 		}
-		return nil
-	}); err != nil {
+		if err := tx.Model(&result).Association("Permissions").Append(perms); err != nil {
+			s.Logger.LogStep("RoleCreate", "Failed to assign permissions: %v", err)
+		}
+
+		// Reload role with permissions
+		reloaded, err := s.repo.Role.FindByID(tx, result.ID, "Permissions")
+		if err != nil {
+			return nil, err
+		}
+
+		return reloaded, nil
+	})
+	if err != nil {
 		s.Logger.LogEndWithError("RoleCreate", "Failed to create role: %v", err)
 		return nil, err
 	}
+
+	result = res.(*models.Role)
 
 	dto := dtos.ToRoleDTO(result)
 	s.Logger.LogEnd("RoleCreate", "Role created: %s (ID: %d)", dto.Name, dto.ID)
 	return &dto, nil
 }
 
-// RoleGetAll returns all roles.
-func (s *Services) RoleGetAll(ctx context.Context) ([]dtos.RoleDTO, error) {
-	roles, err := s.repo.Role.FindAll(nil)
-	if err != nil {
-		return nil, err
+// RoleGetAll returns paginated roles with permissions.
+func (s *Services) RoleGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.Role], error) {
+	if opts == nil {
+		opts = &repositories.QueryOptions{}
 	}
+	if opts.SortBy == "" {
+		opts.SortBy = "id"
+	}
+	if opts.Order == "" {
+		opts.Order = "ASC"
+	}
+	opts.Preloads = []string{"Permissions"}
 
-	return dtos.ToRoleDTOList(roles), nil
+	return s.repo.Role.FindAllWithOpts(nil, opts)
 }
 
-// RoleGetByID returns a role by ID.
+// RoleGetByID returns a role by ID with permissions.
 func (s *Services) RoleGetByID(ctx context.Context, id uint) (*dtos.RoleDTO, error) {
-	role, err := s.repo.Role.FindByID(nil, id)
+	role, err := s.repo.Role.FindByID(nil, id, "Permissions")
 	if err != nil {
 		return nil, helpers.ErrNotFound
 	}
@@ -81,33 +97,40 @@ func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest
 	}
 
 	var result *models.Role
-	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+	res, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
 		var err error
 		result, err = s.repo.Role.Update(tx, &models.Role{ID: id}, role)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		// Replace all permissions
-		if err := s.repo.RoleHasPerm.DeleteByRoleID(tx, result.ID); err != nil {
-			return err
+		// Replace permissions - clear then assign
+		if err := tx.Model(&result).Association("Permissions").Clear(); err != nil {
+			return nil, err
 		}
 
+		var perms []models.Permission
 		for _, permID := range req.Permissions {
-			rolePerm := &models.RoleHasPermission{
-				RoleID:       result.ID,
-				PermissionID: permID,
-			}
-			if _, err := s.repo.RoleHasPerm.Create(tx, rolePerm); err != nil {
-				s.Logger.LogStep("RoleUpdate", "Skipping duplicate or error for perm ID %d: %v", permID, err)
-			}
+			perms = append(perms, models.Permission{ID: permID})
+		}
+		if err := tx.Model(&result).Association("Permissions").Append(perms); err != nil {
+			s.Logger.LogStep("RoleUpdate", "Failed to assign permissions: %v", err)
 		}
 
-		return nil
-	}); err != nil {
+		// Reload role with permissions
+		reloaded, err := s.repo.Role.FindByID(tx, result.ID, "Permissions")
+		if err != nil {
+			return nil, err
+		}
+
+		return reloaded, nil
+	})
+	if err != nil {
 		s.Logger.LogEndWithError("RoleUpdate", "Failed to update role: %v", err)
 		return nil, err
 	}
+
+	result = res.(*models.Role)
 
 	dto := dtos.ToRoleDTO(result)
 	s.Logger.LogEnd("RoleUpdate", "Role updated: %s (ID: %d)", dto.Name, dto.ID)
@@ -119,7 +142,8 @@ func (s *Services) RoleDelete(ctx context.Context, id uint) error {
 	s.Logger.LogStart("RoleDelete", "Deleting role ID: %d", id)
 
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		if err := s.repo.RoleHasPerm.DeleteByRoleID(tx, id); err != nil {
+		role := models.Role{ID: id}
+		if err := tx.Model(&role).Association("Permissions").Clear(); err != nil {
 			return err
 		}
 		_, err := s.repo.Role.Delete(tx, id)
@@ -135,24 +159,15 @@ func (s *Services) RoleDelete(ctx context.Context, id uint) error {
 
 // RoleGetPermissions returns all permissions for a role.
 func (s *Services) RoleGetPermissions(ctx context.Context, roleID uint) ([]dtos.PermissionDTO, error) {
-	var rolePerms []models.RoleHasPermission
-	if err := s.repo.RoleHasPerm.DB.Where("role_id = ?", roleID).Find(&rolePerms).Error; err != nil {
-		return nil, err
+	role, err := s.repo.Role.FindByID(nil, roleID, "Permissions")
+	if err != nil {
+		return nil, helpers.ErrNotFound
 	}
 
-	if len(rolePerms) == 0 {
-		return []dtos.PermissionDTO{}, nil
+	result := make([]dtos.PermissionDTO, len(role.Permissions))
+	for i, p := range role.Permissions {
+		result[i] = dtos.ToPermissionDTO(&p)
 	}
 
-	permIDs := make([]uint, len(rolePerms))
-	for i, rp := range rolePerms {
-		permIDs[i] = rp.PermissionID
-	}
-
-	var permissions []models.Permission
-	if err := s.repo.Permission.DB.Where("id IN ?", permIDs).Find(&permissions).Error; err != nil {
-		return nil, err
-	}
-
-	return dtos.ToPermissionDTOList(permissions), nil
+	return result, nil
 }
