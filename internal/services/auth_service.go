@@ -5,40 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
-
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 	"github.com/reshap0318/go-boilerplate/internal/models"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
-// Claims represents JWT claims.
-type Claims struct {
-	UserID      uint     `json:"user_id"`
-	Email       string   `json:"email"`
-	Name        string   `json:"name"`
-	Roles       []string `json:"roles"`
-	Permissions []string `json:"permissions"`
-	jwt.RegisteredClaims
-}
-
 // AuthValidateToken validates a JWT token and returns the claims.
-func (s *Services) AuthValidateToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, helpers.ErrInvalidToken
-		}
-		return []byte(s.cfg.Secret), nil
-	})
-
+func (s *Services) AuthValidateToken(tokenString string) (*helpers.JWTClaims, error) {
+	claims, err := helpers.ValidateToken(tokenString, s.JWKSManager.GetPublicKey())
 	if err != nil {
-		return nil, helpers.ErrInvalidToken
-	}
-
-	claims, ok := token.Claims.(*Claims)
-	if !ok || !token.Valid {
 		return nil, helpers.ErrInvalidToken
 	}
 
@@ -237,39 +214,23 @@ func (s *Services) getUserRolesAndPermissions(userID uint) (roles []string, perm
 }
 
 func (s *Services) generateTokenWithClaims(user *models.User, roles []string, permissions []string) (string, error) {
-	claims := Claims{
-		UserID:      user.ID,
-		Email:       user.Email,
-		Name:        user.Name,
-		Roles:       roles,
-		Permissions: permissions,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.Expiration)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.cfg.Secret))
+	return helpers.GenerateToken(
+		user.ID,
+		user.Email,
+		s.JWKSManager.GetPrivateKey(),
+		s.JWKSManager.GetKeyID(),
+		helpers.GetEnvInt("JWT_EXPIRATION", 24),
+	)
 }
 
 func (s *Services) generateRefreshTokenWithClaims(user *models.User, roles []string, permissions []string) (string, error) {
-	claims := Claims{
-		UserID:      user.ID,
-		Email:       user.Email,
-		Name:        user.Name,
-		Roles:       roles,
-		Permissions: permissions,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.RefreshExp)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.cfg.Secret))
+	return helpers.GenerateRefreshToken(
+		user.ID,
+		user.Email,
+		s.JWKSManager.GetPrivateKey(),
+		s.JWKSManager.GetKeyID(),
+		helpers.GetEnvInt("JWT_REFRESH_EXPIRATION", 168),
+	)
 }
 
 // AuthForgetPassword generates a reset token and sends it via email.
