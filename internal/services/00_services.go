@@ -11,18 +11,18 @@ import (
 
 // JWTConfig holds JWT configuration.
 type JWTConfig struct {
-	Secret       string
-	Expiration   time.Duration
-	RefreshExp   time.Duration
+	Expiration time.Duration
+	RefreshExp time.Duration
 }
 
 // Services holds all service dependencies.
 type Services struct {
-	repo        *repositories.Repositories
-	RedisClient *database.RedisCache
-	EmailClient *email.EmailClient
-	Logger      *helpers.Logger
-	cfg         *JWTConfig
+	repo         *repositories.Repositories
+	RedisClient  *database.RedisCache
+	EmailClient  *email.EmailClient
+	Logger       *helpers.Logger
+	JWKSManager  *JWKSManager
+	cfg          *JWTConfig
 }
 
 // NewServices creates and initializes all services.
@@ -33,9 +33,8 @@ func NewServices(repo *repositories.Repositories, redisClient *database.RedisCac
 		EmailClient: emailClient,
 		Logger:      logger,
 		cfg: &JWTConfig{
-			Secret:       helpers.GetEnv("JWT_SECRET", "your-secret-key"),
-			Expiration:   time.Duration(helpers.GetEnvInt("JWT_EXPIRATION", 24)) * time.Hour,
-			RefreshExp:   time.Duration(helpers.GetEnvInt("JWT_REFRESH_EXPIRATION", 168)) * time.Hour,
+			Expiration: time.Duration(helpers.GetEnvInt("JWT_EXPIRATION", 24)) * time.Hour,
+			RefreshExp: time.Duration(helpers.GetEnvInt("JWT_REFRESH_EXPIRATION", 168)) * time.Hour,
 		},
 	}
 }
