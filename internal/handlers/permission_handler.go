@@ -13,7 +13,7 @@ import (
 func (h *Handlers) PermissionCreate(c *gin.Context) {
 	var req dtos.PermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+		helpers.ValidationError(c, err)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (h *Handlers) PermissionUpdate(c *gin.Context) {
 
 	var req dtos.PermissionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+		helpers.ValidationError(c, err)
 		return
 	}
 
