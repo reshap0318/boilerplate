@@ -46,6 +46,7 @@ func main() {
 	{
 		routes.RegisterHealthRoutes(apiGroup, container.Handlers)
 		routes.RegisterAuthRoutes(apiGroup, container.Handlers)
+		routes.RegisterJWKSRoutes(r, container.Handlers)
 	}
 
 	protected := apiGroup.Group("")

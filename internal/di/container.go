@@ -132,6 +132,17 @@ func NewContainer() (*Container, error) {
 	// Always initialize services (Redis can be nil)
 	container.Services = services.NewServices(container.Repositories, container.Redis, container.EmailClient, container.Logger)
 
+	// Initialize JWKS Manager
+	jwksManager := &services.JWKSManager{}
+	if err := jwksManager.Initialize(
+		helpers.GetEnv("JWT_PRIVATE_KEY_PATH", "keys/private.pem"),
+		helpers.GetEnv("JWT_PUBLIC_KEY_PATH", "keys/public.pem"),
+		helpers.GetEnv("JWT_PASSPHRASE", ""),
+	); err != nil {
+		return nil, fmt.Errorf("failed to initialize JWKS Manager: %w", err)
+	}
+	container.Services.JWKSManager = jwksManager
+
 	// Always initialize handlers
 	container.Handlers = handlers.NewHandlers(container.Services)
 

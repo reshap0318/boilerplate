@@ -5,40 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
-
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 	"github.com/reshap0318/go-boilerplate/internal/models"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
-// Claims represents JWT claims.
-type Claims struct {
-	UserID      uint     `json:"user_id"`
-	Email       string   `json:"email"`
-	Name        string   `json:"name"`
-	Roles       []string `json:"roles"`
-	Permissions []string `json:"permissions"`
-	jwt.RegisteredClaims
-}
-
 // AuthValidateToken validates a JWT token and returns the claims.
-func (s *Services) AuthValidateToken(tokenString string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, helpers.ErrInvalidToken
-		}
-		return []byte(s.cfg.Secret), nil
-	})
-
+func (s *Services) AuthValidateToken(tokenString string) (*helpers.JWTClaims, error) {
+	claims, err := helpers.ValidateToken(tokenString, s.JWKSManager.GetPublicKey())
 	if err != nil {
-		return nil, helpers.ErrInvalidToken
-	}
-
-	claims, ok := token.Claims.(*Claims)
-	if !ok || !token.Valid {
 		return nil, helpers.ErrInvalidToken
 	}
 
@@ -79,7 +56,6 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - user not found")
 		return nil, helpers.ErrInvalidCredential
 	}
-
 	s.Logger.LogStep("AuthLogin", "User found: %s", email)
 
 	if !s.checkPassword(password, user.Password) {
@@ -87,28 +63,22 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - invalid password")
 		return nil, helpers.ErrInvalidCredential
 	}
-
 	s.Logger.LogStep("AuthLogin", "Password validated successfully")
 
-	// Fetch roles & permissions once
-	roles, permissions := s.getUserRolesAndPermissions(user.ID)
-
-	token, err := s.generateTokenWithClaims(user, roles, permissions)
+	token, err := s.generateTokenWithClaims(user)
 	if err != nil {
 		s.Logger.LogError("AuthLogin", "Failed to generate token: %v", err)
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - token generation error")
 		return nil, err
 	}
-
 	s.Logger.LogStep("AuthLogin", "Access token generated")
 
-	refreshToken, err := s.generateRefreshTokenWithClaims(user, roles, permissions)
+	refreshToken, err := s.generateRefreshTokenWithClaims(user)
 	if err != nil {
 		s.Logger.LogError("AuthLogin", "Failed to generate refresh token: %v", err)
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - refresh token generation error")
 		return nil, err
 	}
-
 	s.Logger.LogStep("AuthLogin", "Refresh token generated")
 
 	// Reload user with roles for response
@@ -130,7 +100,6 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 	}
 
 	s.Logger.LogEnd("AuthLogin", "Login successful for user: %s", email)
-
 	return &dtos.LoginResponse{
 		Token:        token,
 		RefreshToken: refreshToken,
@@ -148,7 +117,6 @@ func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - invalid token")
 		return nil, err
 	}
-
 	s.Logger.LogStep("AuthRefreshToken", "Refresh token validated")
 
 	user, err := s.repo.User.FindByID(s.repo.User.DB, claims.UserID)
@@ -157,31 +125,25 @@ func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - user not found")
 		return nil, helpers.ErrInvalidCredential
 	}
-
 	s.Logger.LogStep("AuthRefreshToken", "User found: %s", user.Email)
 
-	// Fetch roles & permissions once
-	roles, permissions := s.getUserRolesAndPermissions(user.ID)
-
-	token, err := s.generateTokenWithClaims(user, roles, permissions)
+	token, err := s.generateTokenWithClaims(user)
 	if err != nil {
 		s.Logger.LogError("AuthRefreshToken", "Failed to generate token: %v", err)
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - token generation error")
 		return nil, err
 	}
-
 	s.Logger.LogStep("AuthRefreshToken", "Access token regenerated")
 
-	newRefreshToken, err := s.generateRefreshTokenWithClaims(user, roles, permissions)
+	newRefreshToken, err := s.generateRefreshTokenWithClaims(user)
 	if err != nil {
 		s.Logger.LogError("AuthRefreshToken", "Failed to generate refresh token: %v", err)
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - refresh token generation error")
 		return nil, err
 	}
-
 	s.Logger.LogStep("AuthRefreshToken", "Refresh token regenerated")
-	s.Logger.LogEnd("AuthRefreshToken", "Token refreshed successfully for user: %s", user.Email)
 
+	s.Logger.LogEnd("AuthRefreshToken", "Token refreshed successfully for user: %s", user.Email)
 	return &dtos.LoginResponse{
 		Token:        token,
 		RefreshToken: newRefreshToken,
@@ -236,40 +198,24 @@ func (s *Services) getUserRolesAndPermissions(userID uint) (roles []string, perm
 	return roles, permissions
 }
 
-func (s *Services) generateTokenWithClaims(user *models.User, roles []string, permissions []string) (string, error) {
-	claims := Claims{
-		UserID:      user.ID,
-		Email:       user.Email,
-		Name:        user.Name,
-		Roles:       roles,
-		Permissions: permissions,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.Expiration)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.cfg.Secret))
+func (s *Services) generateTokenWithClaims(user *models.User) (string, error) {
+	return helpers.GenerateToken(
+		user.ID,
+		user.Email,
+		s.JWKSManager.GetPrivateKey(),
+		s.JWKSManager.GetKeyID(),
+		helpers.GetEnvInt("JWT_EXPIRATION", 24),
+	)
 }
 
-func (s *Services) generateRefreshTokenWithClaims(user *models.User, roles []string, permissions []string) (string, error) {
-	claims := Claims{
-		UserID:      user.ID,
-		Email:       user.Email,
-		Name:        user.Name,
-		Roles:       roles,
-		Permissions: permissions,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.RefreshExp)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			NotBefore: jwt.NewNumericDate(time.Now()),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.cfg.Secret))
+func (s *Services) generateRefreshTokenWithClaims(user *models.User) (string, error) {
+	return helpers.GenerateRefreshToken(
+		user.ID,
+		user.Email,
+		s.JWKSManager.GetPrivateKey(),
+		s.JWKSManager.GetKeyID(),
+		helpers.GetEnvInt("JWT_REFRESH_EXPIRATION", 168),
+	)
 }
 
 // AuthForgetPassword generates a reset token and sends it via email.

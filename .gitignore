@@ -36,6 +36,10 @@ logs/
 .env
 .env.local
 
+# JWT Keys
+keys/
+*.pem
+
 # OS
 .DS_Store
 Thumbs.db
