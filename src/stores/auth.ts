@@ -65,6 +65,14 @@ export const useAuthStore = defineStore('auth', () => {
     storage.clearAll()
   }
 
+  async function forgotPassword(email: string): Promise<void> {
+    await post('/auth/forgot-password', { email })
+  }
+
+  async function resetPassword(token: string, new_password: string): Promise<void> {
+    await post('/auth/reset-password', { token, new_password })
+  }
+
 
   return { 
     token, 
@@ -74,6 +82,8 @@ export const useAuthStore = defineStore('auth', () => {
     formRules, 
     login, 
     logout, 
+    forgotPassword,
+    resetPassword,
     isAuthenticated
   }
 })

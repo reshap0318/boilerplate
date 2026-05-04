@@ -50,10 +50,16 @@ async function handleLogin() {
           v-model="authStore.form.password"
           label="Password"
           placeholder="••••••••"
-          class="mb-6"
+          class="mb-2"
           :validation="v$.password"
           :leading-icon="PhLock"
         />
+        
+        <div class="mb-6 text-right">
+          <router-link to="/forgot-password" class="text-sm font-medium text-primary-600 hover:text-primary-700">
+            Lupa Password?
+          </router-link>
+        </div>
 
         <UiButton
           type="submit"
