@@ -14,7 +14,7 @@ import (
 func (h *Handlers) RoleCreate(c *gin.Context) {
 	var req dtos.RoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+		helpers.ValidationError(c, err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *Handlers) RoleUpdate(c *gin.Context) {
 
 	var req dtos.RoleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+		helpers.ValidationError(c, err)
 		return
 	}
 

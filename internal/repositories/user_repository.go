@@ -19,7 +19,7 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 
 // FindByEmail finds a user by email.
 func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
-	users, err := r.FindByFieldMap(r.DB, map[string]interface{}{
+	users, err := r.FindByFieldMap(nil, map[string]interface{}{
 		"email": email,
 	})
 	if err != nil {

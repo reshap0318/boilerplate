@@ -11,10 +11,10 @@ type RoleRequest struct {
 
 // RoleDTO represents role data transfer object.
 type RoleDTO struct {
-	ID          uint              `json:"id"`
-	Name        string            `json:"name"`
-	Description *string           `json:"description"`
-	Permissions []PermissionDTO   `json:"permissions"`
+	ID          uint            `json:"id"`
+	Name        string          `json:"name"`
+	Description *string         `json:"description"`
+	Permissions []PermissionDTO `json:"permissions"`
 }
 
 // ToRoleDTO converts Role model to RoleDTO.

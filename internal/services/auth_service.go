@@ -56,7 +56,6 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - user not found")
 		return nil, helpers.ErrInvalidCredential
 	}
-
 	s.Logger.LogStep("AuthLogin", "User found: %s", email)
 
 	if !s.checkPassword(password, user.Password) {
@@ -64,28 +63,22 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - invalid password")
 		return nil, helpers.ErrInvalidCredential
 	}
-
 	s.Logger.LogStep("AuthLogin", "Password validated successfully")
 
-	// Fetch roles & permissions once
-	roles, permissions := s.getUserRolesAndPermissions(user.ID)
-
-	token, err := s.generateTokenWithClaims(user, roles, permissions)
+	token, err := s.generateTokenWithClaims(user)
 	if err != nil {
 		s.Logger.LogError("AuthLogin", "Failed to generate token: %v", err)
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - token generation error")
 		return nil, err
 	}
-
 	s.Logger.LogStep("AuthLogin", "Access token generated")
 
-	refreshToken, err := s.generateRefreshTokenWithClaims(user, roles, permissions)
+	refreshToken, err := s.generateRefreshTokenWithClaims(user)
 	if err != nil {
 		s.Logger.LogError("AuthLogin", "Failed to generate refresh token: %v", err)
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - refresh token generation error")
 		return nil, err
 	}
-
 	s.Logger.LogStep("AuthLogin", "Refresh token generated")
 
 	// Reload user with roles for response
@@ -107,7 +100,6 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 	}
 
 	s.Logger.LogEnd("AuthLogin", "Login successful for user: %s", email)
-
 	return &dtos.LoginResponse{
 		Token:        token,
 		RefreshToken: refreshToken,
@@ -125,7 +117,6 @@ func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - invalid token")
 		return nil, err
 	}
-
 	s.Logger.LogStep("AuthRefreshToken", "Refresh token validated")
 
 	user, err := s.repo.User.FindByID(s.repo.User.DB, claims.UserID)
@@ -134,31 +125,25 @@ func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - user not found")
 		return nil, helpers.ErrInvalidCredential
 	}
-
 	s.Logger.LogStep("AuthRefreshToken", "User found: %s", user.Email)
 
-	// Fetch roles & permissions once
-	roles, permissions := s.getUserRolesAndPermissions(user.ID)
-
-	token, err := s.generateTokenWithClaims(user, roles, permissions)
+	token, err := s.generateTokenWithClaims(user)
 	if err != nil {
 		s.Logger.LogError("AuthRefreshToken", "Failed to generate token: %v", err)
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - token generation error")
 		return nil, err
 	}
-
 	s.Logger.LogStep("AuthRefreshToken", "Access token regenerated")
 
-	newRefreshToken, err := s.generateRefreshTokenWithClaims(user, roles, permissions)
+	newRefreshToken, err := s.generateRefreshTokenWithClaims(user)
 	if err != nil {
 		s.Logger.LogError("AuthRefreshToken", "Failed to generate refresh token: %v", err)
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - refresh token generation error")
 		return nil, err
 	}
-
 	s.Logger.LogStep("AuthRefreshToken", "Refresh token regenerated")
-	s.Logger.LogEnd("AuthRefreshToken", "Token refreshed successfully for user: %s", user.Email)
 
+	s.Logger.LogEnd("AuthRefreshToken", "Token refreshed successfully for user: %s", user.Email)
 	return &dtos.LoginResponse{
 		Token:        token,
 		RefreshToken: newRefreshToken,
@@ -213,7 +198,7 @@ func (s *Services) getUserRolesAndPermissions(userID uint) (roles []string, perm
 	return roles, permissions
 }
 
-func (s *Services) generateTokenWithClaims(user *models.User, roles []string, permissions []string) (string, error) {
+func (s *Services) generateTokenWithClaims(user *models.User) (string, error) {
 	return helpers.GenerateToken(
 		user.ID,
 		user.Email,
@@ -223,7 +208,7 @@ func (s *Services) generateTokenWithClaims(user *models.User, roles []string, pe
 	)
 }
 
-func (s *Services) generateRefreshTokenWithClaims(user *models.User, roles []string, permissions []string) (string, error) {
+func (s *Services) generateRefreshTokenWithClaims(user *models.User) (string, error) {
 	return helpers.GenerateRefreshToken(
 		user.ID,
 		user.Email,
