@@ -7,11 +7,20 @@ import pluginTs from '@typescript-eslint/eslint-plugin'
 import globals from 'globals'
 
 export default [
+  {
+    name: 'app/files-to-lint',
+    files: ['**/*.{js,mjs,jsx,vue,ts,tsx}'],
+  },
+
+  {
+    name: 'app/files-to-ignore',
+    ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/node_modules/**'],
+  },
   js.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
   configPrettier,
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.{ts,tsx,vue}'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -24,22 +33,12 @@ export default [
     },
     plugins: {
       '@typescript-eslint': pluginTs,
-      prettier: pluginPrettier,
     },
     rules: {
       'prettier/prettier': 'error',
       '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/no-explicit-any': 'off',
-    },
-  },
-  {
-    files: ['**/*.vue'],
-    languageOptions: {
-      parserOptions: {
-        parser: tsParser,
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-      },
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
     },
   },
   {

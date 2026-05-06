@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import SidebarMenuItem from './SidebarMenuItem.vue'
+
 export interface IMenuItem {
-  icon: unknown
+  icon?: unknown
   label: string
   to?: string
-  children?: { label: string; to: string }[]
+  children?: IMenuItem[]
 }
 
 defineProps<{
@@ -15,6 +18,16 @@ defineProps<{
 const emit = defineEmits<{
   close: []
 }>()
+
+const expandedGroups = ref<Set<string>>(new Set())
+
+function toggleGroup(key: string) {
+  if (expandedGroups.value.has(key)) {
+    expandedGroups.value.delete(key)
+  } else {
+    expandedGroups.value.add(key)
+  }
+}
 
 const handleItemClick = () => {
   if (window.innerWidth < 1024) {
@@ -28,7 +41,7 @@ const handleItemClick = () => {
   <Teleport to="body">
     <div
       v-if="isOpen"
-      class="fixed inset-0 bg-black/50 z-40 lg:hidden"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
       @click="emit('close')"
     />
   </Teleport>
@@ -36,51 +49,40 @@ const handleItemClick = () => {
   <!-- Sidebar -->
   <aside
     :class="[
-      'fixed top-0 left-0 z-50 h-full bg-white shadow-lg transition-transform duration-300 ease-in-out',
-      'w-64',
+      'fixed top-0 left-0 z-50 h-full w-64 transition-transform duration-300 ease-in-out',
+      'bg-linear-to-b from-slate-900 via-slate-800 to-slate-900',
+      'shadow-2xl border-r border-white/5',
       isOpen ? 'translate-x-0' : '-translate-x-full',
     ]"
   >
     <!-- Logo / Header -->
-    <div class="flex items-center h-12 px-4 border-b border-gray-200">
-      <router-link to="/" class="text-xl font-bold text-gray-800">
-        {{ appName }}
+    <div class="flex items-center h-12 px-5 border-b border-white/10">
+      <router-link to="/" class="flex items-center group">
+        <span
+          class="text-lg font-bold bg-linear-to-r from-white to-slate-300 bg-clip-text text-transparent"
+        >
+          {{ appName }}
+        </span>
       </router-link>
     </div>
 
     <!-- Menu -->
-    <nav class="p-4 space-y-1">
-      <template v-for="(item, index) in menuItems" :key="index">
-        <router-link
-          v-if="!item.children && item.to"
-          :to="item.to"
-          class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-          active-class="bg-blue-50 text-blue-600"
-          @click="handleItemClick"
-        >
-          <component :is="item.icon" class="w-5 h-5" />
-          <span class="font-medium">{{ item.label }}</span>
-        </router-link>
-
-        <div v-else class="space-y-1">
-          <div class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 font-medium">
-            <component :is="item.icon" class="w-5 h-5" />
-            <span>{{ item.label }}</span>
-          </div>
-          <div class="pl-11 space-y-1">
-            <router-link
-              v-for="child in item.children"
-              :key="child.to"
-              :to="child.to"
-              class="block px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
-              active-class="bg-blue-50 text-blue-600 font-medium"
-              @click="handleItemClick"
-            >
-              {{ child.label }}
-            </router-link>
-          </div>
-        </div>
-      </template>
+    <nav class="p-3 space-y-1 mt-2 overflow-y-auto" style="max-height: calc(100vh - 3.5rem)">
+      <SidebarMenuItem
+        v-for="(item, index) in menuItems"
+        :key="index"
+        :item="item"
+        :depth="0"
+        :expanded-groups="expandedGroups"
+        @toggle-group="toggleGroup"
+        @item-click="handleItemClick"
+      />
     </nav>
   </aside>
 </template>
+
+<style scoped>
+.sidebar-item-active {
+  box-shadow: inset 3px 0 0 #3b82f6;
+}
+</style>

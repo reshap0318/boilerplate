@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { usePermissionStore } from '@/stores/permission'
-import type { IPermission } from '@/stores/permission'
-import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
 import swal from '@/plugins/swal'
 import UiCard from '@/components/utils/UiCard.vue'
 import UiButton from '@/components/utils/UiButton.vue'
 import FormModal from './FormModal.vue'
+
+import { ref, onMounted } from 'vue'
+import { usePermissionStore, type IPermission } from '@/stores/permission'
+import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
 
 const permissionStore = usePermissionStore()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)
@@ -36,7 +36,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4">
+  <div class="mx-auto px-4">
     <!-- Header Section -->
     <div class="mb-6 flex items-center justify-between">
       <div>

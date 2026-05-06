@@ -12,6 +12,27 @@ import FormModal from './FormModal.vue'
 const roleStore = useRoleStore()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)
 
+const avatarColors = [
+  'bg-blue-600',
+  'bg-emerald-600',
+  'bg-violet-600',
+  'bg-amber-600',
+  'bg-rose-600',
+  'bg-cyan-600',
+  'bg-indigo-600',
+  'bg-teal-600',
+]
+
+function getInitials(name: string): string {
+  const words = name.trim().split(/\s+/)
+  if (words.length === 1) return words[0].charAt(0).toUpperCase()
+  return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase()
+}
+
+function getAvatarColor(index: number): string {
+  return avatarColors[index % avatarColors.length]
+}
+
 function openCreate() {
   formModalRef.value?.show()
 }
@@ -41,7 +62,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4">
+  <div class="mx-auto px-4">
     <!-- Header Section -->
     <div class="mb-6 flex items-center justify-between">
       <div>
@@ -94,21 +115,28 @@ onMounted(() => {
     <template v-else>
       <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <UiCard
-          v-for="role in roleStore.indexData.roles"
+          v-for="(role, index) in roleStore.indexData.roles"
           :key="role.id"
           class="group hover:shadow-md transition-shadow"
+          wrapper-class="h-full"
+          card-class="h-full flex flex-col"
+          body-class="flex flex-col flex-1 p-6"
         >
-          <div class="flex items-start justify-between">
-            <div class="min-w-0 flex-1">
-              <h3 class="text-lg font-semibold text-gray-900 mb-1">
-                {{ role.name }}
-              </h3>
-              <p class="text-sm text-gray-600 line-clamp-2">
-                {{ role.description }}
-              </p>
-            </div>
+          <!-- Top: Avatar + Name + Actions -->
+          <div class="flex items-center gap-3">
             <div
-              class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0 ml-2"
+              :class="[
+                'flex items-center justify-center w-11 h-11 rounded-full text-white text-sm font-bold shrink-0 shadow-sm',
+                getAvatarColor(index),
+              ]"
+            >
+              {{ getInitials(role.name) }}
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 truncate min-w-0 flex-1">
+              {{ role.name }}
+            </h3>
+            <div
+              class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0"
             >
               <button
                 class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
@@ -128,8 +156,13 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- Permissions badges -->
-          <div v-if="role.permissions?.length" class="mt-3 flex flex-wrap gap-1.5">
+          <!-- Description -->
+          <p class="mt-2 text-sm text-gray-600 line-clamp-2">
+            {{ role.description }}
+          </p>
+
+          <!-- Permissions badges (pushed to bottom) -->
+          <div class="mt-auto pt-3 flex flex-wrap gap-1.5" v-if="role.permissions?.length">
             <span
               v-for="perm in role.permissions.slice(0, 5)"
               :key="perm.id"

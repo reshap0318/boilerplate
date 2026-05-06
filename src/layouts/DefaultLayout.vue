@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { PhList, PhHouse, PhGear, PhShieldCheck } from '@phosphor-icons/vue'
+import { PhList, PhHouse, PhShieldCheck } from '@phosphor-icons/vue'
 import type { IMenuItem } from '@/components/layouts/SidebarMenu.vue'
 import SidebarMenu from '@/components/layouts/SidebarMenu.vue'
 import TopBar from '@/components/layouts/TopBar.vue'
@@ -10,16 +10,16 @@ const appName = import.meta.env.VITE_APP_NAME || 'Admin'
 
 const menuItems: IMenuItem[] = [
   { icon: PhHouse, label: 'Dashboard', to: '/' },
-  { icon: PhList, label: 'Data Master', to: '/data' },
-  { 
-    icon: PhShieldCheck, 
-    label: 'UAM', 
+  // { icon: PhList, label: 'Data Master', to: '/data' },
+  {
+    icon: PhShieldCheck,
+    label: 'UAM',
     children: [
       { label: 'Roles', to: '/uam/roles' },
-      { label: 'Permissions', to: '/uam/permissions' }
-    ] 
+      { label: 'Permissions', to: '/uam/permissions' },
+    ],
   },
-  { icon: PhGear, label: 'Settings', to: '/settings' },
+  // { icon: PhGear, label: 'Settings', to: '/settings' },
 ]
 
 onMounted(() => {
@@ -38,10 +38,7 @@ onMounted(() => {
     />
 
     <!-- Main Content -->
-    <div
-      class="transition-all duration-300 ease-in-out"
-      :class="sidebarOpen ? 'lg:ml-64' : ''"
-    >
+    <div class="transition-all duration-300 ease-in-out" :class="sidebarOpen ? 'lg:ml-64' : ''">
       <!-- Top Bar -->
       <TopBar
         title="Admin Panel"
