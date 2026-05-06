@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { PhList, PhHouse, PhShieldCheck } from '@phosphor-icons/vue'
 import type { IMenuItem } from '@/components/layouts/SidebarMenu.vue'
 import SidebarMenu from '@/components/layouts/SidebarMenu.vue'
 import TopBar from '@/components/layouts/TopBar.vue'
 
 const sidebarOpen = ref(false)
+const sidebarCollapsed = ref(false)
 const appName = import.meta.env.VITE_APP_NAME || 'Admin'
 
 const menuItems: IMenuItem[] = [
@@ -22,9 +23,13 @@ const menuItems: IMenuItem[] = [
   // { icon: PhGear, label: 'Settings', to: '/settings' },
 ]
 
-onMounted(() => {
-  sidebarOpen.value = window.innerWidth >= 1024
-})
+const toggleSidebar = () => {
+  if (window.innerWidth >= 768) {
+    sidebarCollapsed.value = !sidebarCollapsed.value
+  } else {
+    sidebarOpen.value = !sidebarOpen.value
+  }
+}
 </script>
 
 <template>
@@ -34,16 +39,19 @@ onMounted(() => {
       :app-name="appName"
       :menu-items="menuItems"
       :is-open="sidebarOpen"
+      :is-collapsed="sidebarCollapsed"
       @close="sidebarOpen = false"
     />
 
     <!-- Main Content -->
-    <div class="transition-all duration-300 ease-in-out" :class="sidebarOpen ? 'lg:ml-64' : ''">
+    <div
+      class="transition-all duration-300 ease-in-out"
+      :class="sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'"
+    >
       <!-- Top Bar -->
       <TopBar
-        title="Admin Panel"
         :show-hamburger="true"
-        @toggle-sidebar="sidebarOpen = !sidebarOpen"
+        @toggle-sidebar="toggleSidebar"
       >
         <template #menu-icon>
           <PhList class="w-6 h-6" />

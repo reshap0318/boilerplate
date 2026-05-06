@@ -7,6 +7,7 @@ const props = defineProps<{
   item: IMenuItem
   depth: number
   expandedGroups: Set<string>
+  isExpanded: boolean
 }>()
 
 const emit = defineEmits<{
@@ -44,14 +45,18 @@ function isGroupExpanded(item: IMenuItem, depth: number): boolean {
   <router-link
     v-if="!item.children && item.to"
     :to="item.to"
-    class="sidebar-item flex items-center gap-3 text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200"
+    class="sidebar-item flex items-center text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200 whitespace-nowrap overflow-hidden"
     :class="[
-      depth === 0 ? 'px-4 py-2.5 rounded-xl' : 'px-4 py-2 rounded-lg',
+      depth === 0
+        ? isExpanded
+          ? 'px-4 py-2.5 rounded-xl gap-3'
+          : 'justify-center py-2.5 rounded-xl'
+        : 'px-4 py-2 rounded-lg gap-3',
     ]"
     :exact-active-class="
       depth === 0
-        ? '!bg-gradient-to-r !from-blue-600/20 !to-violet-600/20 !text-white sidebar-item-active'
-        : '!text-blue-400 !bg-blue-500/10'
+        ? '!text-white !bg-white/5 sidebar-item-active'
+        : '!text-white !bg-blue-500/10'
     "
     @click="emit('itemClick')"
   >
@@ -61,17 +66,26 @@ function isGroupExpanded(item: IMenuItem, depth: number): boolean {
     <span
       v-if="depth > 0"
       class="w-1.5 h-1.5 rounded-full bg-current shrink-0 transition-all duration-200"
-      :class="route.path === item.to ? 'opacity-100 text-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]' : 'opacity-50'"
+      :class="route.path === item.to ? 'opacity-100 text-white shadow-[0_0_8px_rgba(255,255,255,0.3)]' : 'opacity-50'"
     />
-    <span :class="depth === 0 ? 'font-medium text-sm' : 'text-sm'">{{ item.label }}</span>
+    <span
+      v-if="isExpanded"
+      :class="depth === 0 ? 'font-medium text-sm' : 'text-sm'"
+    >
+      {{ item.label }}
+    </span>
   </router-link>
 
   <!-- Group item (has children) -->
   <div v-else class="space-y-0.5">
     <button
-      class="w-full flex items-center gap-3 transition-all duration-200"
+      class="w-full flex items-center transition-all duration-200 whitespace-nowrap overflow-hidden"
       :class="[
-        depth === 0 ? 'px-4 py-2.5 rounded-xl' : 'px-4 py-2 rounded-lg',
+        depth === 0
+          ? isExpanded
+            ? 'px-4 py-2.5 rounded-xl gap-3'
+            : 'justify-center py-2.5 rounded-xl'
+          : 'px-4 py-2 rounded-lg gap-3',
         isGroupActive(item)
           ? depth === 0
             ? 'text-white bg-white/5 sidebar-group-active'
@@ -88,16 +102,20 @@ function isGroupExpanded(item: IMenuItem, depth: number): boolean {
         class="w-1.5 h-1.5 rounded-full bg-current shrink-0 transition-all duration-200"
         :class="isGroupActive(item) ? 'opacity-100 text-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]' : 'opacity-50'"
       />
-      <span :class="[depth === 0 ? 'font-medium text-sm' : 'text-sm', 'flex-1 text-left']">
+      <span
+        v-if="isExpanded"
+        :class="[depth === 0 ? 'font-medium text-sm' : 'text-sm', 'flex-1 text-left']"
+      >
         {{ item.label }}
       </span>
       <PhCaretDown
+        v-if="isExpanded"
         class="w-4 h-4 transition-transform duration-200"
         :class="isGroupExpanded(item, depth) ? 'rotate-180' : ''"
       />
     </button>
 
-    <!-- Children -->
+    <!-- Children (only rendered when sidebar is expanded) -->
     <Transition
       enter-active-class="transition-all duration-200 ease-out"
       enter-from-class="opacity-0 -translate-y-1"
@@ -106,13 +124,17 @@ function isGroupExpanded(item: IMenuItem, depth: number): boolean {
       leave-from-class="opacity-100 translate-y-0"
       leave-to-class="opacity-0 -translate-y-1"
     >
-      <div v-show="isGroupExpanded(item, depth)" class="pl-5 space-y-0.5 overflow-hidden">
+      <div
+        v-show="isExpanded && isGroupExpanded(item, depth)"
+        class="pl-5 space-y-0.5 overflow-hidden"
+      >
         <SidebarMenuItem
           v-for="(child, idx) in item.children"
           :key="idx"
           :item="child"
           :depth="depth + 1"
           :expanded-groups="expandedGroups"
+          :is-expanded="isExpanded"
           @toggle-group="(key: string) => emit('toggleGroup', key)"
           @item-click="emit('itemClick')"
         />
