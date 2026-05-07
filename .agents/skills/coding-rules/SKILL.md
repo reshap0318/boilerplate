@@ -1,3 +1,8 @@
+---
+name: coding-rules
+description: Go boilerplate coding rules and conventions including architecture, CRUD patterns, naming conventions, and anti-patterns
+---
+
 # Go Boilerplate — Coding Rules & Conventions
 
 > **READ THIS ENTIRELY before writing any code.** These rules are MANDATORY.
