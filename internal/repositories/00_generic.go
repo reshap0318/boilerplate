@@ -23,11 +23,11 @@ type QueryOptions struct {
 
 // PagedResult holds paginated query results.
 type PagedResult[T any] struct {
-	Data       []T   // Data records
-	Total      int64 // Total records
-	Page       int   // Current page
-	PageSize   int   // Items per page
-	TotalPages int   // Total pages
+	Data       []T   `json:"data"`        // Data records
+	Total      int64 `json:"total"`       // Total records
+	Page       int   `json:"page"`        // Current page
+	PageSize   int   `json:"page_size"`   // Items per page
+	TotalPages int   `json:"total_pages"` // Total pages
 }
 
 // GenericRepository provides generic CRUD operations for any model
@@ -438,4 +438,3 @@ func (r *GenericRepository[T]) ExistsByField(tx *gorm.DB, filter *T) (bool, erro
 
 	return count > 0, nil
 }
-
