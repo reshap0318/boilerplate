@@ -11,6 +11,20 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// PaginationMeta represents pagination metadata in response.
+type PaginationMeta struct {
+	Total      int64 `json:"total"`
+	Page       int   `json:"page"`
+	PageSize   int   `json:"page_size"`
+	TotalPages int   `json:"total_pages"`
+}
+
+// PaginatedResponseInterface defines the contract for paginated responses.
+type PaginatedResponseInterface interface {
+	GetData() interface{}
+	GetMetadata() PaginationMeta
+}
+
 // Response represents a standard HTTP response structure
 type Response struct {
 	Code    int                 `json:"code"`
@@ -41,6 +55,16 @@ func ErrorResponse(c *gin.Context, statusCode int, message string) {
 // OK sends 200 OK response
 func OK(c *gin.Context, message string, data interface{}) {
 	SuccessResponse(c, http.StatusOK, message, data)
+}
+
+// OKWithMetadata sends 200 OK response with pagination metadata extracted from PaginatedResponse
+func OKWithMetadata(c *gin.Context, message string, paginated PaginatedResponseInterface) {
+	c.JSON(http.StatusOK, gin.H{
+		"code":     http.StatusOK,
+		"message":  message,
+		"data":     paginated.GetData(),
+		"metadata": paginated.GetMetadata(),
+	})
 }
 
 // Created sends 201 Created response

@@ -7,6 +7,7 @@ import (
 
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/repositories"
 )
 
 // PermissionCreate handles POST /api/permissions
@@ -26,15 +27,36 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
 	helpers.Created(c, "Permission created successfully", dto)
 }
 
-// PermissionGetAll handles GET /api/permissions
+// PermissionGetAll handles GET /api/permissions with optional pagination
 func (h *Handlers) PermissionGetAll(c *gin.Context) {
-	dtos, err := h.svcs.PermissionGetAll(c.Request.Context())
+	pageStr := c.Query("page")
+
+	if pageStr == "" {
+		permissions, err := h.svcs.PermissionGetAll(c.Request.Context())
+		if err != nil {
+			helpers.InternalServerError(c, "Failed to fetch permissions")
+			return
+		}
+
+		helpers.OK(c, "Permissions fetched successfully", permissions)
+		return
+	}
+
+	page, _ := strconv.Atoi(pageStr)
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	opts := &repositories.QueryOptions{
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	result, err := h.svcs.PermissionGetAllPaginated(c.Request.Context(), opts)
 	if err != nil {
 		helpers.InternalServerError(c, "Failed to fetch permissions")
 		return
 	}
 
-	helpers.OK(c, "Permissions fetched successfully", dtos)
+	helpers.OKWithMetadata(c, "Permissions fetched successfully", result)
 }
 
 // PermissionGetByID handles GET /api/permissions/:id

@@ -23,11 +23,26 @@ type QueryOptions struct {
 
 // PagedResult holds paginated query results.
 type PagedResult[T any] struct {
-	Data       []T   `json:"data"`        // Data records
+	Data       []T  `json:"data"`        // Data records
 	Total      int64 `json:"total"`       // Total records
 	Page       int   `json:"page"`        // Current page
 	PageSize   int   `json:"page_size"`   // Items per page
 	TotalPages int   `json:"total_pages"` // Total pages
+}
+
+// GetData returns the data slice.
+func (p *PagedResult[T]) GetData() interface{} {
+	return p.Data
+}
+
+// GetMetadata returns the pagination metadata.
+func (p *PagedResult[T]) GetMetadata() helpers.PaginationMeta {
+	return helpers.PaginationMeta{
+		Total:      p.Total,
+		Page:       p.Page,
+		PageSize:   p.PageSize,
+		TotalPages: p.TotalPages,
+	}
 }
 
 // GenericRepository provides generic CRUD operations for any model

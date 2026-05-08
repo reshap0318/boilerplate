@@ -8,6 +8,7 @@ import (
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 	"github.com/reshap0318/go-boilerplate/internal/models"
+	"github.com/reshap0318/go-boilerplate/internal/repositories"
 )
 
 // PermissionCreate creates a new permission.
@@ -42,6 +43,21 @@ func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, 
 	}
 
 	return dtos.ToPermissionDTOList(permissions), nil
+}
+
+// PermissionGetAllPaginated returns paginated permissions.
+func (s *Services) PermissionGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.Permission], error) {
+	if opts == nil {
+		opts = &repositories.QueryOptions{}
+	}
+	if opts.SortBy == "" {
+		opts.SortBy = "id"
+	}
+	if opts.Order == "" {
+		opts.Order = "ASC"
+	}
+
+	return s.repo.Permission.FindAllWithOpts(nil, opts)
 }
 
 // PermissionGetByID returns a permission by ID.
