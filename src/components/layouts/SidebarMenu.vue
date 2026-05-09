@@ -7,6 +7,7 @@ export interface IMenuItem {
   label: string
   to?: string
   children?: IMenuItem[]
+  isTitle?: boolean
 }
 
 const props = defineProps<{

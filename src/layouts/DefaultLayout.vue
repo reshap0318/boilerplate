@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { PhList, PhHouse, PhShieldCheck } from '@phosphor-icons/vue'
+import { PhList, PhHouse, PhShieldCheck, PhUsers } from '@phosphor-icons/vue'
 import type { IMenuItem } from '@/components/layouts/SidebarMenu.vue'
 import SidebarMenu from '@/components/layouts/SidebarMenu.vue'
 import TopBar from '@/components/layouts/TopBar.vue'
@@ -11,7 +11,8 @@ const appName = import.meta.env.VITE_APP_NAME || 'Admin'
 
 const menuItems: IMenuItem[] = [
   { icon: PhHouse, label: 'Dashboard', to: '/' },
-  // { icon: PhList, label: 'Data Master', to: '/data' },
+  { isTitle: true, label: 'Management' },
+  { icon: PhUsers, label: 'Users', to: '/users' },
   {
     icon: PhShieldCheck,
     label: 'UAM',
@@ -20,7 +21,6 @@ const menuItems: IMenuItem[] = [
       { label: 'Permissions', to: '/uam/permissions' },
     ],
   },
-  // { icon: PhGear, label: 'Settings', to: '/settings' },
 ]
 
 const toggleSidebar = () => {

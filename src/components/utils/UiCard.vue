@@ -4,6 +4,7 @@ interface Props {
   bodyClass?: string
   footerClass?: string
   cardClass?: string
+  cardStyle?: Record<string, string>
   wrapperClass?: string
   padded?: boolean
 }
@@ -13,6 +14,7 @@ withDefaults(defineProps<Props>(), {
   bodyClass: '',
   footerClass: '',
   cardClass: '',
+  cardStyle: () => ({}),
   wrapperClass: '',
   padded: true,
 })
@@ -26,7 +28,7 @@ defineSlots<{
 
 <template>
   <div :class="['w-full', wrapperClass]">
-    <div :class="['overflow-hidden rounded-lg bg-white shadow-md', cardClass]">
+    <div :class="['overflow-hidden rounded-lg bg-white shadow-md', cardClass]" :style="cardStyle">
       <!-- Header -->
       <div v-if="$slots.header" :class="[headerClass]">
         <slot name="header" />

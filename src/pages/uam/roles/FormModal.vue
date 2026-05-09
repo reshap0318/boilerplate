@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import useVuelidate from '@vuelidate/core'
 import { useRoleStore } from '@/stores/role'
 import { usePermissionStore } from '@/stores/permission'
@@ -15,6 +15,7 @@ const v$ = useVuelidate(roleStore.formRules, roleStore.form)
 const isVisible = ref(false)
 const isEdit = computed(() => !!roleStore.form.id)
 const allPermissions = ref<IPermission[]>([])
+const permissionsLoading = ref(false)
 
 const groupedPermissions = computed(() => {
   const groups: Record<string, IPermission[]> = {}
@@ -25,6 +26,16 @@ const groupedPermissions = computed(() => {
   }
   return groups
 })
+
+async function loadPermissions() {
+  if (allPermissions.value.length > 0) return
+  permissionsLoading.value = true
+  try {
+    allPermissions.value = await permissionStore.fetchAllPermissions()
+  } finally {
+    permissionsLoading.value = false
+  }
+}
 
 async function show(data?: { id?: number; name: string; description: string; permissions?: { id: number }[] }) {
   if (data) {
@@ -39,7 +50,6 @@ async function show(data?: { id?: number; name: string; description: string; per
     roleStore.form.permissions = []
   }
   v$.value.$reset()
-  allPermissions.value = await permissionStore.fetchAllPermissions()
   isVisible.value = true
 }
 
@@ -71,6 +81,10 @@ function togglePermission(id: number) {
   }
 }
 
+onMounted(() => {
+  loadPermissions()
+})
+
 defineExpose({ show, close })
 </script>
 
@@ -100,31 +114,36 @@ defineExpose({ show, close })
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
           <div class="max-h-48 overflow-y-auto border border-gray-200 rounded-lg scrollbar-thin">
-            <div
-              v-for="(perms, group) in groupedPermissions"
-              :key="group"
-              class="p-3"
-            >
-              <h4 class="text-sm font-bold text-gray-800 bg-gray-100 px-2 py-1 rounded mb-2">{{ group }}</h4>
-              <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                <label
-                  v-for="perm in perms"
-                  :key="perm.id"
-                  class="flex items-center gap-2 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="roleStore.form.permissions.includes(perm.id)"
-                    @change="togglePermission(perm.id)"
-                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span class="text-sm text-gray-700">{{ perm.name }}</span>
-                </label>
-              </div>
+            <div v-if="permissionsLoading" class="p-3 text-sm text-gray-400 text-center">
+              Memuat permissions...
             </div>
-            <p v-if="allPermissions.length === 0" class="p-3 text-sm text-gray-400">
-              Belum ada permission.
-            </p>
+            <template v-else>
+              <div
+                v-for="(perms, group) in groupedPermissions"
+                :key="group"
+                class="p-3"
+              >
+                <h4 class="text-sm font-bold text-gray-800 bg-gray-100 px-2 py-1 rounded mb-2">{{ group }}</h4>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+                  <label
+                    v-for="perm in perms"
+                    :key="perm.id"
+                    class="flex items-center gap-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      :checked="roleStore.form.permissions.includes(perm.id)"
+                      @change="togglePermission(perm.id)"
+                      class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span class="text-sm text-gray-700">{{ perm.name }}</span>
+                  </label>
+                </div>
+              </div>
+              <p v-if="allPermissions.length === 0" class="p-3 text-sm text-gray-400">
+                Belum ada permission.
+              </p>
+            </template>
           </div>
         </div>
       </div>

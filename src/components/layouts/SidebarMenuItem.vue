@@ -41,9 +41,20 @@ function isGroupExpanded(item: IMenuItem, depth: number): boolean {
 </script>
 
 <template>
+  <!-- Title item -->
+  <div v-if="item.isTitle" class="pt-4 pb-1">
+    <span
+      v-if="isExpanded"
+      class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider"
+    >
+      {{ item.label }}
+    </span>
+    <div v-else class="mx-4 my-2 h-px bg-white/10" />
+  </div>
+
   <!-- Leaf item (no children) -->
   <router-link
-    v-if="!item.children && item.to"
+    v-else-if="!item.children && item.to"
     :to="item.to"
     class="sidebar-item flex items-center text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-200 whitespace-nowrap overflow-hidden"
     :class="[

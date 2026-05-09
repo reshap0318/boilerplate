@@ -72,6 +72,16 @@ export const useRoleStore = defineStore('role', () => {
     }
   }
 
+  async function fetchAllRoles(): Promise<IRole[]> {
+    try {
+      const { data } = await get<IApiResponse<IRole[]>>('/roles')
+      return data.data || []
+    } catch (error: any) {
+      console.error('Failed to fetch all roles', error)
+      return []
+    }
+  }
+
   async function createRole() {
     loading.value.Form = true
     try {
@@ -131,6 +141,7 @@ export const useRoleStore = defineStore('role', () => {
     form,
     formRules,
     fetchRoles,
+    fetchAllRoles,
     createRole,
     updateRole,
     deleteRole,

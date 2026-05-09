@@ -1,0 +1,174 @@
+<script setup lang="ts">
+import { computed, ref, onMounted } from 'vue'
+import useVuelidate from '@vuelidate/core'
+import { useUserStore } from '@/stores/user'
+import { useRoleStore } from '@/stores/role'
+import type { IRole } from '@/stores/role'
+import { required, email, minLength, sameAs } from '@vuelidate/validators'
+import UiModal from '@/components/utils/UiModal.vue'
+import FormInput from '@/components/utils/FormInput.vue'
+import FormPassword from '@/components/utils/FormPassword.vue'
+import FormSelect from '@/components/utils/FormSelect.vue'
+import UiButton from '@/components/utils/UiButton.vue'
+
+const userStore = useUserStore()
+const roleStore = useRoleStore()
+const isVisible = ref(false)
+const isEdit = computed(() => !!userStore.form.id)
+const allRoles = ref<IRole[]>([])
+const rolesLoading = ref(false)
+
+const dynamicRules = computed(() => {
+  const baseRules = {
+    name: { required, minLength: minLength(2) },
+    email: { required, email },
+    roles: {},
+  }
+
+  if (isEdit.value) {
+    return {
+      ...baseRules,
+      password: { minLength: minLength(6) },
+      password_confirmation: { sameAsPassword: sameAs('password') },
+    }
+  }
+
+  return {
+    ...baseRules,
+    password: { required, minLength: minLength(6) },
+    password_confirmation: { required, sameAsPassword: sameAs('password') },
+  }
+})
+
+const v$ = useVuelidate(dynamicRules, userStore.form)
+
+const roleOptions = computed(() => {
+  return allRoles.value.map(role => ({
+    value: role.id,
+    label: role.name,
+  }))
+})
+
+async function loadRoles() {
+  if (allRoles.value.length > 0) return
+  rolesLoading.value = true
+  try {
+    allRoles.value = await roleStore.fetchAllRoles()
+  } finally {
+    rolesLoading.value = false
+  }
+}
+
+async function show(data?: { id?: number; name: string; email: string; roles?: { id: number }[] }) {
+  if (data) {
+    userStore.form.id = data.id
+    userStore.form.name = data.name
+    userStore.form.email = data.email
+    userStore.form.password = ''
+    userStore.form.password_confirmation = ''
+    userStore.form.roles = data.roles?.map(r => r.id) || []
+  } else {
+    userStore.form.id = undefined
+    userStore.form.name = ''
+    userStore.form.email = ''
+    userStore.form.password = ''
+    userStore.form.password_confirmation = ''
+    userStore.form.roles = []
+  }
+  v$.value.$reset()
+  isVisible.value = true
+}
+
+function close() {
+  isVisible.value = false
+}
+
+async function handleSubmit() {
+  const isValid = await v$.value.$validate()
+  if (!isValid) return
+
+  try {
+    if (isEdit.value && userStore.form.id) {
+      await userStore.updateUser(userStore.form.id)
+    } else {
+      await userStore.createUser()
+    }
+  } finally {
+    close()
+  }
+}
+
+onMounted(() => {
+  loadRoles()
+})
+
+defineExpose({ show, close })
+</script>
+
+<template>
+  <UiModal
+    v-model="isVisible"
+    :title="isEdit ? 'Edit User' : 'Tambah User'"
+    size="2xl"
+    @close="close"
+  >
+    <form @submit.prevent="handleSubmit">
+      <div class="space-y-4">
+        <FormInput
+          v-model="userStore.form.name"
+          label="Nama"
+          placeholder="John Doe"
+          :validation="v$.name"
+        />
+
+        <FormInput
+          v-model="userStore.form.email"
+          label="Email"
+          type="email"
+          placeholder="john@example.com"
+          :validation="v$.email"
+        />
+
+        <FormPassword
+          v-model="userStore.form.password"
+          label="Password"
+          :placeholder="isEdit ? 'Kosongkan jika tidak ingin mengubah' : 'password123'"
+          :validation="v$.password"
+        />
+
+        <FormPassword
+          v-model="userStore.form.password_confirmation"
+          label="Konfirmasi Password"
+          placeholder="password123"
+          :validation="v$.password_confirmation"
+        />
+
+        <FormSelect
+          v-model="userStore.form.roles"
+          label="Roles"
+          :options="roleOptions"
+          placeholder="Pilih role..."
+          mode="tags"
+          :searchable="true"
+          :loading="rolesLoading"
+        />
+      </div>
+
+      <!-- Actions -->
+      <div class="mt-6 flex justify-end gap-2">
+        <UiButton
+          type="button"
+          variant="secondary"
+          :disabled="userStore.loading.Form"
+          outline
+          @click="close"
+        >
+          Batal
+        </UiButton>
+        <UiButton type="submit" :loading="userStore.loading.Form">
+          {{ isEdit ? 'Perbarui' : 'Simpan' }}
+        </UiButton>
+      </div>
+    </form>
+  </UiModal>
+</template>
