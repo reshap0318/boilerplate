@@ -4,11 +4,12 @@ import useVuelidate from '@vuelidate/core'
 import { useUserStore } from '@/stores/user'
 import { useRoleStore } from '@/stores/role'
 import type { IRole } from '@/stores/role'
-import { required, email, minLength, sameAs } from '@vuelidate/validators'
+import { required, email, minLength, helpers } from '@vuelidate/validators'
 import UiModal from '@/components/utils/UiModal.vue'
 import FormInput from '@/components/utils/FormInput.vue'
 import FormPassword from '@/components/utils/FormPassword.vue'
 import FormSelect from '@/components/utils/FormSelect.vue'
+import FormAvatar from '@/components/utils/FormAvatar.vue'
 import UiButton from '@/components/utils/UiButton.vue'
 
 const userStore = useUserStore()
@@ -17,26 +18,33 @@ const isVisible = ref(false)
 const isEdit = computed(() => !!userStore.form.id)
 const allRoles = ref<IRole[]>([])
 const rolesLoading = ref(false)
+const currentAvatar = ref<string | null>(null)
 
 const dynamicRules = computed(() => {
+  const sameAsPassword = helpers.withMessage(
+    'Password tidak cocok',
+    (value: string) => value === userStore.form.password,
+  )
+
   const baseRules = {
     name: { required, minLength: minLength(2) },
     email: { required, email },
-    roles: {},
+    roles: { required: helpers.withMessage('Role wajib dipilih', (value: number[]) => value.length > 0) },
+    avatar: isEdit.value ? {} : { required: helpers.withMessage('Avatar wajib diisi', (value: File | null) => value !== null) },
   }
 
   if (isEdit.value) {
     return {
       ...baseRules,
       password: { minLength: minLength(6) },
-      password_confirmation: { sameAsPassword: sameAs('password') },
+      password_confirmation: { sameAsPassword },
     }
   }
 
   return {
     ...baseRules,
     password: { required, minLength: minLength(6) },
-    password_confirmation: { required, sameAsPassword: sameAs('password') },
+    password_confirmation: { required, sameAsPassword },
   }
 })
 
@@ -59,7 +67,7 @@ async function loadRoles() {
   }
 }
 
-async function show(data?: { id?: number; name: string; email: string; roles?: { id: number }[] }) {
+async function show(data?: { id?: number; name: string; email: string; avatar?: string | null; roles?: { id: number }[] }) {
   if (data) {
     userStore.form.id = data.id
     userStore.form.name = data.name
@@ -67,6 +75,8 @@ async function show(data?: { id?: number; name: string; email: string; roles?: {
     userStore.form.password = ''
     userStore.form.password_confirmation = ''
     userStore.form.roles = data.roles?.map(r => r.id) || []
+    userStore.form.avatar = null
+    currentAvatar.value = data.avatar || null
   } else {
     userStore.form.id = undefined
     userStore.form.name = ''
@@ -74,6 +84,8 @@ async function show(data?: { id?: number; name: string; email: string; roles?: {
     userStore.form.password = ''
     userStore.form.password_confirmation = ''
     userStore.form.roles = []
+    userStore.form.avatar = null
+    currentAvatar.value = null
   }
   v$.value.$reset()
   isVisible.value = true
@@ -114,6 +126,11 @@ defineExpose({ show, close })
   >
     <form @submit.prevent="handleSubmit">
       <div class="space-y-4">
+        <FormAvatar
+          v-model="userStore.form.avatar"
+          :current-avatar="currentAvatar"
+        />
+
         <FormInput
           v-model="userStore.form.name"
           label="Nama"

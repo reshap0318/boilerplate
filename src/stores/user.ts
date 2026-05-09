@@ -18,6 +18,7 @@ export interface IUser {
   id: number
   email: string
   name: string
+  avatar: string | null
   created_at: string
   roles: IRole[]
   permissions: IPermission[]
@@ -30,6 +31,7 @@ export interface IUserPayload {
   password: string
   password_confirmation: string
   roles: number[]
+  avatar: File | null
 }
 
 export type TLoadingKey = 'Index' | 'Form' | 'Delete'
@@ -52,6 +54,7 @@ export const useUserStore = defineStore('user', () => {
     password: '',
     password_confirmation: '',
     roles: [],
+    avatar: null,
   })
 
   const formRules = {
@@ -84,12 +87,20 @@ export const useUserStore = defineStore('user', () => {
   async function createUser() {
     loading.value.Form = true
     try {
-      await post('/users', {
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        password_confirmation: form.password_confirmation,
-        roles: form.roles,
+      const formData = new FormData()
+      formData.append('name', form.name)
+      formData.append('email', form.email)
+      formData.append('password', form.password)
+      formData.append('password_confirmation', form.password_confirmation)
+      if (form.roles.length > 0) {
+        formData.append('roles', form.roles.join(','))
+      }
+      if (form.avatar) {
+        formData.append('avatar', form.avatar)
+      }
+
+      await post('/users', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       })
       swal.success('Berhasil', 'User berhasil dibuat.')
       await fetchUsers()
@@ -105,16 +116,23 @@ export const useUserStore = defineStore('user', () => {
   async function updateUser(id: number) {
     loading.value.Form = true
     try {
-      const payload: any = {
-        name: form.name,
-        email: form.email,
-        roles: form.roles,
+      const formData = new FormData()
+      formData.append('name', form.name)
+      formData.append('email', form.email)
+      if (form.roles.length > 0) {
+        formData.append('roles', form.roles.join(','))
       }
       if (form.password) {
-        payload.password = form.password
-        payload.password_confirmation = form.password_confirmation
+        formData.append('password', form.password)
+        formData.append('password_confirmation', form.password_confirmation)
       }
-      await put(`/users/${id}`, payload)
+      if (form.avatar) {
+        formData.append('avatar', form.avatar)
+      }
+
+      await put(`/users/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
       swal.success('Berhasil', 'User berhasil diperbarui.')
       await fetchUsers()
     } catch (error: any) {

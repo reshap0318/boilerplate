@@ -24,17 +24,6 @@ const colorPalette = [
   'bg-teal-500',
 ]
 
-const borderColors = [
-  '#3b82f6',
-  '#10b981',
-  '#8b5cf6',
-  '#f59e0b',
-  '#f43f5e',
-  '#06b6d4',
-  '#6366f1',
-  '#14b8a6',
-]
-
 function getInitials(name: string): string {
   const words = name.trim().split(/\s+/)
   if (words.length === 1) return words[0].charAt(0).toUpperCase()
@@ -43,10 +32,6 @@ function getInitials(name: string): string {
 
 function getAvatarBg(index: number): string {
   return colorPalette[index % colorPalette.length]
-}
-
-function getBorderColor(index: number): string {
-  return borderColors[index % borderColors.length]
 }
 
 function formatDate(dateString: string): string {
@@ -156,29 +141,37 @@ onUnmounted(() => {
           :key="user.id"
           class="group hover:shadow-md transition-all duration-200"
           wrapper-class="h-full relative"
-          card-class="h-full border-t-4"
-          :card-style="{ borderTopColor: getBorderColor(index) }"
+          card-class="h-full border-t-4 border-blue-500"
           body-class="p-4"
         >
           <!-- Content -->
           <div class="flex flex-col">
             <!-- Avatar + Name + Email + Action -->
             <div class="flex items-center gap-3 mb-0">
-              <div
-                :class="[
-                  'flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold shrink-0 shadow-sm',
-                  getAvatarBg(index),
-                ]"
-              >
-                <span class="text-white">{{ getInitials(user.name) }}</span>
+              <div class="w-10 h-10 rounded-full overflow-hidden shrink-0 shadow-sm">
+                <img
+                  v-if="user.avatar"
+                  :src="user.avatar"
+                  :alt="user.name"
+                  class="w-full h-full object-cover"
+                />
+                <div
+                  v-else
+                  :class="[
+                    'flex items-center justify-center w-full h-full text-sm font-bold',
+                    getAvatarBg(index),
+                  ]"
+                >
+                  <span class="text-white">{{ getInitials(user.name) }}</span>
+                </div>
               </div>
               <div class="min-w-0 flex-1">
                 <h3 class="text-sm font-semibold text-gray-900 truncate">
                   {{ user.name }}
                 </h3>
-                <p class="text-xs text-gray-500 truncate flex items-center gap-1">
-                  <PhEnvelope class="w-3 h-3 shrink-0" />
-                  {{ user.email }}
+                <p class="text-xs text-gray-500 truncate flex items-center gap-1 leading-none">
+                  <PhEnvelope class="w-3 h-3 shrink-0 mt-0.5" />
+                  <span class="truncate">{{ user.email }}</span>
                 </p>
               </div>
               <!-- 3-Dot Menu -->
