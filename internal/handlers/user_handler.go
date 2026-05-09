@@ -42,7 +42,7 @@ func (h *Handlers) UserCreate(c *gin.Context) {
 	avatarPath := ""
 	if _, _, err := c.Request.FormFile("avatar"); err == nil {
 		var saveErr error
-		avatarPath, saveErr = helpers.SaveUploadedFile(c, "avatar", "uploads/avatars")
+		avatarPath, saveErr = helpers.SaveUploadedFile(c, "avatar", "storage/avatars")
 		if saveErr != nil {
 			helpers.BadRequest(c, saveErr.Error())
 			return
@@ -156,7 +156,7 @@ func (h *Handlers) UserUpdate(c *gin.Context) {
 	avatarPath := ""
 	if _, _, err := c.Request.FormFile("avatar"); err == nil {
 		var saveErr error
-		avatarPath, saveErr = helpers.SaveUploadedFile(c, "avatar", "uploads/avatars")
+		avatarPath, saveErr = helpers.SaveUploadedFile(c, "avatar", "storage/avatars")
 		if saveErr != nil {
 			helpers.BadRequest(c, saveErr.Error())
 			return

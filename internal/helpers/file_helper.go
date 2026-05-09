@@ -17,6 +17,7 @@ var defaultAllowedExts = map[string]bool{
 	".png":  true,
 	".gif":  true,
 	".webp": true,
+	".jfif": true,
 }
 
 const defaultMaxSizeMB = 5
@@ -85,7 +86,8 @@ func SaveUploadedFileWithOpts(c *gin.Context, fieldName string, uploadDir string
 		return "", fmt.Errorf("failed to save file: %w", err)
 	}
 
-	return filepath.Join("uploads", fieldName, fileName), nil
+	normalizedDir := strings.ReplaceAll(filepath.ToSlash(uploadDir), "\\", "/")
+	return fmt.Sprintf("%s/%s", normalizedDir, fileName), nil
 }
 
 func SaveUploadedFile(c *gin.Context, fieldName string, uploadDir string) (string, error) {
@@ -107,5 +109,6 @@ func GetFileURL(path string) string {
 		return ""
 	}
 	baseURL := GetEnv("APP_URL", "http://localhost:8080")
-	return fmt.Sprintf("%s/%s", strings.TrimRight(baseURL, "/"), path)
+	normalizedPath := strings.ReplaceAll(path, "\\", "/")
+	return fmt.Sprintf("%s/%s", strings.TrimRight(baseURL, "/"), normalizedPath)
 }

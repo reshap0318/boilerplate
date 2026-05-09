@@ -88,7 +88,7 @@ func (s *Services) UserGetAll(ctx context.Context) ([]dtos.UserDTO, error) {
 }
 
 // UserGetAllPaginated returns paginated users with roles.
-func (s *Services) UserGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.User], error) {
+func (s *Services) UserGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.UserDTO], error) {
 	if opts == nil {
 		opts = &repositories.QueryOptions{}
 	}
@@ -100,7 +100,23 @@ func (s *Services) UserGetAllPaginated(ctx context.Context, opts *repositories.Q
 	}
 	opts.Preloads = []string{"Roles"}
 
-	return s.repo.User.FindAllWithOpts(nil, opts)
+	result, err := s.repo.User.FindAllWithOpts(nil, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	userDTOs := make([]dtos.UserDTO, len(result.Data))
+	for i, u := range result.Data {
+		userDTOs[i] = dtos.ToUserDTO(&u)
+	}
+
+	return &repositories.PagedResult[dtos.UserDTO]{
+		Data:       userDTOs,
+		Total:      result.Total,
+		Page:       result.Page,
+		PageSize:   result.PageSize,
+		TotalPages: result.TotalPages,
+	}, nil
 }
 
 // UserGetByID returns a user by ID with roles.

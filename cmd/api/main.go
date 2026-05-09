@@ -42,7 +42,7 @@ func main() {
 	r.Use(middleware.RateLimit(container.RateLimiter))
 	r.Use(middleware.CORS(allowedOrigins))
 
-	r.Static("/uploads", "./uploads")
+	r.Static("/storage", "./storage")
 
 	apiGroup := r.Group("/api")
 	{

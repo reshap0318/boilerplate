@@ -8,6 +8,7 @@ main
 bin/
 dist/
 tmp/
+storage/
 
 # Test binary
 *.test
