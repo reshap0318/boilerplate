@@ -32,6 +32,7 @@ type UserDTO struct {
 	ID          uint            `json:"id"`
 	Email       string          `json:"email"`
 	Name        string          `json:"name"`
+	Avatar      string          `json:"avatar"`
 	CreatedAt   time.Time       `json:"created_at"`
 	Roles       []RoleMiniDTO   `json:"roles"`
 	Permissions []PermissionDTO `json:"permissions"`

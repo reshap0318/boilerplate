@@ -2,7 +2,7 @@
 
 **Base URL:** `/api`  
 **Authentication:** JWT Bearer Token (except public endpoints)  
-**Content-Type:** `application/json`
+**Content-Type:** `application/json` (default), `multipart/form-data` (for file uploads)
 
 ## Authentication
 
@@ -167,6 +167,7 @@ Authenticate user and receive access tokens.
       "id": 1,
       "email": "user@example.com",
       "name": "John Doe",
+      "avatar": "http://localhost:8080/uploads/avatars/1746789012345678901_aB3cD4eF.jpg",
       "created_at": "2024-01-01T00:00:00Z",
       "roles": [
         {
@@ -904,21 +905,19 @@ Get all permissions assigned to a role.
 | PUT | `/api/users/:id` | JWT | Update user |
 | DELETE | `/api/users/:id` | JWT | Delete user |
 
+**Note:** User endpoints use `multipart/form-data` for file uploads. Avatar URLs in responses are full URLs served at `/uploads/avatars/`. Configure `APP_URL` in `.env` to set the base URL.
+
 ### POST `/api/users`
 
 Create a new user with roles.
 
-**Request Body**
+**Headers**
 
-```json
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "password123",
-  "password_confirmation": "password123",
-  "roles": [1, 2]
-}
 ```
+Content-Type: multipart/form-data
+```
+
+**Request Body** (multipart/form-data)
 
 | Field | Type | Required | Validation |
 |-------|------|----------|------------|
@@ -926,7 +925,8 @@ Create a new user with roles.
 | `email` | string | Yes | Valid email format |
 | `password` | string | Yes | Min 6 characters |
 | `password_confirmation` | string | Yes | Must match password |
-| `roles` | array | No | Array of role IDs |
+| `roles` | string | No | Comma-separated role IDs (e.g., `"1,2"`) |
+| `avatar` | file | No | jpg, jpeg, png, gif, webp. Max 5MB |
 
 **Response (201 Created)**
 
@@ -938,6 +938,7 @@ Create a new user with roles.
     "id": 1,
     "email": "john@example.com",
     "name": "John Doe",
+    "avatar": "http://localhost:8080/uploads/avatars/1746789012345678901_aB3cD4eF.jpg",
     "created_at": "2024-01-01T00:00:00Z",
     "roles": [
       {
@@ -961,6 +962,7 @@ Create a new user with roles.
 
 | Status | Message |
 |--------|---------|
+| 400 | Validation error, file size exceeds limit, or invalid file type |
 | 422 | Validation error |
 | 500 | Internal server error |
 
@@ -994,6 +996,7 @@ GET /api/users
       "id": 1,
       "email": "john@example.com",
       "name": "John Doe",
+      "avatar": "http://localhost:8080/uploads/avatars/1746789012345678901_aB3cD4eF.jpg",
       "created_at": "2024-01-01T00:00:00Z",
       "roles": [
         {
@@ -1031,6 +1034,7 @@ GET /api/users?page=1&page_size=10
       "id": 1,
       "email": "john@example.com",
       "name": "John Doe",
+      "avatar": "http://localhost:8080/uploads/avatars/1746789012345678901_aB3cD4eF.jpg",
       "created_at": "2024-01-01T00:00:00Z",
       "roles": [],
       "permissions": []
@@ -1067,6 +1071,7 @@ Get a single user by ID.
     "id": 1,
     "email": "john@example.com",
     "name": "John Doe",
+    "avatar": "http://localhost:8080/uploads/avatars/1746789012345678901_aB3cD4eF.jpg",
     "created_at": "2024-01-01T00:00:00Z",
     "roles": [
       {
@@ -1100,31 +1105,28 @@ Get a single user by ID.
 
 Update an existing user with roles.
 
+**Headers**
+
+```
+Content-Type: multipart/form-data
+```
+
 **Path Parameters**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | integer | Yes | User ID |
 
-**Request Body**
-
-```json
-{
-  "name": "John Doe Updated",
-  "email": "john.updated@example.com",
-  "password": "newpassword123",
-  "password_confirmation": "newpassword123",
-  "roles": [1, 3]
-}
-```
+**Request Body** (multipart/form-data)
 
 | Field | Type | Required | Validation |
 |-------|------|----------|------------|
 | `name` | string | Yes | 2-100 characters |
 | `email` | string | Yes | Valid email format |
-| `password` | string | Yes | Min 6 characters |
-| `password_confirmation` | string | Yes | Must match password |
-| `roles` | array | No | Array of role IDs |
+| `password` | string | No | Min 6 characters (empty = no change) |
+| `password_confirmation` | string | No | Must match password |
+| `roles` | string | No | Comma-separated role IDs (e.g., `"1,2"`) |
+| `avatar` | file | No | jpg, jpeg, png, gif, webp. Max 5MB |
 
 **Response (200 OK)**
 
@@ -1136,6 +1138,7 @@ Update an existing user with roles.
     "id": 1,
     "email": "john.updated@example.com",
     "name": "John Doe Updated",
+    "avatar": "http://localhost:8080/uploads/avatars/1746789098765432109_xY9zW8vU.png",
     "created_at": "2024-01-01T00:00:00Z",
     "roles": [
       {
@@ -1159,7 +1162,7 @@ Update an existing user with roles.
 
 | Status | Message |
 |--------|---------|
-| 400 | Invalid user ID |
+| 400 | Invalid user ID, file size exceeds limit, or invalid file type |
 | 404 | User not found |
 | 422 | Validation error |
 | 500 | Internal server error |

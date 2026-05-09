@@ -11,6 +11,8 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+var validate = validator.New()
+
 // PaginationMeta represents pagination metadata in response.
 type PaginationMeta struct {
 	Total      int64 `json:"total"`
@@ -166,4 +168,8 @@ func getErrorMessage(e validator.FieldError) string {
 	default:
 		return "The " + field + " field is invalid."
 	}
+}
+
+func ValidateStruct(s interface{}) error {
+	return validate.Struct(s)
 }

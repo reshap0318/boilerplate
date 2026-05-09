@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -12,14 +13,47 @@ import (
 
 // UserCreate handles POST /api/users
 func (h *Handlers) UserCreate(c *gin.Context) {
-	var req dtos.UserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
+		helpers.BadRequest(c, "Failed to parse form data")
 		return
 	}
 
-	dto, err := h.svcs.UserCreate(c.Request.Context(), req)
+	var req dtos.UserRequest
+	req.Name = c.Request.FormValue("name")
+	req.Email = c.Request.FormValue("email")
+	req.Password = c.Request.FormValue("password")
+	req.PasswordConfirmation = c.Request.FormValue("password_confirmation")
+
+	if roles := c.Request.FormValue("roles"); roles != "" {
+		// Parse roles from comma-separated string
+		roleStrs := strings.Split(roles, ",")
+		for _, r := range roleStrs {
+			if id, err := strconv.ParseUint(strings.TrimSpace(r), 10, 64); err == nil {
+				req.Roles = append(req.Roles, uint(id))
+			}
+		}
+	}
+
+	if err := helpers.ValidateStruct(req); err != nil {
+		helpers.ValidationError(c, err)
+		return
+	}
+
+	avatarPath := ""
+	if _, _, err := c.Request.FormFile("avatar"); err == nil {
+		var saveErr error
+		avatarPath, saveErr = helpers.SaveUploadedFile(c, "avatar", "uploads/avatars")
+		if saveErr != nil {
+			helpers.BadRequest(c, saveErr.Error())
+			return
+		}
+	}
+
+	dto, err := h.svcs.UserCreate(c.Request.Context(), req, avatarPath)
 	if err != nil {
+		if avatarPath != "" {
+			helpers.DeleteFile(avatarPath)
+		}
 		if err == helpers.ErrUserExists {
 			helpers.BadRequest(c, "Email already exists")
 			return
@@ -90,14 +124,50 @@ func (h *Handlers) UserUpdate(c *gin.Context) {
 		return
 	}
 
-	var req dtos.UserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
+		helpers.BadRequest(c, "Failed to parse form data")
 		return
 	}
 
-	dto, err := h.svcs.UserUpdate(c.Request.Context(), uint(id), req)
+	var req dtos.UserRequest
+	req.Name = c.Request.FormValue("name")
+	req.Email = c.Request.FormValue("email")
+	req.Password = c.Request.FormValue("password")
+	req.PasswordConfirmation = c.Request.FormValue("password_confirmation")
+
+	if roles := c.Request.FormValue("roles"); roles != "" {
+		roleStrs := strings.Split(roles, ",")
+		for _, r := range roleStrs {
+			if id, err := strconv.ParseUint(strings.TrimSpace(r), 10, 64); err == nil {
+				req.Roles = append(req.Roles, uint(id))
+			}
+		}
+	}
+
+	if req.Password == "" {
+		req.PasswordConfirmation = ""
+	}
+
+	if err := helpers.ValidateStruct(req); err != nil {
+		helpers.ValidationError(c, err)
+		return
+	}
+
+	avatarPath := ""
+	if _, _, err := c.Request.FormFile("avatar"); err == nil {
+		var saveErr error
+		avatarPath, saveErr = helpers.SaveUploadedFile(c, "avatar", "uploads/avatars")
+		if saveErr != nil {
+			helpers.BadRequest(c, saveErr.Error())
+			return
+		}
+	}
+
+	dto, oldAvatar, err := h.svcs.UserUpdate(c.Request.Context(), uint(id), req, avatarPath)
 	if err != nil {
+		if avatarPath != "" {
+			helpers.DeleteFile(avatarPath)
+		}
 		if err == helpers.ErrNotFound {
 			helpers.NotFound(c, "User not found")
 			return
@@ -108,6 +178,10 @@ func (h *Handlers) UserUpdate(c *gin.Context) {
 		}
 		helpers.InternalServerError(c, "Failed to update user")
 		return
+	}
+
+	if avatarPath != "" && oldAvatar != "" {
+		helpers.DeleteFile(oldAvatar)
 	}
 
 	helpers.OK(c, "User updated successfully", dto)

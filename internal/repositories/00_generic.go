@@ -11,19 +11,18 @@ import (
 
 // QueryOptions holds options for querying records.
 type QueryOptions struct {
-	Page           int      // Page number (default: 1)
-	PageSize       int      // Items per page (default: 10, 0 = no pagination)
-	SortBy         string   // Field to sort by
-	Order          string   // "ASC" or "DESC" (default: "ASC")
-	Search         string   // Search keyword
-	SearchFields   []string // Fields to search
-	Preloads       []string // Relations to preload
-	IncludeDeleted bool     // Include soft-deleted records
+	Page         int      // Page number (default: 1)
+	PageSize     int      // Items per page (default: 10, 0 = no pagination)
+	SortBy       string   // Field to sort by
+	Order        string   // "ASC" or "DESC" (default: "ASC")
+	Search       string   // Search keyword
+	SearchFields []string // Fields to search
+	Preloads     []string // Relations to preload
 }
 
 // PagedResult holds paginated query results.
 type PagedResult[T any] struct {
-	Data       []T  `json:"data"`        // Data records
+	Data       []T   `json:"data"`        // Data records
 	Total      int64 `json:"total"`       // Total records
 	Page       int   `json:"page"`        // Current page
 	PageSize   int   `json:"page_size"`   // Items per page
@@ -71,11 +70,6 @@ func (r *GenericRepository[T]) getDB(tx *gorm.DB) *gorm.DB {
 func (r *GenericRepository[T]) applyOptions(db *gorm.DB, opts *QueryOptions) *gorm.DB {
 	if opts == nil {
 		return db
-	}
-
-	// Handle soft delete
-	if !opts.IncludeDeleted {
-		db = db.Where("deleted_at IS NULL OR deleted_at IS NULL")
 	}
 
 	// Preload relations

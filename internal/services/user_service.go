@@ -13,7 +13,7 @@ import (
 )
 
 // UserCreate creates a new user with optional roles.
-func (s *Services) UserCreate(ctx context.Context, req dtos.UserRequest) (*dtos.UserDTO, error) {
+func (s *Services) UserCreate(ctx context.Context, req dtos.UserRequest, avatarPath string) (*dtos.UserDTO, error) {
 	s.Logger.LogStart("UserCreate", "Creating user: %s", req.Email)
 
 	exists, err := s.repo.User.Exists(nil, map[string]interface{}{"email": req.Email})
@@ -36,6 +36,7 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserRequest) (*dtos.
 		Email:    req.Email,
 		Name:     req.Name,
 		Password: string(hashedPassword),
+		Avatar:   avatarPath,
 	}
 
 	res, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
@@ -114,24 +115,24 @@ func (s *Services) UserGetByID(ctx context.Context, id uint) (*dtos.UserDTO, err
 }
 
 // UserUpdate updates an existing user with optional roles.
-func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserRequest) (*dtos.UserDTO, error) {
+func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserRequest, avatarPath string) (*dtos.UserDTO, string, error) {
 	s.Logger.LogStart("UserUpdate", "Updating user ID: %d", id)
 
 	existing, err := s.repo.User.FindByID(nil, id)
 	if err != nil {
 		s.Logger.LogEndWithError("UserUpdate", "User not found: %v", err)
-		return nil, helpers.ErrNotFound
+		return nil, "", helpers.ErrNotFound
 	}
 
 	if existing.Email != req.Email {
 		exists, err := s.repo.User.Exists(nil, map[string]interface{}{"email": req.Email})
 		if err != nil {
 			s.Logger.LogEndWithError("UserUpdate", "Failed to check email: %v", err)
-			return nil, err
+			return nil, "", err
 		}
 		if exists {
 			s.Logger.LogEndWithError("UserUpdate", "Email already exists: %s", req.Email)
-			return nil, helpers.ErrUserExists
+			return nil, "", helpers.ErrUserExists
 		}
 	}
 
@@ -143,9 +144,12 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserRequest
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
 			s.Logger.LogEndWithError("UserUpdate", "Failed to hash password: %v", err)
-			return nil, err
+			return nil, "", err
 		}
 		updates["password"] = string(hashedPassword)
+	}
+	if avatarPath != "" {
+		updates["avatar"] = avatarPath
 	}
 
 	res, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
@@ -177,13 +181,13 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserRequest
 	})
 	if err != nil {
 		s.Logger.LogEndWithError("UserUpdate", "Failed to update user: %v", err)
-		return nil, err
+		return nil, "", err
 	}
 
 	result := res.(*models.User)
 	dto := dtos.ToUserDTO(result)
 	s.Logger.LogEnd("UserUpdate", "User updated: %s (ID: %d)", dto.Email, dto.ID)
-	return &dto, nil
+	return &dto, existing.Avatar, nil
 }
 
 // UserDelete soft deletes a user and its role associations.

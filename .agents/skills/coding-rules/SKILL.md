@@ -496,7 +496,6 @@ type QueryOptions struct {
     Search         string   // Search keyword
     SearchFields   []string // Fields to search
     Preloads       []string // Relations to preload
-    IncludeDeleted bool     // Include soft-deleted records
 }
 ```
 

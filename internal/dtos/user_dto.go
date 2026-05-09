@@ -1,6 +1,9 @@
 package dtos
 
-import "github.com/reshap0318/go-boilerplate/internal/models"
+import (
+	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/models"
+)
 
 // UserRequest represents the request to create or update a user.
 type UserRequest struct {
@@ -17,6 +20,7 @@ func ToUserDTO(u *models.User) UserDTO {
 		ID:          u.ID,
 		Name:        u.Name,
 		Email:       u.Email,
+		Avatar:      helpers.GetFileURL(u.Avatar),
 		CreatedAt:   u.CreatedAt,
 		Roles:       []RoleMiniDTO{},
 		Permissions: []PermissionDTO{},

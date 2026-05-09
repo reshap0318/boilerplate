@@ -42,6 +42,8 @@ func main() {
 	r.Use(middleware.RateLimit(container.RateLimiter))
 	r.Use(middleware.CORS(allowedOrigins))
 
+	r.Static("/uploads", "./uploads")
+
 	apiGroup := r.Group("/api")
 	{
 		routes.RegisterHealthRoutes(apiGroup, container.Handlers)
