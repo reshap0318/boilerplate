@@ -57,8 +57,18 @@ func (s *Services) RoleCreate(ctx context.Context, req dtos.RoleRequest) (*dtos.
 	return &dto, nil
 }
 
-// RoleGetAll returns paginated roles with permissions.
-func (s *Services) RoleGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.Role], error) {
+// RoleGetAllUnpaginated returns all roles with permissions.
+func (s *Services) RoleGetAllUnpaginated(ctx context.Context) ([]dtos.RoleDTO, error) {
+	roles, err := s.repo.Role.FindAll(nil, "Permissions")
+	if err != nil {
+		return nil, err
+	}
+
+	return dtos.ToRoleDTOList(roles), nil
+}
+
+// RoleGetAllPaginated returns paginated roles with permissions.
+func (s *Services) RoleGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.Role], error) {
 	if opts == nil {
 		opts = &repositories.QueryOptions{}
 	}

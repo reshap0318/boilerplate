@@ -31,9 +31,24 @@ func (h *Handlers) UserCreate(c *gin.Context) {
 	helpers.Created(c, "User created successfully", dto)
 }
 
-// UserGetAll handles GET /api/users with pagination
+// UserGetAll handles GET /api/users with optional pagination
 func (h *Handlers) UserGetAll(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageStr := c.Query("page")
+
+	if pageStr == "" {
+		// No pagination - return all
+		users, err := h.svcs.UserGetAll(c.Request.Context())
+		if err != nil {
+			helpers.InternalServerError(c, "Failed to fetch users")
+			return
+		}
+
+		helpers.OK(c, "Users fetched successfully", users)
+		return
+	}
+
+	// Pagination requested
+	page, _ := strconv.Atoi(pageStr)
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 
 	opts := &repositories.QueryOptions{
@@ -41,25 +56,13 @@ func (h *Handlers) UserGetAll(c *gin.Context) {
 		PageSize: pageSize,
 	}
 
-	result, err := h.svcs.UserGetAll(c.Request.Context(), opts)
+	result, err := h.svcs.UserGetAllPaginated(c.Request.Context(), opts)
 	if err != nil {
 		helpers.InternalServerError(c, "Failed to fetch users")
 		return
 	}
 
-	// Convert to DTO list for response
-	userDTOs := make([]dtos.UserDTO, len(result.Data))
-	for i, u := range result.Data {
-		userDTOs[i] = dtos.ToUserDTO(&u)
-	}
-
-	helpers.OK(c, "Users fetched successfully", gin.H{
-		"data":        userDTOs,
-		"total":       result.Total,
-		"page":        result.Page,
-		"page_size":   result.PageSize,
-		"total_pages": result.TotalPages,
-	})
+	helpers.OKWithMetadata(c, "Users fetched successfully", result)
 }
 
 // UserGetByID handles GET /api/users/:id

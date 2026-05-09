@@ -72,8 +72,22 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserRequest) (*dtos.
 	return &dto, nil
 }
 
-// UserGetAll returns paginated users with roles.
-func (s *Services) UserGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.User], error) {
+// UserGetAll returns all users with roles (no pagination).
+func (s *Services) UserGetAll(ctx context.Context) ([]dtos.UserDTO, error) {
+	users, err := s.repo.User.FindAll(nil, "Roles")
+	if err != nil {
+		return nil, err
+	}
+
+	userDTOs := make([]dtos.UserDTO, len(users))
+	for i, u := range users {
+		userDTOs[i] = dtos.ToUserDTO(&u)
+	}
+	return userDTOs, nil
+}
+
+// UserGetAllPaginated returns paginated users with roles.
+func (s *Services) UserGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.User], error) {
 	if opts == nil {
 		opts = &repositories.QueryOptions{}
 	}

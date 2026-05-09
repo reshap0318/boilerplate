@@ -1,0 +1,1210 @@
+# API Documentation
+
+**Base URL:** `/api`  
+**Authentication:** JWT Bearer Token (except public endpoints)  
+**Content-Type:** `application/json`
+
+## Authentication
+
+Include the JWT token in the `Authorization` header for protected routes:
+
+```
+Authorization: Bearer <token>
+```
+
+## Response Format
+
+### Success Response
+
+```json
+{
+  "code": 200,
+  "message": "Success message",
+  "data": { ... }
+}
+```
+
+### Paginated Response
+
+```json
+{
+  "code": 200,
+  "message": "Success message",
+  "data": [ ... ],
+  "metadata": {
+    "total": 50,
+    "page": 1,
+    "page_size": 10,
+    "total_pages": 5
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "code": 400,
+  "message": "Error message"
+}
+```
+
+### Validation Error Response (422)
+
+```json
+{
+  "code": 422,
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": ["The email field is required."],
+    "name": ["The name must be at least 3 characters."]
+  }
+}
+```
+
+---
+
+## Health Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/health` | Public | Health check |
+
+### GET `/api/health`
+
+Check the health status of the application and its dependencies.
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Health check successful",
+  "data": {
+    "status": "healthy",
+    "timestamp": "2024-01-01T00:00:00Z",
+    "database": {
+      "status": "healthy",
+      "latency": "12ms"
+    },
+    "redis": {
+      "status": "healthy",
+      "latency": "5ms"
+    }
+  }
+}
+```
+
+---
+
+## JWKS Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/.well-known/jwks.json` | Public | Get JSON Web Key Set |
+
+### GET `/.well-known/jwks.json`
+
+Retrieve the JSON Web Key Set for token verification.
+
+**Response (200 OK)**
+
+```json
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "kid": "...",
+      "use": "sig",
+      "alg": "RS256",
+      "n": "...",
+      "e": "..."
+    }
+  ]
+}
+```
+
+---
+
+## Auth Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/auth/login` | Public | Login user |
+| POST | `/api/auth/refresh` | Public | Refresh access token |
+| POST | `/api/auth/forgot-password` | Public | Send password reset email |
+| POST | `/api/auth/reset-password` | Public | Reset password with token |
+| POST | `/api/auth/logout` | JWT | Logout user |
+
+### POST `/api/auth/login`
+
+Authenticate user and receive access tokens.
+
+**Request Body**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `email` | string | Yes | Valid email format |
+| `password` | string | Yes | Min 6 characters |
+
+**Response (201 Created)**
+
+```json
+{
+  "code": 201,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJhbGciOiJSUzI1NiIs...",
+    "refresh_token": "eyJhbGciOiJSUzI1NiIs...",
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "name": "John Doe",
+      "created_at": "2024-01-01T00:00:00Z",
+      "roles": [
+        {
+          "id": 1,
+          "name": "admin",
+          "description": "Administrator role"
+        }
+      ],
+      "permissions": [
+        {
+          "id": 1,
+          "name": "users.read",
+          "description": "View users"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid credentials |
+| 422 | Validation error (email/password format) |
+| 500 | Internal server error |
+
+---
+
+### POST `/api/auth/refresh`
+
+Refresh an expired access token using a refresh token.
+
+**Request Body**
+
+```json
+{
+  "refresh_token": "eyJhbGciOiJSUzI1NiIs..."
+}
+```
+
+| Field | Type | Required |
+|-------|------|----------|
+| `refresh_token` | string | Yes |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Token refreshed successfully",
+  "data": {
+    "token": "eyJhbGciOiJSUzI1NiIs...",
+    "refresh_token": "eyJhbGciOiJSUzI1NiIs..."
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid or expired refresh token |
+| 422 | Validation error |
+| 500 | Internal server error |
+
+---
+
+### POST `/api/auth/forgot-password`
+
+Request a password reset email.
+
+**Request Body**
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `email` | string | Yes | Valid email format |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Password reset email sent",
+  "data": null
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 422 | Validation error |
+| 500 | Internal server error |
+
+---
+
+### POST `/api/auth/reset-password`
+
+Reset password using the token received via email.
+
+**Request Body**
+
+```json
+{
+  "token": "reset-token-from-email",
+  "new_password": "newpassword123"
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `token` | string | Yes | - |
+| `new_password` | string | Yes | Min 6 characters |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Password reset successful",
+  "data": null
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid or expired token |
+| 422 | Validation error |
+| 500 | Internal server error |
+
+---
+
+### POST `/api/auth/logout`
+
+Logout the current user (invalidates token).
+
+**Headers**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Logout successful",
+  "data": null
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 401 | Unauthorized (missing/invalid token) |
+| 500 | Internal server error |
+
+---
+
+## Permissions Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/permissions` | JWT | Create permission |
+| GET | `/api/permissions` | JWT | List permissions (all or paginated) |
+| GET | `/api/permissions/:id` | JWT | Get permission by ID |
+| PUT | `/api/permissions/:id` | JWT | Update permission |
+| DELETE | `/api/permissions/:id` | JWT | Delete permission |
+
+### POST `/api/permissions`
+
+Create a new permission.
+
+**Request Body**
+
+```json
+{
+  "name": "users.create",
+  "description": "Create new users"
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `name` | string | Yes | 3-100 characters |
+| `description` | string | No | Max 255 characters |
+
+**Response (201 Created)**
+
+```json
+{
+  "code": 201,
+  "message": "Permission created successfully",
+  "data": {
+    "id": 1,
+    "name": "users.create",
+    "description": "Create new users"
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 422 | Validation error |
+| 500 | Internal server error |
+
+---
+
+### GET `/api/permissions`
+
+List permissions. Supports optional pagination.
+
+**Query Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | integer | No | Page number (triggers pagination) |
+| `page_size` | integer | No | Items per page (default: 10) |
+
+**Without pagination** (no `page` parameter):
+
+```
+GET /api/permissions
+```
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Permissions fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "name": "users.create",
+      "description": "Create new users"
+    },
+    {
+      "id": 2,
+      "name": "users.read",
+      "description": "View users"
+    }
+  ]
+}
+```
+
+**With pagination** (with `page` parameter):
+
+```
+GET /api/permissions?page=1&page_size=10
+```
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Permissions fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "name": "users.create",
+      "description": "Create new users"
+    }
+  ],
+  "metadata": {
+    "total": 25,
+    "page": 1,
+    "page_size": 10,
+    "total_pages": 3
+  }
+}
+```
+
+---
+
+### GET `/api/permissions/:id`
+
+Get a single permission by ID.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | Permission ID |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Permission fetched successfully",
+  "data": {
+    "id": 1,
+    "name": "users.create",
+    "description": "Create new users"
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid permission ID |
+| 404 | Permission not found |
+| 500 | Internal server error |
+
+---
+
+### PUT `/api/permissions/:id`
+
+Update an existing permission.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | Permission ID |
+
+**Request Body**
+
+```json
+{
+  "name": "users.create",
+  "description": "Create new users"
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `name` | string | Yes | 3-100 characters |
+| `description` | string | No | Max 255 characters |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Permission updated successfully",
+  "data": {
+    "id": 1,
+    "name": "users.create",
+    "description": "Create new users"
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid permission ID |
+| 404 | Permission not found |
+| 422 | Validation error |
+| 500 | Internal server error |
+
+---
+
+### DELETE `/api/permissions/:id`
+
+Soft delete a permission.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | Permission ID |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Permission deleted successfully",
+  "data": null
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid permission ID |
+| 404 | Permission not found |
+| 500 | Internal server error |
+
+---
+
+## Roles Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/roles` | JWT | Create role |
+| GET | `/api/roles` | JWT | List roles (all or paginated) |
+| GET | `/api/roles/:id` | JWT | Get role by ID |
+| PUT | `/api/roles/:id` | JWT | Update role |
+| DELETE | `/api/roles/:id` | JWT | Delete role |
+| GET | `/api/roles/:id/permissions` | JWT | Get role permissions |
+
+### POST `/api/roles`
+
+Create a new role with permissions.
+
+**Request Body**
+
+```json
+{
+  "name": "admin",
+  "description": "Administrator role",
+  "permissions": [1, 2, 3]
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `name` | string | Yes | 3-100 characters |
+| `description` | string | No | Max 255 characters |
+| `permissions` | array | Yes | Array of permission IDs |
+
+**Response (201 Created)**
+
+```json
+{
+  "code": 201,
+  "message": "Role created successfully",
+  "data": {
+    "id": 1,
+    "name": "admin",
+    "description": "Administrator role",
+    "permissions": [
+      {
+        "id": 1,
+        "name": "users.create",
+        "description": "Create new users"
+      },
+      {
+        "id": 2,
+        "name": "users.read",
+        "description": "View users"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 422 | Validation error |
+| 500 | Internal server error |
+
+---
+
+### GET `/api/roles`
+
+List roles. Supports optional pagination.
+
+**Query Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | integer | No | Page number (triggers pagination) |
+| `page_size` | integer | No | Items per page (default: 10) |
+
+**Without pagination** (no `page` parameter):
+
+```
+GET /api/roles
+```
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Roles fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "name": "admin",
+      "description": "Administrator role",
+      "permissions": [
+        {
+          "id": 1,
+          "name": "users.create",
+          "description": "Create new users"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "user",
+      "description": "Regular user role",
+      "permissions": [
+        {
+          "id": 2,
+          "name": "users.read",
+          "description": "View users"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**With pagination** (with `page` parameter):
+
+```
+GET /api/roles?page=1&page_size=10
+```
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Roles fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "name": "admin",
+      "description": "Administrator role",
+      "permissions": [
+        {
+          "id": 1,
+          "name": "users.create",
+          "description": "Create new users"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "total": 15,
+    "page": 1,
+    "page_size": 10,
+    "total_pages": 2
+  }
+}
+```
+
+---
+
+### GET `/api/roles/:id`
+
+Get a single role by ID.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | Role ID |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Role fetched successfully",
+  "data": {
+    "id": 1,
+    "name": "admin",
+    "description": "Administrator role",
+    "permissions": [
+      {
+        "id": 1,
+        "name": "users.create",
+        "description": "Create new users"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid role ID |
+| 404 | Role not found |
+| 500 | Internal server error |
+
+---
+
+### PUT `/api/roles/:id`
+
+Update an existing role with permissions.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | Role ID |
+
+**Request Body**
+
+```json
+{
+  "name": "super-admin",
+  "description": "Super Administrator role",
+  "permissions": [1, 2, 3, 4]
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `name` | string | Yes | 3-100 characters |
+| `description` | string | No | Max 255 characters |
+| `permissions` | array | Yes | Array of permission IDs |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Role updated successfully",
+  "data": {
+    "id": 1,
+    "name": "super-admin",
+    "description": "Super Administrator role",
+    "permissions": [
+      {
+        "id": 1,
+        "name": "users.create",
+        "description": "Create new users"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid role ID |
+| 404 | Role not found |
+| 422 | Validation error |
+| 500 | Internal server error |
+
+---
+
+### DELETE `/api/roles/:id`
+
+Soft delete a role (clears permissions association first).
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | Role ID |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Role deleted successfully",
+  "data": null
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid role ID |
+| 404 | Role not found |
+| 500 | Internal server error |
+
+---
+
+### GET `/api/roles/:id/permissions`
+
+Get all permissions assigned to a role.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | Role ID |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Role permissions fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "name": "users.create",
+      "description": "Create new users"
+    },
+    {
+      "id": 2,
+      "name": "users.read",
+      "description": "View users"
+    }
+  ]
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid role ID |
+| 500 | Internal server error |
+
+---
+
+## Users Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/api/users` | JWT | Create user |
+| GET | `/api/users` | JWT | List users (all or paginated) |
+| GET | `/api/users/:id` | JWT | Get user by ID |
+| PUT | `/api/users/:id` | JWT | Update user |
+| DELETE | `/api/users/:id` | JWT | Delete user |
+
+### POST `/api/users`
+
+Create a new user with roles.
+
+**Request Body**
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "password_confirmation": "password123",
+  "roles": [1, 2]
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `name` | string | Yes | 2-100 characters |
+| `email` | string | Yes | Valid email format |
+| `password` | string | Yes | Min 6 characters |
+| `password_confirmation` | string | Yes | Must match password |
+| `roles` | array | No | Array of role IDs |
+
+**Response (201 Created)**
+
+```json
+{
+  "code": 201,
+  "message": "User created successfully",
+  "data": {
+    "id": 1,
+    "email": "john@example.com",
+    "name": "John Doe",
+    "created_at": "2024-01-01T00:00:00Z",
+    "roles": [
+      {
+        "id": 1,
+        "name": "admin",
+        "description": "Administrator role"
+      }
+    ],
+    "permissions": [
+      {
+        "id": 1,
+        "name": "users.create",
+        "description": "Create new users"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 422 | Validation error |
+| 500 | Internal server error |
+
+---
+
+### GET `/api/users`
+
+List users. Supports optional pagination.
+
+**Query Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | integer | No | Page number (triggers pagination) |
+| `page_size` | integer | No | Items per page (default: 10) |
+
+**Without pagination** (no `page` parameter):
+
+```
+GET /api/users
+```
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Users fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "email": "john@example.com",
+      "name": "John Doe",
+      "created_at": "2024-01-01T00:00:00Z",
+      "roles": [
+        {
+          "id": 1,
+          "name": "admin",
+          "description": "Administrator role"
+        }
+      ],
+      "permissions": [
+        {
+          "id": 1,
+          "name": "users.create",
+          "description": "Create new users"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**With pagination** (with `page` parameter):
+
+```
+GET /api/users?page=1&page_size=10
+```
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Users fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "email": "john@example.com",
+      "name": "John Doe",
+      "created_at": "2024-01-01T00:00:00Z",
+      "roles": [],
+      "permissions": []
+    }
+  ],
+  "metadata": {
+    "total": 100,
+    "page": 1,
+    "page_size": 10,
+    "total_pages": 10
+  }
+}
+```
+
+---
+
+### GET `/api/users/:id`
+
+Get a single user by ID.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | User ID |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "User fetched successfully",
+  "data": {
+    "id": 1,
+    "email": "john@example.com",
+    "name": "John Doe",
+    "created_at": "2024-01-01T00:00:00Z",
+    "roles": [
+      {
+        "id": 1,
+        "name": "admin",
+        "description": "Administrator role"
+      }
+    ],
+    "permissions": [
+      {
+        "id": 1,
+        "name": "users.create",
+        "description": "Create new users"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid user ID |
+| 404 | User not found |
+| 500 | Internal server error |
+
+---
+
+### PUT `/api/users/:id`
+
+Update an existing user with roles.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | User ID |
+
+**Request Body**
+
+```json
+{
+  "name": "John Doe Updated",
+  "email": "john.updated@example.com",
+  "password": "newpassword123",
+  "password_confirmation": "newpassword123",
+  "roles": [1, 3]
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `name` | string | Yes | 2-100 characters |
+| `email` | string | Yes | Valid email format |
+| `password` | string | Yes | Min 6 characters |
+| `password_confirmation` | string | Yes | Must match password |
+| `roles` | array | No | Array of role IDs |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "User updated successfully",
+  "data": {
+    "id": 1,
+    "email": "john.updated@example.com",
+    "name": "John Doe Updated",
+    "created_at": "2024-01-01T00:00:00Z",
+    "roles": [
+      {
+        "id": 1,
+        "name": "admin",
+        "description": "Administrator role"
+      }
+    ],
+    "permissions": [
+      {
+        "id": 1,
+        "name": "users.create",
+        "description": "Create new users"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid user ID |
+| 404 | User not found |
+| 422 | Validation error |
+| 500 | Internal server error |
+
+---
+
+### DELETE `/api/users/:id`
+
+Soft delete a user.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | User ID |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "User deleted successfully",
+  "data": null
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid user ID |
+| 404 | User not found |
+| 500 | Internal server error |
+
+---
+
+## HTTP Status Codes
+
+| Code | Description |
+|------|-------------|
+| 200 | Success |
+| 201 | Created |
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 422 | Unprocessable Entity (Validation Error) |
+| 500 | Internal Server Error |
