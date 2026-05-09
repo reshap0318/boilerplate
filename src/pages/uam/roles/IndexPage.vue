@@ -184,7 +184,7 @@ onMounted(() => {
       <div class="mt-8 flex justify-center">
         <UiPagination
           :page="roleStore.indexData.pagination.page"
-          :total-pages="roleStore.indexData.pagination.totalPages"
+          :total-pages="roleStore.indexData.pagination.total_pages"
           @update:page="handlePageChange"
         />
       </div>

@@ -2,10 +2,25 @@ import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse 
 import storage from '@/helpers/storage'
 import { useAuthStore } from '@/stores/auth'
 
+export interface IApiMetadata {
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+}
+
 export interface IApiResponse<TData> {
   code: number
   message: string
   data: TData
+  metadata?: IApiMetadata
+}
+
+export const ApiMetadataDefaults: IApiMetadata = {
+  total: 0,
+  page: 1,
+  page_size: 9,
+  total_pages: 1,
 }
 
 const api: AxiosInstance = axios.create({

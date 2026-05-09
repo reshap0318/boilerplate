@@ -2,27 +2,44 @@
 import { computed, ref } from 'vue'
 import useVuelidate from '@vuelidate/core'
 import { useRoleStore } from '@/stores/role'
+import { usePermissionStore } from '@/stores/permission'
+import type { IPermission } from '@/stores/permission'
 import UiModal from '@/components/utils/UiModal.vue'
 import FormInput from '@/components/utils/FormInput.vue'
 import UiButton from '@/components/utils/UiButton.vue'
 
 const roleStore = useRoleStore()
+const permissionStore = usePermissionStore()
 const v$ = useVuelidate(roleStore.formRules, roleStore.form)
 
 const isVisible = ref(false)
 const isEdit = computed(() => !!roleStore.form.id)
+const allPermissions = ref<IPermission[]>([])
 
-function show(data?: { id?: number; name: string; description: string }) {
+const groupedPermissions = computed(() => {
+  const groups: Record<string, IPermission[]> = {}
+  for (const perm of allPermissions.value) {
+    const group = perm.name.includes('.') ? perm.name.split('.')[0] : 'others'
+    if (!groups[group]) groups[group] = []
+    groups[group].push(perm)
+  }
+  return groups
+})
+
+async function show(data?: { id?: number; name: string; description: string; permissions?: { id: number }[] }) {
   if (data) {
     roleStore.form.id = data.id
     roleStore.form.name = data.name
     roleStore.form.description = data.description
+    roleStore.form.permissions = data.permissions?.map(p => p.id) || []
   } else {
     roleStore.form.id = undefined
     roleStore.form.name = ''
     roleStore.form.description = ''
+    roleStore.form.permissions = []
   }
   v$.value.$reset()
+  allPermissions.value = await permissionStore.fetchAllPermissions()
   isVisible.value = true
 }
 
@@ -45,6 +62,15 @@ async function handleSubmit() {
   }
 }
 
+function togglePermission(id: number) {
+  const idx = roleStore.form.permissions.indexOf(id)
+  if (idx === -1) {
+    roleStore.form.permissions.push(id)
+  } else {
+    roleStore.form.permissions.splice(idx, 1)
+  }
+}
+
 defineExpose({ show, close })
 </script>
 
@@ -52,7 +78,7 @@ defineExpose({ show, close })
   <UiModal
     v-model="isVisible"
     :title="isEdit ? 'Edit Role' : 'Tambah Role'"
-    size="md"
+    size="2xl"
     @close="close"
   >
     <form @submit.prevent="handleSubmit">
@@ -70,6 +96,37 @@ defineExpose({ show, close })
           placeholder="Administrator role"
           :validation="v$.description"
         />
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
+          <div class="max-h-48 overflow-y-auto border border-gray-200 rounded-lg scrollbar-thin">
+            <div
+              v-for="(perms, group) in groupedPermissions"
+              :key="group"
+              class="p-3"
+            >
+              <h4 class="text-sm font-bold text-gray-800 bg-gray-100 px-2 py-1 rounded mb-2">{{ group }}</h4>
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+                <label
+                  v-for="perm in perms"
+                  :key="perm.id"
+                  class="flex items-center gap-2 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="roleStore.form.permissions.includes(perm.id)"
+                    @change="togglePermission(perm.id)"
+                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span class="text-sm text-gray-700">{{ perm.name }}</span>
+                </label>
+              </div>
+            </div>
+            <p v-if="allPermissions.length === 0" class="p-3 text-sm text-gray-400">
+              Belum ada permission.
+            </p>
+          </div>
+        </div>
       </div>
 
       <!-- Actions -->

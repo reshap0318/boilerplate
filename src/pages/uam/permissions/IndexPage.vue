@@ -2,6 +2,7 @@
 import swal from '@/plugins/swal'
 import UiCard from '@/components/utils/UiCard.vue'
 import UiButton from '@/components/utils/UiButton.vue'
+import UiPagination from '@/components/utils/UiPagination.vue'
 import FormModal from './FormModal.vue'
 
 import { ref, onMounted } from 'vue'
@@ -28,6 +29,10 @@ async function handleDelete(id: number) {
   if (result.isConfirmed) {
     await permissionStore.deletePermission(id)
   }
+}
+
+function handlePageChange(page: number) {
+  permissionStore.fetchPermissions(page)
 }
 
 onMounted(() => {
@@ -65,7 +70,7 @@ onMounted(() => {
 
     <!-- Empty State -->
     <div
-      v-else-if="permissionStore.permissions.length === 0"
+      v-else-if="permissionStore.indexData.permissions.length === 0"
       class="text-center py-24 bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm"
     >
       <div
@@ -89,7 +94,7 @@ onMounted(() => {
     <!-- Data List -->
     <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       <UiCard
-        v-for="permission in permissionStore.permissions"
+        v-for="permission in permissionStore.indexData.permissions"
         :key="permission.id"
         class="group hover:shadow-md transition-shadow"
       >
@@ -123,6 +128,15 @@ onMounted(() => {
           </div>
         </div>
       </UiCard>
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-8 flex justify-center">
+      <UiPagination
+        :page="permissionStore.indexData.pagination.page"
+        :total-pages="permissionStore.indexData.pagination.total_pages"
+        @update:page="handlePageChange"
+      />
     </div>
   </div>
 

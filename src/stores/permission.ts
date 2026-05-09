@@ -1,7 +1,14 @@
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
-import { get, post, put, del } from '@/plugins/axios'
-import type { IApiResponse } from '@/plugins/axios'
+import { 
+  get,
+  post,
+  put,
+  del,
+  ApiMetadataDefaults,
+  type IApiResponse,
+  type IApiMetadata 
+} from '@/plugins/axios'
 import { required } from '@vuelidate/validators'
 import swal from '@/plugins/swal'
 
@@ -20,7 +27,10 @@ export interface IPermissionPayload {
 export type TLoadingKey = 'Index' | 'Form' | 'Delete'
 
 export const usePermissionStore = defineStore('permission', () => {
-  const permissions = ref<IPermission[]>([])
+  const indexData = ref<{ permissions: IPermission[]; pagination: IApiMetadata }>({
+    permissions: [],
+    pagination: { ...ApiMetadataDefaults },
+  })
   const loading = ref<Record<TLoadingKey, boolean>>({
     Index: false,
     Form: false,
@@ -37,16 +47,33 @@ export const usePermissionStore = defineStore('permission', () => {
     description: { required },
   }
 
-  async function fetchPermissions() {
+  async function fetchPermissions(page?: number) {
     loading.value.Index = true
+    const currentPage = page ?? indexData.value.pagination.page
     try {
-      const response = await get<IApiResponse<IPermission[]>>('/permissions')
-      permissions.value = response.data.data || []
+      const { data } = await get<IApiResponse<IPermission[]>>('/permissions', {
+        params: {
+          page: currentPage,
+          page_size: indexData.value.pagination.page_size,
+        },
+      })
+      indexData.value.permissions = data.data || []
+      indexData.value.pagination = data.metadata || ApiMetadataDefaults
     } catch (error: any) {
       console.error('Failed to fetch permissions', error)
       swal.error('Gagal', 'Gagal memuat daftar permission.')
     } finally {
       loading.value.Index = false
+    }
+  }
+
+  async function fetchAllPermissions(): Promise<IPermission[]> {
+    try {
+      const { data } = await get<IApiResponse<IPermission[]>>('/permissions')
+      return data.data || []
+    } catch (error: any) {
+      console.error('Failed to fetch all permissions', error)
+      return []
     }
   }
 
@@ -62,7 +89,7 @@ export const usePermissionStore = defineStore('permission', () => {
     } catch (error: any) {
       const message = error?.response?.data?.message || 'Gagal membuat permission.'
       swal.error('Gagal', message)
-      throw error // Re-throw to let component know if needed
+      throw error
     } finally {
       loading.value.Form = false
     }
@@ -102,11 +129,12 @@ export const usePermissionStore = defineStore('permission', () => {
   }
 
   return {
-    permissions,
+    indexData,
     loading,
     form,
     formRules,
     fetchPermissions,
+    fetchAllPermissions,
     createPermission,
     updatePermission,
     deletePermission,

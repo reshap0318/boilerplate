@@ -1,6 +1,14 @@
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
-import { get, post, put, del, IApiResponse } from '@/plugins/axios'
+import { 
+  get,
+  post,
+  put,
+  del,
+  ApiMetadataDefaults,
+  type IApiResponse,
+  type IApiMetadata 
+} from '@/plugins/axios'
 import { required } from '@vuelidate/validators'
 import { IPermission } from './permission'
 import swal from '@/plugins/swal'
@@ -16,29 +24,15 @@ export interface IRolePayload {
   id?: number
   name: string
   description: string
-}
-
-export interface IPagination {
-  page: number
-  pageSize: number
-  total: number
-  totalPages: number
-}
-
-interface IRolesApiResponse {
-  data: IRole[]
-  total: number
-  page: number
-  page_size: number
-  total_pages: number
+  permissions: number[]
 }
 
 export type TLoadingKey = 'Index' | 'Form' | 'Delete'
 
 export const useRoleStore = defineStore('role', () => {
-  const indexData = ref<{ roles: IRole[]; pagination: IPagination }>({
+  const indexData = ref<{ roles: IRole[]; pagination: IApiMetadata }>({
     roles: [],
-    pagination: { page: 1, pageSize: 10, total: 0, totalPages: 1 },
+    pagination: { ...ApiMetadataDefaults },
   })
 
   const loading = ref<Record<TLoadingKey, boolean>>({
@@ -50,6 +44,7 @@ export const useRoleStore = defineStore('role', () => {
   const form = reactive<IRolePayload>({
     name: '',
     description: '',
+    permissions: [],
   })
 
   const formRules = {
@@ -61,20 +56,14 @@ export const useRoleStore = defineStore('role', () => {
     loading.value.Index = true
     const currentPage = page ?? indexData.value.pagination.page
     try {
-      const { data } = await get<IApiResponse<IRolesApiResponse>>('/roles', {
+      const { data } = await get<IApiResponse<IRole[]>>('/roles', {
         params: {
           page: currentPage,
-          page_size: indexData.value.pagination.pageSize,
+          page_size: indexData.value.pagination.page_size,
         },
       })
-      const body = data.data
-      indexData.value.roles = body.data || []
-      indexData.value.pagination = {
-        page: body.page,
-        pageSize: body.page_size,
-        total: body.total,
-        totalPages: body.total_pages,
-      }
+      indexData.value.roles = data.data || []
+      indexData.value.pagination = data.metadata || ApiMetadataDefaults
     } catch (error: any) {
       console.error('Failed to fetch roles', error)
       swal.error('Gagal', 'Gagal memuat daftar role.')
@@ -89,6 +78,7 @@ export const useRoleStore = defineStore('role', () => {
       await post('/roles', {
         name: form.name,
         description: form.description,
+        permissions: form.permissions,
       })
       swal.success('Berhasil', 'Role berhasil dibuat.')
       await fetchRoles()
@@ -107,6 +97,7 @@ export const useRoleStore = defineStore('role', () => {
       await put(`/roles/${id}`, {
         name: form.name,
         description: form.description,
+        permissions: form.permissions,
       })
       swal.success('Berhasil', 'Role berhasil diperbarui.')
       await fetchRoles()
