@@ -104,7 +104,7 @@ onUnmounted(() => {
     <div class="mb-6 flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Users</h1>
-        <p class="text-sm text-gray-600 mt-1">Kelola daftar user dalam sistem.</p>
+        <p class="hidden sm:block text-sm text-gray-600 mt-1">Kelola daftar user dalam sistem.</p>
       </div>
       <UiButton size="sm" @click="openCreate">
         <template #icon>
@@ -150,7 +150,7 @@ onUnmounted(() => {
 
     <!-- Data List -->
     <template v-else>
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <UiCard
           v-for="(user, index) in userStore.indexData.users"
           :key="user.id"
@@ -216,10 +216,10 @@ onUnmounted(() => {
             </div>
 
             <!-- Divider -->
-            <div class="my-2 border-t border-gray-100"></div>
+            <div class="my-3 border-t border-gray-100"></div>
 
             <!-- Info Section -->
-            <div class="space-y-2">
+            <div class="space-y-3">
               <!-- Joined Date -->
               <div class="flex items-center gap-2 text-xs">
                 <div class="flex items-center justify-center w-6 h-6 rounded-md bg-gray-100 text-gray-500 shrink-0">

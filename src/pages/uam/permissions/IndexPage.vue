@@ -46,7 +46,7 @@ onMounted(() => {
     <div class="mb-6 flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Permissions</h1>
-        <p class="text-sm text-gray-600 mt-1">Kelola daftar akses permission dalam sistem.</p>
+        <p class="hidden sm:block text-sm text-gray-600 mt-1">Kelola daftar akses permission dalam sistem.</p>
       </div>
       <UiButton size="sm" @click="openCreate">
         <template #icon>
