@@ -320,8 +320,12 @@ import (
 
 func (h *Handlers) PermissionCreate(c *gin.Context) {
     var req dtos.PermissionRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        helpers.ValidationError(c, err)
+    if err := c.BindJSON(&req); err != nil {
+        helpers.BadRequest(c, "Invalid JSON payload")
+        return
+    }
+    if err := h.Validate.Struct(req); err != nil {
+        helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
         return
     }
     dto, err := h.svcs.PermissionCreate(c.Request.Context(), req)
@@ -362,8 +366,12 @@ func (h *Handlers) PermissionUpdate(c *gin.Context) {
         return
     }
     var req dtos.PermissionRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        helpers.ValidationError(c, err)
+    if err := c.BindJSON(&req); err != nil {
+        helpers.BadRequest(c, "Invalid JSON payload")
+        return
+    }
+    if err := h.Validate.Struct(req); err != nil {
+        helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
         return
     }
     dto, err := h.svcs.PermissionUpdate(c.Request.Context(), uint(id), req)
@@ -388,9 +396,59 @@ func (h *Handlers) PermissionDelete(c *gin.Context) {
     helpers.OK(c, "Permission deleted successfully", nil)
 }
 ```
-- Use `helpers.ValidationError(c, err)` for binding errors (handles both validation & JSON errors)
+- Use `c.BindJSON(&req)` for JSON parsing, then `h.Validate.Struct(req)` for validation
+- Use `helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))` for validation errors (422)
+- Use `helpers.BadRequest(c, "Invalid JSON payload")` for JSON syntax errors (400)
+- **Field-related business errors** (e.g., "email already exists", "password mismatch") must use `helpers.ValidationErrorWithField(c, "field_name", "message")` for 422 response
 - Use `helpers.Created()` for POST, `helpers.OK()` for GET/PUT/DELETE
 - Parse ID with `strconv.ParseUint(c.Param("id"), 10, 64)`
+
+### Image/File Upload Flow
+
+For features with image uploads (e.g., user avatar), follow this flow:
+
+**1. Client uploads file via `POST /api/upload`**
+- File goes to `storage/tmp/`
+- Returns `{ "uuid": "...", "url": "..." }`
+
+**2. Client uses returned `uuid` in create/update request**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "avatar": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**3. DTO field naming**
+```go
+type UserCreateRequest struct {
+    Name   string `json:"name" validate:"required"`
+    Avatar string `json:"avatar"` // NOT avatar_id
+}
+```
+
+**4. Service handles file move + cleanup**
+```go
+// In service create/update:
+if req.Avatar != "" {
+    avatarPath, err := helpers.MoveFile(req.Avatar, "storage/tmp", "storage/avatars")
+    if err != nil {
+        // Log error, continue without avatar
+        avatarPath = ""
+    }
+    // Set avatar path on model
+}
+
+// In service update: delete old avatar AFTER successful transaction
+oldAvatar := existing.Avatar
+// ... transaction ...
+if oldAvatar != "" {
+    helpers.DeleteFile(oldAvatar)
+}
+```
+
+**5. Handler stays clean** — no file operations in handler layer
 
 ### Step 7: Routes — `internal/routes/{feature}_route.go`
 ```go
@@ -519,14 +577,36 @@ result, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (i
 
 ### Response Helpers (`helpers`)
 ```go
-helpers.OK(c, "message", data)            // 200
-helpers.Created(c, "message", data)       // 201
-helpers.BadRequest(c, "message")          // 400
-helpers.Unauthorized(c, "message")        // 401
-helpers.Forbidden(c, "message")           // 403
-helpers.NotFound(c, "message")            // 404
-helpers.InternalServerError(c, "message") // 500
-helpers.ValidationError(c, err)           // 422 (validation) or 400 (JSON syntax)
+helpers.OK(c, "message", data)                    // 200
+helpers.Created(c, "message", data)               // 201
+helpers.BadRequest(c, "message")                  // 400 (JSON syntax, invalid params)
+helpers.Unauthorized(c, "message")                // 401
+helpers.Forbidden(c, "message")                   // 403
+helpers.NotFound(c, "message")                    // 404
+helpers.InternalServerError(c, "message")         // 500
+helpers.ValidationErrorWithMap(c, errorsMap)      // 422 (validation errors map)
+helpers.ValidationErrorWithField(c, field, msg)   // 422 (single field error)
+```
+
+**Validation pattern in handlers:**
+```go
+if err := c.BindJSON(&req); err != nil {
+    helpers.BadRequest(c, "Invalid JSON payload")
+    return
+}
+if err := h.Validate.Struct(req); err != nil {
+    helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+    return
+}
+```
+
+**Field-related business errors (422):**
+```go
+// Examples: email already exists, password mismatch, etc.
+if err == helpers.ErrUserExists {
+    helpers.ValidationErrorWithField(c, "email", "Email already exists")
+    return
+}
 ```
 
 Response format:
@@ -604,7 +684,9 @@ type Services struct {
 
 ```go
 type Handlers struct {
-    svcs *services.Services  // Access services: h.svcs.PermissionCreate(...)
+    svcs     *services.Services      // Access services: h.svcs.PermissionCreate(...)
+    Validate *validator.Validate     // Validator instance with translator
+    trans    ut.Translator           // Translator for error messages
 }
 ```
 
@@ -620,7 +702,9 @@ type Handlers struct {
 | Direct DB write without transaction | `s.repo.TxManager.WithinTransaction(...)` |
 | Separate `CreateRequest` & `UpdateRequest` | Single `PermissionRequest` with `omitempty` |
 | `FindByID` check before Update/Delete | Generic repo handles not found automatically |
-| `helpers.BadRequest(c, err.Error())` for binding | `helpers.ValidationError(c, err)` |
+| `c.ShouldBindJSON(&req)` + `helpers.ValidationError(c, err)` | `c.BindJSON(&req)` + `h.Validate.Struct(req)` + `helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))` |
+| `helpers.BadRequest(c, "Email already exists")` | `helpers.ValidationErrorWithField(c, "email", "Email already exists")` |
+| File operations in handler layer | File move/delete in service layer |
 | Modifying `00_generic.go` or `00_transaction.go` | Create custom repository file |
 
 ---
@@ -637,5 +721,7 @@ type Handlers struct {
 - [ ] CREATE/UPDATE/DELETE have logging
 - [ ] Repository registered in `00_repository.go`
 - [ ] Routes registered in `cmd/api/main.go`
+- [ ] Handler uses `c.BindJSON()` + `h.Validate.Struct()` (NOT `ShouldBindJSON`)
+- [ ] Field-related business errors use `ValidationErrorWithField()` (422)
 - [ ] Build success: `go build ./...`
 - [ ] Vet clean: `go vet ./...`
