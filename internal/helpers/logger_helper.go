@@ -12,11 +12,11 @@ import (
 
 // Logger holds logger configuration.
 type Logger struct {
-	logDir     string
+	logDir      string
 	currentFile string
-	file       *os.File
-	logger     *log.Logger
-	mu         sync.Mutex
+	file        *os.File
+	logger      *log.Logger
+	mu          sync.Mutex
 }
 
 // LogEntry represents a structured log entry.

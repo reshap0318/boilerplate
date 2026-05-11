@@ -1,17 +1,13 @@
 package helpers
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
-
-var validate = validator.New()
 
 // PaginationMeta represents pagination metadata in response.
 type PaginationMeta struct {
@@ -99,7 +95,7 @@ func InternalServerError(c *gin.Context, message string) {
 	ErrorResponse(c, http.StatusInternalServerError, message)
 }
 
-// ValidationError sends 422 Unprocessable Entity response for validation errors, or 400 for JSON syntax errors
+// ValidationError sends 422 Unprocessable Entity response for validation errors.
 func ValidationError(c *gin.Context, err error) {
 	var validationErrs validator.ValidationErrors
 	if errors.As(err, &validationErrs) {
@@ -112,35 +108,7 @@ func ValidationError(c *gin.Context, err error) {
 		return
 	}
 
-	var unmarshalTypeError *json.UnmarshalTypeError
-	if errors.As(err, &unmarshalTypeError) {
-		field := unmarshalTypeError.Field
-		if field == "" {
-			field = "payload"
-		} else {
-			// Convert to lowercase if needed, although Field from unmarshalTypeError is often derived from the json tag directly.
-			field = strings.ToLower(field)
-		}
-		
-		errorsMap := map[string][]string{
-			field: {fmt.Sprintf("The %s field must be of type %s.", field, unmarshalTypeError.Type.String())},
-		}
-
-		resp := Response{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "The given data was invalid.",
-			Errors:  errorsMap,
-		}
-		c.JSON(http.StatusUnprocessableEntity, resp)
-		return
-	}
-
-	// Jika bukan error validasi (misalnya JSON syntax error atau tipe error lainnya)
-	resp := Response{
-		Code:    http.StatusBadRequest,
-		Message: "Invalid JSON payload: " + err.Error(),
-	}
-	c.JSON(http.StatusBadRequest, resp)
+	ErrorResponse(c, http.StatusBadRequest, "Invalid data")
 }
 
 func formatValidationError(validationErrs validator.ValidationErrors) map[string][]string {
@@ -168,8 +136,4 @@ func getErrorMessage(e validator.FieldError) string {
 	default:
 		return "The " + field + " field is invalid."
 	}
-}
-
-func ValidateStruct(s interface{}) error {
-	return validate.Struct(s)
 }

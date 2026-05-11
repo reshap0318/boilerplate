@@ -112,3 +112,79 @@ func GetFileURL(path string) string {
 	normalizedPath := strings.ReplaceAll(path, "\\", "/")
 	return fmt.Sprintf("%s/%s", strings.TrimRight(baseURL, "/"), normalizedPath)
 }
+
+func CopyFile(fileUUID, srcDir, destDir string) (string, error) {
+	if fileUUID == "" {
+		return "", fmt.Errorf("file UUID is empty")
+	}
+
+	files, err := filepath.Glob(filepath.Join(srcDir, fileUUID+".*"))
+	if err != nil {
+		return "", fmt.Errorf("failed to search file: %w", err)
+	}
+	if len(files) == 0 {
+		return "", fmt.Errorf("file not found for uuid: %s", fileUUID)
+	}
+
+	srcPath := files[0]
+	ext := filepath.Ext(srcPath)
+	destPath := filepath.Join(destDir, fileUUID+ext)
+
+	if err := copyFileInternal(srcPath, destPath); err != nil {
+		return "", fmt.Errorf("failed to copy file: %w", err)
+	}
+
+	normalizedPath := strings.ReplaceAll(filepath.ToSlash(destPath), "\\", "/")
+	return normalizedPath, nil
+}
+
+func copyFileInternal(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %w", err)
+	}
+	defer sourceFile.Close()
+
+	if err := os.MkdirAll(filepath.Dir(dst), os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer destFile.Close()
+
+	if _, err = io.Copy(destFile, sourceFile); err != nil {
+		return fmt.Errorf("failed to copy file: %w", err)
+	}
+
+	return nil
+}
+
+func MoveFile(fileUUID, srcDir, destDir string) (string, error) {
+	if fileUUID == "" {
+		return "", fmt.Errorf("file UUID is empty")
+	}
+
+	files, err := filepath.Glob(filepath.Join(srcDir, fileUUID+".*"))
+	if err != nil {
+		return "", fmt.Errorf("failed to search file: %w", err)
+	}
+	if len(files) == 0 {
+		return "", fmt.Errorf("file not found for uuid: %s", fileUUID)
+	}
+
+	srcPath := files[0]
+	ext := filepath.Ext(srcPath)
+	destPath := filepath.Join(destDir, fileUUID+ext)
+
+	if err := copyFileInternal(srcPath, destPath); err != nil {
+		return "", fmt.Errorf("failed to copy file: %w", err)
+	}
+
+	DeleteFile(srcPath)
+
+	normalizedPath := strings.ReplaceAll(filepath.ToSlash(destPath), "\\", "/")
+	return normalizedPath, nil
+}

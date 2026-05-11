@@ -21,8 +21,13 @@ import (
 func (h *Handlers) AuthLogin(c *gin.Context) {
 	var req dtos.LoginRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationError(c, err)
 		return
 	}
 
@@ -49,8 +54,13 @@ func (h *Handlers) AuthLogin(c *gin.Context) {
 func (h *Handlers) AuthRefreshToken(c *gin.Context) {
 	var req dtos.RefreshTokenRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationError(c, err)
 		return
 	}
 
@@ -89,8 +99,13 @@ func (h *Handlers) AuthLogout(c *gin.Context) {
 func (h *Handlers) AuthForgetPassword(c *gin.Context) {
 	var req dtos.ForgetPasswordRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationError(c, err)
 		return
 	}
 
@@ -120,8 +135,13 @@ func (h *Handlers) AuthForgetPassword(c *gin.Context) {
 func (h *Handlers) AuthResetPassword(c *gin.Context) {
 	var req dtos.ResetPasswordRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationError(c, err)
 		return
 	}
 

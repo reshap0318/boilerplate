@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
 
 	clientEmail "github.com/reshap0318/go-boilerplate/internal/clients/email"
@@ -143,8 +144,11 @@ func NewContainer() (*Container, error) {
 	}
 	container.Services.JWKSManager = jwksManager
 
+	// Initialize Validator
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
 	// Always initialize handlers
-	container.Handlers = handlers.NewHandlers(container.Services)
+	container.Handlers = handlers.NewHandlers(container.Services, validate)
 
 	return container, nil
 }

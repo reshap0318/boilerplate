@@ -13,7 +13,12 @@ import (
 // RoleCreate handles POST /api/roles
 func (h *Handlers) RoleCreate(c *gin.Context) {
 	var req dtos.RoleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
 		helpers.ValidationError(c, err)
 		return
 	}
@@ -85,7 +90,12 @@ func (h *Handlers) RoleUpdate(c *gin.Context) {
 	}
 
 	var req dtos.RoleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
 		helpers.ValidationError(c, err)
 		return
 	}

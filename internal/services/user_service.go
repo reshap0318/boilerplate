@@ -13,7 +13,7 @@ import (
 )
 
 // UserCreate creates a new user with optional roles.
-func (s *Services) UserCreate(ctx context.Context, req dtos.UserRequest, avatarPath string) (*dtos.UserDTO, error) {
+func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (*dtos.UserDTO, error) {
 	s.Logger.LogStart("UserCreate", "Creating user: %s", req.Email)
 
 	exists, err := s.repo.User.Exists(nil, map[string]interface{}{"email": req.Email})
@@ -32,6 +32,15 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserRequest, avatarP
 		return nil, err
 	}
 
+	avatarPath := ""
+	if req.AvatarID != "" {
+		avatarPath, err = helpers.MoveFile(req.AvatarID, "storage/tmp", "storage/avatars")
+		if err != nil {
+			s.Logger.LogStep("UserCreate", "Failed to move avatar: %v", err)
+			avatarPath = ""
+		}
+	}
+
 	user := &models.User{
 		Email:    req.Email,
 		Name:     req.Name,
@@ -45,7 +54,6 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserRequest, avatarP
 			return nil, err
 		}
 
-		// Assign roles
 		var roles []models.Role
 		for _, roleID := range req.Roles {
 			roles = append(roles, models.Role{ID: roleID})
@@ -54,7 +62,6 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserRequest, avatarP
 			s.Logger.LogStep("UserCreate", "Failed to assign roles: %v", err)
 		}
 
-		// Reload user with roles
 		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
 		if err != nil {
 			return nil, err
@@ -131,7 +138,7 @@ func (s *Services) UserGetByID(ctx context.Context, id uint) (*dtos.UserDTO, err
 }
 
 // UserUpdate updates an existing user with optional roles.
-func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserRequest, avatarPath string) (*dtos.UserDTO, string, error) {
+func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateRequest) (*dtos.UserDTO, string, error) {
 	s.Logger.LogStart("UserUpdate", "Updating user ID: %d", id)
 
 	existing, err := s.repo.User.FindByID(nil, id)
@@ -164,8 +171,16 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserRequest
 		}
 		updates["password"] = string(hashedPassword)
 	}
-	if avatarPath != "" {
-		updates["avatar"] = avatarPath
+
+	oldAvatar := ""
+	if req.AvatarID != "" {
+		avatarPath, err := helpers.MoveFile(req.AvatarID, "storage/tmp", "storage/avatars")
+		if err != nil {
+			s.Logger.LogStep("UserUpdate", "Failed to move avatar: %v", err)
+		} else {
+			updates["avatar"] = avatarPath
+			oldAvatar = existing.Avatar
+		}
 	}
 
 	res, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
@@ -174,7 +189,6 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserRequest
 			return nil, err
 		}
 
-		// Replace roles - clear then assign
 		if err := tx.Model(&result).Association("Roles").Clear(); err != nil {
 			return nil, err
 		}
@@ -187,7 +201,6 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserRequest
 			s.Logger.LogStep("UserUpdate", "Failed to assign roles: %v", err)
 		}
 
-		// Reload user with roles
 		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
 		if err != nil {
 			return nil, err
@@ -203,7 +216,7 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserRequest
 	result := res.(*models.User)
 	dto := dtos.ToUserDTO(result)
 	s.Logger.LogEnd("UserUpdate", "User updated: %s (ID: %d)", dto.Email, dto.ID)
-	return &dto, existing.Avatar, nil
+	return &dto, oldAvatar, nil
 }
 
 // UserDelete soft deletes a user and its role associations.

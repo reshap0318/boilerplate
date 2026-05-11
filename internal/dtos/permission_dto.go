@@ -4,8 +4,8 @@ import "github.com/reshap0318/go-boilerplate/internal/models"
 
 // PermissionRequest represents the request to create or update a permission.
 type PermissionRequest struct {
-	Name        string  `json:"name" binding:"required,min=3,max=100"`
-	Description *string `json:"description" binding:"omitempty,max=255"`
+	Name        string  `json:"name" validate:"required,min=3,max=100"`
+	Description *string `json:"description" validate:"omitempty,max=255"`
 }
 
 // PermissionDTO represents permission data transfer object.

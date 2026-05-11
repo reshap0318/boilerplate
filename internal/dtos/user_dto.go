@@ -5,12 +5,23 @@ import (
 	"github.com/reshap0318/go-boilerplate/internal/models"
 )
 
-// UserRequest represents the request to create or update a user.
-type UserRequest struct {
-	Name                 string `json:"name" binding:"required,min=2,max=100"`
-	Email                string `json:"email" binding:"required,email"`
-	Password             string `json:"password" binding:"required,min=6"`
-	PasswordConfirmation string `json:"password_confirmation" binding:"required,eqfield=Password"`
+// UserCreateRequest represents the request to create a user.
+type UserCreateRequest struct {
+	Name                 string `json:"name" validate:"required,min=2,max=100"`
+	Email                string `json:"email" validate:"required,email"`
+	Password             string `json:"password" validate:"required,min=6"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"required,eqfield=Password"`
+	AvatarID             string `json:"avatar_id"`
+	Roles                []uint `json:"roles"`
+}
+
+// UserUpdateRequest represents the request to update a user.
+type UserUpdateRequest struct {
+	Name                 string `json:"name" validate:"required,min=2,max=100"`
+	Email                string `json:"email" validate:"required,email"`
+	Password             string `json:"password" validate:"omitempty,min=6"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"omitempty,eqfield=Password"`
+	AvatarID             string `json:"avatar_id"`
 	Roles                []uint `json:"roles"`
 }
 

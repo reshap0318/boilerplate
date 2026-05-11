@@ -46,9 +46,8 @@ func main() {
 
 	apiGroup := r.Group("/api")
 	{
-		routes.RegisterHealthRoutes(apiGroup, container.Handlers)
+		routes.RegisterSystemRoutes(r, container.Handlers)
 		routes.RegisterAuthRoutes(apiGroup, container.Handlers)
-		routes.RegisterJWKSRoutes(r, container.Handlers)
 	}
 
 	protected := apiGroup.Group("")
@@ -58,11 +57,8 @@ func main() {
 		routes.RegisterPermissionRoutes(protected, container.Handlers)
 		routes.RegisterRoleRoutes(protected, container.Handlers)
 		routes.RegisterUserRoutes(protected, container.Handlers)
+		routes.RegisterSystemProtectedRoutes(protected, container.Handlers)
 	}
-
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
 
 	addr := host + ":" + port
 	log.Printf("Server starting on %s", addr)
