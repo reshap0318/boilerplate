@@ -33,8 +33,8 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (
 	}
 
 	avatarPath := ""
-	if req.AvatarID != "" {
-		avatarPath, err = helpers.MoveFile(req.AvatarID, "storage/tmp", "storage/avatars")
+	if req.Avatar != "" {
+		avatarPath, err = helpers.MoveFile(req.Avatar, "storage/tmp", "storage/avatars")
 		if err != nil {
 			s.Logger.LogStep("UserCreate", "Failed to move avatar: %v", err)
 			avatarPath = ""
@@ -138,24 +138,24 @@ func (s *Services) UserGetByID(ctx context.Context, id uint) (*dtos.UserDTO, err
 }
 
 // UserUpdate updates an existing user with optional roles.
-func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateRequest) (*dtos.UserDTO, string, error) {
+func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateRequest) (*dtos.UserDTO, error) {
 	s.Logger.LogStart("UserUpdate", "Updating user ID: %d", id)
 
 	existing, err := s.repo.User.FindByID(nil, id)
 	if err != nil {
 		s.Logger.LogEndWithError("UserUpdate", "User not found: %v", err)
-		return nil, "", helpers.ErrNotFound
+		return nil, helpers.ErrNotFound
 	}
 
 	if existing.Email != req.Email {
 		exists, err := s.repo.User.Exists(nil, map[string]interface{}{"email": req.Email})
 		if err != nil {
 			s.Logger.LogEndWithError("UserUpdate", "Failed to check email: %v", err)
-			return nil, "", err
+			return nil, err
 		}
 		if exists {
 			s.Logger.LogEndWithError("UserUpdate", "Email already exists: %s", req.Email)
-			return nil, "", helpers.ErrUserExists
+			return nil, helpers.ErrUserExists
 		}
 	}
 
@@ -167,14 +167,14 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateR
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
 			s.Logger.LogEndWithError("UserUpdate", "Failed to hash password: %v", err)
-			return nil, "", err
+			return nil, err
 		}
 		updates["password"] = string(hashedPassword)
 	}
 
 	oldAvatar := ""
-	if req.AvatarID != "" {
-		avatarPath, err := helpers.MoveFile(req.AvatarID, "storage/tmp", "storage/avatars")
+	if req.Avatar != "" {
+		avatarPath, err := helpers.MoveFile(req.Avatar, "storage/tmp", "storage/avatars")
 		if err != nil {
 			s.Logger.LogStep("UserUpdate", "Failed to move avatar: %v", err)
 		} else {
@@ -210,13 +210,17 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateR
 	})
 	if err != nil {
 		s.Logger.LogEndWithError("UserUpdate", "Failed to update user: %v", err)
-		return nil, "", err
+		return nil, err
+	}
+
+	if oldAvatar != "" {
+		helpers.DeleteFile(oldAvatar)
 	}
 
 	result := res.(*models.User)
 	dto := dtos.ToUserDTO(result)
 	s.Logger.LogEnd("UserUpdate", "User updated: %s (ID: %d)", dto.Email, dto.ID)
-	return &dto, oldAvatar, nil
+	return &dto, nil
 }
 
 // UserDelete soft deletes a user and its role associations.

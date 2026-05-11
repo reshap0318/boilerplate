@@ -20,14 +20,14 @@ func (h *Handlers) UserCreate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationError(c, err)
+		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.UserCreate(c.Request.Context(), req)
 	if err != nil {
 		if err == helpers.ErrUserExists {
-			helpers.BadRequest(c, "Email already exists")
+			helpers.ValidationErrorWithField(c, "email", "Email already exists")
 			return
 		}
 		helpers.InternalServerError(c, "Failed to create user")
@@ -108,26 +108,22 @@ func (h *Handlers) UserUpdate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationError(c, err)
+		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
 		return
 	}
 
-	dto, oldAvatar, err := h.svcs.UserUpdate(c.Request.Context(), uint(id), req)
+	dto, err := h.svcs.UserUpdate(c.Request.Context(), uint(id), req)
 	if err != nil {
 		if err == helpers.ErrNotFound {
 			helpers.NotFound(c, "User not found")
 			return
 		}
 		if err == helpers.ErrUserExists {
-			helpers.BadRequest(c, "Email already exists")
+			helpers.ValidationErrorWithField(c, "email", "Email already exists")
 			return
 		}
 		helpers.InternalServerError(c, "Failed to update user")
 		return
-	}
-
-	if oldAvatar != "" {
-		helpers.DeleteFile(oldAvatar)
 	}
 
 	helpers.OK(c, "User updated successfully", dto)
