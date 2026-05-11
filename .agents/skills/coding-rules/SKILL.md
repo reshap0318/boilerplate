@@ -49,6 +49,11 @@ go-boilerplate/
 │   ├── routes/                # Route registration
 │   └── services/              # Business logic (single struct: Services)
 │       └── 00_services.go     # Services struct definition
+├── storage/                   # Application storage
+│   ├── keys/                  # JWT keys (private.pem, public.pem)
+│   ├── logs/                  # Application logs (YYYY-MM-DD.log)
+│   ├── tmp/                   # Temporary file uploads
+│   └── avatars/               # User avatar files
 └── docs/                      # Documentation
 ```
 
@@ -518,6 +523,8 @@ s.Logger.LogError("FuncName", "Error: %v", err)            // Error
 s.Logger.LogWarn("FuncName", "Warning: %s", value)         // Warning
 s.Logger.LogInfo("FuncName", "Info: %s", value)            // Info
 ```
+
+**Log Output**: `storage/logs/YYYY-MM-DD.log` | Auto rotation & cleanup (30 days)
 
 ---
 

@@ -295,7 +295,7 @@ go-boilerplate/
 │   │   └── user_repository.go # Custom repository (aman diubah)
 │   ├── routes/           # Route definitions
 │   └── services/         # Business logic (single struct: Services)
-├── logs/                 # Application logs
+├── storage/              # Application storage (keys, logs)
 ├── .env                  # Environment variables (gitignore)
 ├── .env.example          # Environment template
 ├── go.mod                # Go module definition
@@ -377,7 +377,7 @@ func (s *Services) GetUserByID(ctx context.Context, id uint) (*models.User, erro
 }
 ```
 
-**Output**: `logs/YYYY-MM-DD.log` | Auto rotation & cleanup (30 hari)
+**Output**: `storage/logs/YYYY-MM-DD.log` | Auto rotation & cleanup (30 hari)
 
 ---
 

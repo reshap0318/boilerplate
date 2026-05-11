@@ -62,7 +62,7 @@ func NewContainer() (*Container, error) {
 	container := &Container{}
 
 	// Initialize Logger (early, before other components)
-	logger, err := helpers.NewLogger("logs")
+	logger, err := helpers.NewLogger("storage/logs")
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -141,8 +141,8 @@ func NewContainer() (*Container, error) {
 	// Initialize JWKS Manager
 	jwksManager := &services.JWKSManager{}
 	if err := jwksManager.Initialize(
-		helpers.GetEnv("JWT_PRIVATE_KEY_PATH", "keys/private.pem"),
-		helpers.GetEnv("JWT_PUBLIC_KEY_PATH", "keys/public.pem"),
+		helpers.GetEnv("JWT_PRIVATE_KEY_PATH", "storage/keys/private.pem"),
+		helpers.GetEnv("JWT_PUBLIC_KEY_PATH", "storage/keys/public.pem"),
 		helpers.GetEnv("JWT_PASSPHRASE", ""),
 	); err != nil {
 		return nil, fmt.Errorf("failed to initialize JWKS Manager: %w", err)
