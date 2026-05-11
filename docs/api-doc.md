@@ -64,13 +64,15 @@ Authorization: Bearer <token>
 
 ---
 
-## Health Endpoints
+## System Endpoints
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/api/health` | Public | Health check |
+| GET | `/health` | Public | Health check |
+| GET | `/.well-known/jwks.json` | Public | Get JSON Web Key Set |
+| POST | `/api/upload` | JWT | Upload file |
 
-### GET `/api/health`
+### GET `/health`
 
 Check the health status of the application and its dependencies.
 
@@ -97,12 +99,6 @@ Check the health status of the application and its dependencies.
 
 ---
 
-## JWKS Endpoints
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/.well-known/jwks.json` | Public | Get JSON Web Key Set |
-
 ### GET `/.well-known/jwks.json`
 
 Retrieve the JSON Web Key Set for token verification.
@@ -123,6 +119,46 @@ Retrieve the JSON Web Key Set for token verification.
   ]
 }
 ```
+
+---
+
+### POST `/api/upload`
+
+Upload a file to temporary storage. The returned `uuid` can be used in user create/update endpoints via `avatar_id`.
+
+**Headers**
+
+```
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
+
+**Request Body** (multipart/form-data)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `file` | file | Yes | jpg, jpeg, png, gif, webp, jfif. Max 5MB |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "File uploaded successfully",
+  "data": {
+    "uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "url": "http://localhost:8080/storage/tmp/550e8400-e29b-41d4-a716-446655440000.jpg"
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | File is required, file type not allowed, or file size exceeds limit |
+| 401 | Unauthorized |
+| 500 | Internal server error |
 
 ---
 
@@ -154,11 +190,11 @@ Authenticate user and receive access tokens.
 | `email` | string | Yes | Valid email format |
 | `password` | string | Yes | Min 6 characters |
 
-**Response (201 Created)**
+**Response (200 OK)**
 
 ```json
 {
-  "code": 201,
+  "code": 200,
   "message": "Login successful",
   "data": {
     "token": "eyJhbGciOiJSUzI1NiIs...",
@@ -167,7 +203,7 @@ Authenticate user and receive access tokens.
       "id": 1,
       "email": "user@example.com",
       "name": "John Doe",
-      "avatar": "http://localhost:8080/uploads/avatars/1746789012345678901_aB3cD4eF.jpg",
+      "avatar": "http://localhost:8080/storage/avatars/550e8400-e29b-41d4-a716-446655440000.jpg",
       "created_at": "2024-01-01T00:00:00Z",
       "roles": [
         {
@@ -258,7 +294,7 @@ Request a password reset email.
 ```json
 {
   "code": 200,
-  "message": "Password reset email sent",
+  "message": "Reset password email sent",
   "data": null
 }
 ```
@@ -267,6 +303,7 @@ Request a password reset email.
 
 | Status | Message |
 |--------|---------|
+| 404 | Email not found |
 | 422 | Validation error |
 | 500 | Internal server error |
 
@@ -312,7 +349,7 @@ Reset password using the token received via email.
 
 ### POST `/api/auth/logout`
 
-Logout the current user (invalidates token).
+Logout the current user.
 
 **Headers**
 
@@ -325,7 +362,7 @@ Authorization: Bearer <token>
 ```json
 {
   "code": 200,
-  "message": "Logout successful",
+  "message": "Logout successful. Please clear your token on the client side.",
   "data": null
 }
 ```
@@ -905,7 +942,7 @@ Get all permissions assigned to a role.
 | PUT | `/api/users/:id` | JWT | Update user |
 | DELETE | `/api/users/:id` | JWT | Delete user |
 
-**Note:** User endpoints use `multipart/form-data` for file uploads. Avatar URLs in responses are full URLs served at `/uploads/avatars/`. Configure `APP_URL` in `.env` to set the base URL.
+**Note:** User endpoints use JSON body. To set an avatar, first upload a file via `POST /api/upload` and use the returned `uuid` as `avatar_id`.
 
 ### POST `/api/users`
 
@@ -914,10 +951,22 @@ Create a new user with roles.
 **Headers**
 
 ```
-Content-Type: multipart/form-data
+Authorization: Bearer <token>
+Content-Type: application/json
 ```
 
-**Request Body** (multipart/form-data)
+**Request Body**
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "password_confirmation": "password123",
+  "avatar_id": "550e8400-e29b-41d4-a716-446655440000",
+  "roles": [1, 2]
+}
+```
 
 | Field | Type | Required | Validation |
 |-------|------|----------|------------|
@@ -925,8 +974,8 @@ Content-Type: multipart/form-data
 | `email` | string | Yes | Valid email format |
 | `password` | string | Yes | Min 6 characters |
 | `password_confirmation` | string | Yes | Must match password |
-| `roles` | string | No | Comma-separated role IDs (e.g., `"1,2"`) |
-| `avatar` | file | No | jpg, jpeg, png, gif, webp. Max 5MB |
+| `avatar_id` | string | No | UUID from upload endpoint |
+| `roles` | array | No | Array of role IDs |
 
 **Response (201 Created)**
 
@@ -938,7 +987,7 @@ Content-Type: multipart/form-data
     "id": 1,
     "email": "john@example.com",
     "name": "John Doe",
-    "avatar": "http://localhost:8080/uploads/avatars/1746789012345678901_aB3cD4eF.jpg",
+    "avatar": "http://localhost:8080/storage/avatars/550e8400-e29b-41d4-a716-446655440000.jpg",
     "created_at": "2024-01-01T00:00:00Z",
     "roles": [
       {
@@ -962,7 +1011,7 @@ Content-Type: multipart/form-data
 
 | Status | Message |
 |--------|---------|
-| 400 | Validation error, file size exceeds limit, or invalid file type |
+| 400 | Email already exists |
 | 422 | Validation error |
 | 500 | Internal server error |
 
@@ -996,7 +1045,7 @@ GET /api/users
       "id": 1,
       "email": "john@example.com",
       "name": "John Doe",
-      "avatar": "http://localhost:8080/uploads/avatars/1746789012345678901_aB3cD4eF.jpg",
+      "avatar": "http://localhost:8080/storage/avatars/550e8400-e29b-41d4-a716-446655440000.jpg",
       "created_at": "2024-01-01T00:00:00Z",
       "roles": [
         {
@@ -1034,7 +1083,7 @@ GET /api/users?page=1&page_size=10
       "id": 1,
       "email": "john@example.com",
       "name": "John Doe",
-      "avatar": "http://localhost:8080/uploads/avatars/1746789012345678901_aB3cD4eF.jpg",
+      "avatar": "http://localhost:8080/storage/avatars/550e8400-e29b-41d4-a716-446655440000.jpg",
       "created_at": "2024-01-01T00:00:00Z",
       "roles": [],
       "permissions": []
@@ -1071,7 +1120,7 @@ Get a single user by ID.
     "id": 1,
     "email": "john@example.com",
     "name": "John Doe",
-    "avatar": "http://localhost:8080/uploads/avatars/1746789012345678901_aB3cD4eF.jpg",
+    "avatar": "http://localhost:8080/storage/avatars/550e8400-e29b-41d4-a716-446655440000.jpg",
     "created_at": "2024-01-01T00:00:00Z",
     "roles": [
       {
@@ -1108,7 +1157,8 @@ Update an existing user with roles.
 **Headers**
 
 ```
-Content-Type: multipart/form-data
+Authorization: Bearer <token>
+Content-Type: application/json
 ```
 
 **Path Parameters**
@@ -1117,16 +1167,27 @@ Content-Type: multipart/form-data
 |-----------|------|----------|-------------|
 | `id` | integer | Yes | User ID |
 
-**Request Body** (multipart/form-data)
+**Request Body**
+
+```json
+{
+  "name": "John Doe Updated",
+  "email": "john.updated@example.com",
+  "password": "newpassword123",
+  "password_confirmation": "newpassword123",
+  "avatar_id": "660e8400-e29b-41d4-a716-446655440001",
+  "roles": [1, 3]
+}
+```
 
 | Field | Type | Required | Validation |
 |-------|------|----------|------------|
 | `name` | string | Yes | 2-100 characters |
 | `email` | string | Yes | Valid email format |
 | `password` | string | No | Min 6 characters (empty = no change) |
-| `password_confirmation` | string | No | Must match password |
-| `roles` | string | No | Comma-separated role IDs (e.g., `"1,2"`) |
-| `avatar` | file | No | jpg, jpeg, png, gif, webp. Max 5MB |
+| `password_confirmation` | string | No | Must match password if provided |
+| `avatar_id` | string | No | UUID from upload endpoint |
+| `roles` | array | No | Array of role IDs (replaces all existing roles) |
 
 **Response (200 OK)**
 
@@ -1138,7 +1199,7 @@ Content-Type: multipart/form-data
     "id": 1,
     "email": "john.updated@example.com",
     "name": "John Doe Updated",
-    "avatar": "http://localhost:8080/uploads/avatars/1746789098765432109_xY9zW8vU.png",
+    "avatar": "http://localhost:8080/storage/avatars/660e8400-e29b-41d4-a716-446655440001.png",
     "created_at": "2024-01-01T00:00:00Z",
     "roles": [
       {
@@ -1162,7 +1223,7 @@ Content-Type: multipart/form-data
 
 | Status | Message |
 |--------|---------|
-| 400 | Invalid user ID, file size exceeds limit, or invalid file type |
+| 400 | Invalid user ID or email already exists |
 | 404 | User not found |
 | 422 | Validation error |
 | 500 | Internal server error |
