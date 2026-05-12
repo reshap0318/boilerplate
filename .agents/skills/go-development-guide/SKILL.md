@@ -1,7 +1,8 @@
 ---
 name: go-development-guide
-description: Step-by-step development workflow and CRUD implementation guide for Go Boilerplate — from planning to push
+description: Step-by-step development workflow and CRUD implementation guide for Go Boilerplate — from planning to push. Use when creating new features, implementing CRUD operations, adding permission-based access control, or when user mentions models, DTOs, repositories, services, handlers, or routes.
 ---
+
 
 ## When to use me
 
@@ -15,7 +16,7 @@ Use this skill when:
 
 ---
 
-# Go Boilerplate — Development Guide
+# Go Development Guide
 
 ## 🔄 Development Workflow (MANDATORY)
 

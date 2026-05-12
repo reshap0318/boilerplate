@@ -15,7 +15,7 @@ Use this skill when:
 
 ---
 
-# Go Boilerplate — Coding Rules & Conventions
+# Go Coding Rules & Conventions
 
 > **READ THIS ENTIRELY before writing any code.** These rules are MANDATORY.
 
