@@ -1,6 +1,6 @@
 ---
 name: go-coding-rules
-description: Go boilerplate coding rules and conventions including architecture, naming conventions, helpers, clients, and anti-patterns
+description: Go project coding rules and conventions including architecture, naming conventions, helpers, clients, and anti-patterns
 ---
 
 ## When to use me
@@ -21,7 +21,7 @@ Use this skill when:
 
 ## Project Identity
 
-- **Module**: `github.com/reshap0318/go-boilerplate`
+- **Module**: `github.com/reshap0318/go-project`
 - **Go Version**: 1.25.0+
 - **Framework**: Gin (HTTP), GORM (ORM), JWT auth, Redis (optional), bcrypt
 - **Database**: MySQL (default) / PostgreSQL
@@ -40,7 +40,7 @@ All layers use **Dependency Injection** via `internal/di/container.go`.
 ## Project Structure
 
 ```
-go-boilerplate/
+go-project/
 ├── cmd/
 │   ├── api/main.go            # App entry point
 │   └── migration/             # DB migration scripts
@@ -178,13 +178,13 @@ s.Logger.LogInfo("FuncName", "Info: %s", value)            // Info
 ```go
 func (s *Services) UserCreate(ctx context.Context, email string) error {
     s.Logger.LogStart("UserCreate", "Creating user: %s", email)
-    
+
     user := &models.User{Email: email}
     if err := s.repo.User.Create(s.repo.User.DB, user); err != nil {
         s.Logger.LogEndWithError("UserCreate", "Failed: %v", err)
         return err
     }
-    
+
     s.Logger.LogEnd("UserCreate", "User created: %s (ID: %d)", email, user.ID)
     return nil
 }
@@ -193,7 +193,7 @@ func (s *Services) UserCreate(ctx context.Context, email string) error {
 ### Example — GET Simple (NO LOG)
 ```go
 func (s *Services) GetUserByID(ctx context.Context, id uint) (*models.User, error) {
-    return s.repo.User.FindByID(s.repo.User.DB, id)
+    return s.repo.User.FindByID(nil, id)
 }
 ```
 
@@ -245,7 +245,7 @@ s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
     return nil
 })
 
-// Transaction with result
+// Transaction with result (for complex ops like role assignment)
 result, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
     return someResult, nil
 })
@@ -272,6 +272,7 @@ helpers.ErrInvalidEmail      // "invalid email address"
 helpers.ErrTokenExpired      // "reset token has expired"
 helpers.ErrTokenUsed         // "reset token has already been used"
 helpers.ErrTokenInvalid      // "invalid reset token"
+helpers.ErrForbidden         // "forbidden"
 ```
 
 ### Crypto Helpers (`crypto_helper.go`)
@@ -444,12 +445,13 @@ Call `s.Access.Invalidate(userID)` when user's roles/permissions change.
 
 ```go
 type Services struct {
-    repo        *repositories.Repositories  // Access repos: s.repo.User, s.repo.Permission, etc.
-    RedisClient *database.RedisCache        // Redis cache client
-    EmailClient *email.EmailClient          // Email client
-    Access      *helpers.Access             // Permission/role checker
-    Logger      *helpers.Logger             // Logger
-    cfg         *JWTConfig                  // JWT config
+    repo         *repositories.Repositories  // Access repos: s.repo.User, s.repo.Permission, etc.
+    RedisClient  *database.RedisCache        // Redis cache client
+    EmailClient  *email.EmailClient          // Email client
+    JWKSManager  *services.JWKSManager       // JWKS manager
+    Access       *helpers.Access             // Permission/role checker
+    Logger       *helpers.Logger             // Logger
+    cfg          *JWTConfig                  // JWT config
 }
 ```
 
@@ -473,7 +475,7 @@ type Handlers struct {
 | `func (s *Services) CreatePermission(...)` | `func (s *Services) PermissionCreate(...)` |
 | `s.repo.Permission.FindByID(s.repo.Permission.DB, id)` | `s.repo.Permission.FindByID(nil, id)` |
 | Direct DB write without transaction | `s.repo.TxManager.WithinTransaction(...)` |
-| Separate `CreateRequest` & `UpdateRequest` | Single `{Feature}Request` with `omitempty` |
+| Separate `CreateRequest` & `UpdateRequest` for simple features | Single `{Feature}Request` with `omitempty` |
 | `FindByID` check before Update/Delete | Generic repo handles not found automatically |
 | `c.ShouldBindJSON(&req)` + `helpers.ValidationError(c, err)` | `c.BindJSON(&req)` + `h.Validate.Struct(req)` + `helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))` |
 | `helpers.BadRequest(c, "Email already exists")` | `helpers.ValidationErrorWithField(c, "email", "Email already exists")` |
@@ -486,10 +488,10 @@ type Handlers struct {
 
 - [ ] Model has `TableName()` method
 - [ ] DTO structs use feature prefix (`{Feature}DTO`, `{Feature}Request`)
-- [ ] Request DTO merged (Create & Update in 1 struct)
+- [ ] Request DTO: merged for simple features OR separate for complex features
 - [ ] Service functions: `{Feature}{Action}` on `(s *Services)`
 - [ ] Handler functions: `{Feature}{Action}` on `(h *Handlers)`
-- [ ] Write operations use `TxManager.WithinTransaction()`
+- [ ] Write operations use `TxManager.WithinTransaction()` or `WithinTransactionWithResult()`
 - [ ] Read operations use `nil` parameter
 - [ ] CREATE/UPDATE/DELETE have logging
 - [ ] Repository registered in `00_repository.go`

@@ -633,6 +633,22 @@ func (s *Services) UserGetAll(ctx context.Context) ([]dtos.UserDTO, error) {
 
 ---
 
+## 🏗️ Services Struct (Dependencies)
+
+```go
+type Services struct {
+    repo         *repositories.Repositories  // Access repos: s.repo.User, s.repo.Permission, etc.
+    RedisClient  *database.RedisCache        // Redis cache client
+    EmailClient  *email.EmailClient          // Email client
+    JWKSManager  *services.JWKSManager       // JWKS manager
+    Access       *helpers.Access             // Permission/role checker
+    Logger       *helpers.Logger             // Logger
+    cfg          *JWTConfig                  // JWT config
+}
+```
+
+---
+
 ## ✅ Pre-Push Checklist
 - [ ] Model has `TableName()` method
 - [ ] DTO variables use feature prefix
