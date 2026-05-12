@@ -11,7 +11,7 @@ type UserCreateRequest struct {
 	Email                string `json:"email" validate:"required,email"`
 	Password             string `json:"password" validate:"required,min=6"`
 	PasswordConfirmation string `json:"password_confirmation" validate:"required,eqfield=Password"`
-	AvatarID             string `json:"avatar_id"`
+	Avatar               string `json:"avatar"`
 	Roles                []uint `json:"roles"`
 }
 
@@ -21,7 +21,7 @@ type UserUpdateRequest struct {
 	Email                string `json:"email" validate:"required,email"`
 	Password             string `json:"password" validate:"omitempty,min=6"`
 	PasswordConfirmation string `json:"password_confirmation" validate:"omitempty,eqfield=Password"`
-	AvatarID             string `json:"avatar_id"`
+	Avatar               string `json:"avatar"`
 	Roles                []uint `json:"roles"`
 }
 

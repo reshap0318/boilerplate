@@ -27,8 +27,8 @@ func main() {
 	}
 
 	// Check if keys already exist
-	privateKeyPath := "keys/private.pem"
-	publicKeyPath := "keys/public.pem"
+	privateKeyPath := "storage/keys/private.pem"
+	publicKeyPath := "storage/keys/public.pem"
 
 	if _, err := os.Stat(privateKeyPath); err == nil && !*force {
 		fmt.Println("⚠️  WARNING: Existing keys found!")
@@ -58,8 +58,8 @@ func main() {
 	}
 
 	// Create keys directory
-	if err := os.MkdirAll("keys", 0700); err != nil {
-		log.Fatalf("Error creating keys directory: %v", err)
+	if err := os.MkdirAll("storage/keys", 0700); err != nil {
+		log.Fatalf("Error creating storage/keys directory: %v", err)
 	}
 
 	// Save private key (encrypted)

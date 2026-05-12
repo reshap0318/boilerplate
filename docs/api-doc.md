@@ -56,8 +56,20 @@ Authorization: Bearer <token>
   "code": 422,
   "message": "The given data was invalid.",
   "errors": {
-    "email": ["The email field is required."],
-    "name": ["The name must be at least 3 characters."]
+    "email": ["Email is required"],
+    "name": ["Name must be at least 2 characters"]
+  }
+}
+```
+
+### Single Field Error Response (422)
+
+```json
+{
+  "code": 422,
+  "message": "The given data was invalid.",
+  "errors": {
+    "email": ["Email already exists"]
   }
 }
 ```
@@ -124,7 +136,7 @@ Retrieve the JSON Web Key Set for token verification.
 
 ### POST `/api/upload`
 
-Upload a file to temporary storage. The returned `uuid` can be used in user create/update endpoints via `avatar_id`.
+Upload a file to temporary storage. The returned `uuid` can be used in user create/update endpoints via `avatar`.
 
 **Headers**
 
@@ -942,7 +954,7 @@ Get all permissions assigned to a role.
 | PUT | `/api/users/:id` | JWT | Update user |
 | DELETE | `/api/users/:id` | JWT | Delete user |
 
-**Note:** User endpoints use JSON body. To set an avatar, first upload a file via `POST /api/upload` and use the returned `uuid` as `avatar_id`.
+**Note:** User endpoints use JSON body. To set an avatar, first upload a file via `POST /api/upload` and use the returned `uuid` as `avatar`.
 
 ### POST `/api/users`
 
@@ -963,7 +975,7 @@ Content-Type: application/json
   "email": "john@example.com",
   "password": "password123",
   "password_confirmation": "password123",
-  "avatar_id": "550e8400-e29b-41d4-a716-446655440000",
+  "avatar": "550e8400-e29b-41d4-a716-446655440000",
   "roles": [1, 2]
 }
 ```
@@ -974,7 +986,7 @@ Content-Type: application/json
 | `email` | string | Yes | Valid email format |
 | `password` | string | Yes | Min 6 characters |
 | `password_confirmation` | string | Yes | Must match password |
-| `avatar_id` | string | No | UUID from upload endpoint |
+| `avatar` | string | No | UUID from upload endpoint |
 | `roles` | array | No | Array of role IDs |
 
 **Response (201 Created)**
@@ -1011,7 +1023,6 @@ Content-Type: application/json
 
 | Status | Message |
 |--------|---------|
-| 400 | Email already exists |
 | 422 | Validation error |
 | 500 | Internal server error |
 
@@ -1175,7 +1186,7 @@ Content-Type: application/json
   "email": "john.updated@example.com",
   "password": "newpassword123",
   "password_confirmation": "newpassword123",
-  "avatar_id": "660e8400-e29b-41d4-a716-446655440001",
+  "avatar": "660e8400-e29b-41d4-a716-446655440001",
   "roles": [1, 3]
 }
 ```
@@ -1186,7 +1197,7 @@ Content-Type: application/json
 | `email` | string | Yes | Valid email format |
 | `password` | string | No | Min 6 characters (empty = no change) |
 | `password_confirmation` | string | No | Must match password if provided |
-| `avatar_id` | string | No | UUID from upload endpoint |
+| `avatar` | string | No | UUID from upload endpoint |
 | `roles` | array | No | Array of role IDs (replaces all existing roles) |
 
 **Response (200 OK)**
@@ -1223,7 +1234,7 @@ Content-Type: application/json
 
 | Status | Message |
 |--------|---------|
-| 400 | Invalid user ID or email already exists |
+| 400 | Invalid user ID |
 | 404 | User not found |
 | 422 | Validation error |
 | 500 | Internal server error |

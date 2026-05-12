@@ -29,16 +29,11 @@ go.work
 *.swo
 *~
 
-# Logs
-logs/
-*.log
-
 # Environment variables
 .env
 .env.local
 
 # JWT Keys
-keys/
 *.pem
 
 # OS

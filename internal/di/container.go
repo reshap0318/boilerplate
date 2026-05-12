@@ -3,8 +3,13 @@ package di
 import (
 	"fmt"
 	"log"
+	"reflect"
+	"strings"
 
+	"github.com/go-playground/locales/en"
+	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	en_trans "github.com/go-playground/validator/v10/translations/en"
 	"gorm.io/gorm"
 
 	clientEmail "github.com/reshap0318/go-boilerplate/internal/clients/email"
@@ -58,7 +63,7 @@ func NewContainer() (*Container, error) {
 	container := &Container{}
 
 	// Initialize Logger (early, before other components)
-	logger, err := helpers.NewLogger("logs")
+	logger, err := helpers.NewLogger("storage/logs")
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -137,8 +142,8 @@ func NewContainer() (*Container, error) {
 	// Initialize JWKS Manager
 	jwksManager := &services.JWKSManager{}
 	if err := jwksManager.Initialize(
-		helpers.GetEnv("JWT_PRIVATE_KEY_PATH", "keys/private.pem"),
-		helpers.GetEnv("JWT_PUBLIC_KEY_PATH", "keys/public.pem"),
+		helpers.GetEnv("JWT_PRIVATE_KEY_PATH", "storage/keys/private.pem"),
+		helpers.GetEnv("JWT_PUBLIC_KEY_PATH", "storage/keys/public.pem"),
 		helpers.GetEnv("JWT_PASSPHRASE", ""),
 	); err != nil {
 		return nil, fmt.Errorf("failed to initialize JWKS Manager: %w", err)
@@ -150,11 +155,24 @@ func NewContainer() (*Container, error) {
 	container.Access = acc
 	container.Services.Access = acc
 
-	// Initialize Validator
+	// Initialize Validator with translator
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
+	// Use JSON tag as field name for validation errors
+	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		if name == "-" {
+			return ""
+		}
+		return name
+	})
+
+	uni := ut.New(en.New(), en.New())
+	trans, _ := uni.GetTranslator("en")
+	en_trans.RegisterDefaultTranslations(validate, trans)
+
 	// Always initialize handlers
-	container.Handlers = handlers.NewHandlers(container.Services, validate)
+	container.Handlers = handlers.NewHandlers(container.Services, validate, trans)
 
 	return container, nil
 }

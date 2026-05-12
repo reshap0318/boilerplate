@@ -27,7 +27,7 @@ func (h *Handlers) AuthLogin(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationError(c, err)
+		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
 		return
 	}
 
@@ -60,7 +60,7 @@ func (h *Handlers) AuthRefreshToken(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationError(c, err)
+		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
 		return
 	}
 
@@ -105,7 +105,7 @@ func (h *Handlers) AuthForgetPassword(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationError(c, err)
+		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
 		return
 	}
 
@@ -141,7 +141,7 @@ func (h *Handlers) AuthResetPassword(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationError(c, err)
+		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
 		return
 	}
 

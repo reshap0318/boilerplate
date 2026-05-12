@@ -1,12 +1,9 @@
 package helpers
 
 import (
-	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 // PaginationMeta represents pagination metadata in response.
@@ -95,45 +92,20 @@ func InternalServerError(c *gin.Context, message string) {
 	ErrorResponse(c, http.StatusInternalServerError, message)
 }
 
-// ValidationError sends 422 Unprocessable Entity response for validation errors.
-func ValidationError(c *gin.Context, err error) {
-	var validationErrs validator.ValidationErrors
-	if errors.As(err, &validationErrs) {
-		resp := Response{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "The given data was invalid.",
-			Errors:  formatValidationError(validationErrs),
-		}
-		c.JSON(http.StatusUnprocessableEntity, resp)
-		return
+// ValidationErrorWithMap sends 422 Unprocessable Entity response with pre-formatted errors map.
+func ValidationErrorWithMap(c *gin.Context, errorsMap map[string][]string) {
+	resp := Response{
+		Code:    http.StatusUnprocessableEntity,
+		Message: "The given data was invalid.",
+		Errors:  errorsMap,
 	}
-
-	ErrorResponse(c, http.StatusBadRequest, "Invalid data")
+	c.JSON(http.StatusUnprocessableEntity, resp)
 }
 
-func formatValidationError(validationErrs validator.ValidationErrors) map[string][]string {
-	errorsMap := make(map[string][]string)
-
-	for _, e := range validationErrs {
-		field := strings.ToLower(e.Field())
-		errorsMap[field] = append(errorsMap[field], getErrorMessage(e))
+// ValidationErrorWithField sends 422 Unprocessable Entity response for a single field error.
+func ValidationErrorWithField(c *gin.Context, field string, message string) {
+	errorsMap := map[string][]string{
+		field: {message},
 	}
-
-	return errorsMap
-}
-
-func getErrorMessage(e validator.FieldError) string {
-	field := strings.ToLower(e.Field())
-	switch e.Tag() {
-	case "required":
-		return "The " + field + " field is required."
-	case "email":
-		return "The " + field + " must be a valid email address."
-	case "min":
-		return "The " + field + " must be at least " + e.Param() + " characters."
-	case "max":
-		return "The " + field + " may not be greater than " + e.Param() + " characters."
-	default:
-		return "The " + field + " field is invalid."
-	}
+	ValidationErrorWithMap(c, errorsMap)
 }

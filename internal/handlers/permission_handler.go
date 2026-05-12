@@ -19,7 +19,7 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationError(c, err)
+		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
 		return
 	}
 
@@ -96,7 +96,7 @@ func (h *Handlers) PermissionUpdate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationError(c, err)
+		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
 		return
 	}
 
