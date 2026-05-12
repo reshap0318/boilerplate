@@ -45,7 +45,7 @@ Every new feature or bug fix **MUST** follow this flow:
    - Implementation steps
    - Impact on existing code
 2. **User Approval**: Wait for user confirmation.
-3. **Create GitHub Issue** with format: `[BE] [Tipe] Title`
+3. **Create GitHub Issue** with format: `[BE] [Type] Title`
    - `[Feat]`, `[Bug]`, `[Fix]`, `[Refactor]`, `[Chore]`
 
 ### Phase 2: Implementation

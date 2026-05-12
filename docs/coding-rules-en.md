@@ -165,55 +165,55 @@ curl -X GET http://localhost:8080/api/permissions \
 
 ### 🔄 Development Workflow (MANDATORY)
 
-Setiap pengembangan fitur baru atau bug fix **HARUS** mengikuti flow berikut:
+Every new feature development or bug fix **MUST** follow this flow:
 
 #### Phase 1: Planning
 
-1. **Buat `plan.md`** di root directory yang berisi:
-   - Deskripsi fitur/bug yang akan dikerjakan
-   - Analisis teknis (file yang akan dibuat/dimodifikasi)
-   - Langkah-langkah implementasi
-   - Dampak terhadap existing code (jika ada)
+1. **Create `plan.md`** in root directory containing:
+   - Feature/bug description to be implemented
+   - Technical analysis (files to be created/modified)
+   - Implementation steps
+   - Impact on existing code (if any)
 
-2. **Konfirmasi ke User**: Tampilkan plan dan tunggu approval user.
-   - ✅ Jika user approve → lanjut ke step 3
-   - ❌ Jika user revisi → kembali ke step 1, update `plan.md`
+2. **Confirm to User**: Display plan and wait for user approval.
+   - ✅ If user approves → proceed to step 3
+   - ❌ If user requests revision → go back to step 1, update `plan.md`
 
-3. **Buat GitHub Issue** dengan format naming:
-   ```
-   [BE] [Tipe] Title
-   ```
-   Tipe yang digunakan:
-   - `[Feat]` - Fitur baru
-   - `[Bug]` - Bug fix
-   - `[Fix]` - Perbaikan kecil/improvement
-   - `[Refactor]` - Refactoring code
-   - `[Chore]` - Maintenance task
+3. **Create GitHub Issue** with naming format:
+    ```
+    [BE] [Type] Title
+    ```
+    Types to use:
+    - `[Feat]` - New feature
+    - `[Bug]` - Bug fix
+    - `[Fix]` - Small improvement
+    - `[Refactor]` - Refactoring code
+    - `[Chore]` - Maintenance task
 
-   Contoh: `[BE] [Feat] Add Product CRUD API`
+    Example: `[BE] [Feat] Add Product CRUD API`
 
 #### Phase 2: Implementation
 
-1. **Buat Branch Baru** dari main/master:
-   ```bash
-   git checkout -b feat/product-crud
-   ```
+1. **Create New Branch** from main/master:
+    ```bash
+    git checkout -b feat/product-crud
+    ```
 
-2. **Implementasi sesuai Git Issue**: Kerjakan berdasarkan plan yang sudah disetujui.
+2. **Implement according to Git Issue**: Work based on the approved plan.
 
-3. **Buat Pull Request** ke GitHub:
-   - Reference git issue di PR description
-   - Format: `Closes #<issue-number>` atau `Fixes #<issue-number>`
+3. **Create Pull Request** to GitHub:
+   - Reference git issue in PR description
+   - Format: `Closes #<issue-number>` or `Fixes #<issue-number>`
 
-4. **Konfirmasi ke User**: Tampilkan summary perubahan dan minta approval.
-   - ✅ Jika user approve → merge PR dan close git issue
-   - ❌ Jika user minta perubahan → update sesuai feedback
+4. **Confirm to User**: Display summary of changes and request approval.
+   - ✅ If user approves → merge PR and close git issue
+   - ❌ If user requests changes → update according to feedback
 
-> ⚠️ **PENTING**: Git issue **WAJIB** ada sebelum implementasi. Tidak ada issue = tidak ada coding.
+> ⚠️ **IMPORTANT**: Git issue **MUST** exist before implementation. No issue = no coding.
 
 ### ⚠️ Critical Rules (MANDATORY)
 
-> 📖 **LENGKAP**: Untuk detail CRUD implementation flow, naming convention, dan anti-patterns, buka **[docs/crud-flow.md](docs/crud-flow.md)**.
+> 📖 **COMPLETE**: For CRUD implementation flow, naming convention, and anti-patterns details, open **[docs/development-guide-en.md](docs/development-guide-en.md)**.
 
 #### 1. DO NOT Modify Core Repository Files
 
@@ -248,14 +248,14 @@ func (User) TableName() string {
 
 **All functions MUST use feature name as prefix.**
 
-> 📖 **LENGKAP**: Lihat contoh lengkap di **[docs/crud-flow.md](docs/crud-flow.md)** — section Service & Handler.
+> 📖 **COMPLETE**: See complete example in **[docs/development-guide-en.md](docs/development-guide-en.md)** — Service & Handler section.
 
 ```go
-// ✅ CORRECT — Service dengan prefix feature (FeatureName + Action)
+// ✅ CORRECT — Service with feature prefix (FeatureName + Action)
 func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) { ... }
 func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, error) { ... }
 
-// ✅ CORRECT — Handler dengan prefix feature
+// ✅ CORRECT — Handler with feature prefix
 func (h *Handlers) PermissionCreate(c *gin.Context) { ... }
 func (h *Handlers) PermissionGetAll(c *gin.Context) { ... }
 
@@ -310,7 +310,7 @@ go-boilerplate/
    - Handlers: `*_handler.go` (e.g., `auth_handler.go`)
    - Services: `*_service.go` (e.g., `auth_service.go`)
    - Repositories: `*_repository.go` (e.g., `user_repository.go`)
-   - Models: `snake_case.go` dengan `TableName()` method
+   - Models: `snake_case.go` with `TableName()` method
    - Functions: `PascalCase` for exported, `camelCase` for private
 
 ---
@@ -481,27 +481,27 @@ err := s.EmailClient.SendEmail(req)
 
 ### **Redis Cache** (`internal/database/redis_cache.go`)
 
-> 🔴 Redis client sudah di-inject ke Services via DI Container. Access via `s.RedisClient`.
+> 🔴 Redis client is injected into Services via DI Container. Access via `s.RedisClient`.
 
-**PENTING**: Selalu cek `s.RedisClient.IsCacheAvailable()` sebelum akses Redis. Redis errors **TIDAK** boleh menyebabkan operasi gagal.
+**IMPORTANT**: Always check `s.RedisClient.IsCacheAvailable()` before accessing Redis. Redis errors **MUST NOT** cause operations to fail.
 
-#### Cara Pakai
+#### Usage
 
 ```go
-// Cek dulu apakah Redis aktif
+// Check first if Redis is active
 if s.RedisClient.IsCacheAvailable() {
-    // SET - simpan data
+    // SET - store data
     err := s.RedisClient.SetJSON("session:1", userDTO, time.Hour*24)
     if err != nil {
-        s.Logger.LogWarn("FuncName", "Redis SET failed: %v", err) // fallback, jangan return error
+        s.Logger.LogWarn("FuncName", "Redis SET failed: %v", err) // fallback, don't return error
     }
 
-    // GET - ambil data
+    // GET - retrieve data
     var cached dtos.UserDTO
     if err := s.RedisClient.GetJSON("session:1", &cached); err == nil {
-        // Cache hit - pakai cached data
+        // Cache hit - use cached data
     } else {
-        // Cache miss/error - fallback ke DB
+        // Cache miss/error - fallback to DB
     }
 
     // DELETE
@@ -509,18 +509,18 @@ if s.RedisClient.IsCacheAvailable() {
 }
 ```
 
-#### Key Pattern yang Disarankan
-| Pattern | Contoh | Deskripsi |
+#### Recommended Key Pattern
+| Pattern | Example | Description |
 |---------|--------|-----------|
 | `session:{userID}` | `session:1` | User session cache |
 
-#### Methods Utama
-| Method | Deskripsi |
+#### Main Methods
+| Method | Description |
 |--------|-----------|
-| `IsCacheAvailable()` | Cek apakah Redis aktif |
-| `SetJSON(key, value, ttl)` | Simpan JSON dengan TTL |
-| `GetJSON(key, &dest)` | Ambil & unmarshal JSON |
-| `Delete(keys...)` | Hapus key |
+| `IsCacheAvailable()` | Check if Redis is active |
+| `SetJSON(key, value, ttl)` | Store JSON with TTL |
+| `GetJSON(key, &dest)` | Get & unmarshal JSON |
+| `Delete(keys...)` | Delete key |
 
 ---
 
@@ -773,7 +773,7 @@ func NewRepositories(db *gorm.DB) (*Repositories, error) {
 
 ### 4. Add Service Method (MANDATORY: on Services struct)
 
-> 📖 **LENGKAP**: Lihat contoh lengkap write/read operations di **[docs/crud-flow.md](docs/crud-flow.md)** — section Service.
+> 📖 **COMPLETE**: See complete write/read operations example in **[docs/development-guide-en.md](docs/development-guide-en.md)** — Service section.
 
 ```go
 // internal/services/your_feature_service.go
@@ -878,7 +878,7 @@ func (s *Services) YourFeatureGetAllPaginated(ctx context.Context, opts *reposit
 
 ### 5. Add Handler Method (MANDATORY: on Handlers struct)
 
-> 📖 **LENGKAP**: Lihat contoh lengkap di **[docs/crud-flow.md](docs/crud-flow.md)** — section Handler.
+> 📖 **COMPLETE**: See complete example in **[docs/development-guide-en.md](docs/development-guide-en.md)** — Handler section.
 
 ```go
 // internal/handlers/your_feature_handler.go
