@@ -532,6 +532,113 @@ if s.RedisClient.IsCacheAvailable() {
 
 ---
 
+### **Access - Permission & Role Checking** (`internal/helpers/access.go`)
+
+> 🔐 Access helper is injected into Services via DI Container. Access via `s.Access`.
+> Also available in routes as `container.Access` for middleware.
+
+**Struct:** `Access`
+
+**3-Tier Caching:**
+| Layer | Source | Behavior |
+|-------|--------|----------|
+| **L1** | Local in-memory (`sync.RWMutex` map) | Fastest, checked first |
+| **L2** | Redis (`session:{userID}`) | Checked if L1 miss |
+| **L3** | Database (user.Roles.Permissions) | Fallback if L1+L2 miss, then caches result to L1+L2 |
+
+**Methods:**
+
+| Method | Description | Example |
+|--------|-------------|---------|
+| `HasPermission(ctx, permissions...) bool` | Check if user has **ANY** of the specified permissions | `s.Access.HasPermission(ctx, "user.delete", "user.admin")` |
+| `HasRole(ctx, role string) bool` | Check if user has the specified role | `s.Access.HasRole(ctx, "admin")` |
+| `Invalidate(userID uint)` | Clear cached access data for a user | `s.Access.Invalidate(userID)` |
+
+**Behavior:**
+- Redis unavailable or cache miss → fallback to DB → cache result
+- If user not found (all tiers) → returns `false`
+- `Invalidate()` clears both local cache and Redis session
+
+#### Usage in Services
+
+```go
+// Single permission check
+func (s *Services) UserDelete(ctx context.Context, id uint) error {
+    if !s.Access.HasPermission(ctx, "user.delete") {
+        return helpers.ErrForbidden
+    }
+    // ... delete logic
+}
+
+// Multiple permissions - returns true if user has ANY of them
+func (s *Services) UserAdminAction(ctx context.Context, req dtos.AdminRequest) error {
+    if !s.Access.HasPermission(ctx, "user.delete", "user.update", "user.admin") {
+        return helpers.ErrForbidden
+    }
+    // ...
+}
+
+// Role check
+func (s *Services) SuperAdminOnly(ctx context.Context) error {
+    if !s.Access.HasRole(ctx, "superadmin") {
+        return helpers.ErrForbidden
+    }
+    // ...
+}
+```
+
+#### Usage in Routes (Middleware)
+
+```go
+// internal/routes/user_route.go
+func RegisterUserRoutes(r *gin.RouterGroup, handlers *handlers.Handlers, acc *helpers.Access) {
+    users := r.Group("/users")
+    {
+        users.POST("", middleware.RequirePermission(acc, "user.create"), handlers.UserCreate)
+        users.GET("", middleware.RequirePermission(acc, "user.index"), handlers.UserGetAll)
+        users.GET("/:id", middleware.RequirePermission(acc, "user.index"), handlers.UserGetByID)
+        users.PUT("/:id", middleware.RequirePermission(acc, "user.edit"), handlers.UserUpdate)
+        users.DELETE("/:id", middleware.RequirePermission(acc, "user.delete"), handlers.UserDelete)
+    }
+}
+```
+
+#### Cache Invalidation
+
+Call `s.Access.Invalidate(userID)` when user's roles/permissions change:
+
+```go
+func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateRequest) (*dtos.UserDTO, string, error) {
+    // ... update logic with role changes ...
+    
+    // Invalidate cached session so next request gets updated permissions
+    s.Access.Invalidate(id)
+    
+    return &dto, oldAvatar, nil
+}
+```
+
+#### Permission Naming Convention
+
+Use dot separator: `{resource}.{action}`
+
+| Permission | Description |
+|------------|-------------|
+| `user.index` | View users list |
+| `user.create` | Create new user |
+| `user.edit` | Update user |
+| `user.delete` | Delete user |
+| `role.index` | View roles |
+| `role.create` | Create role |
+| `role.edit` | Update role |
+| `role.delete` | Delete role |
+| `permission.index` | View permissions |
+| `permission.create` | Create permission |
+| `permission.edit` | Update permission |
+| `permission.delete` | Delete permission |
+
+---
+
 ### **Creating New Helpers**
 
 > 💡 **Rule of Thumb**: If a function can be used in more than 1 place, make it a helper!
