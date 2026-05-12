@@ -130,31 +130,23 @@ Server will run on `http://localhost:8080`
 | Method | Endpoint | Auth Required | Description |
 |--------|----------|---------------|-------------|
 | GET | `/health` | ❌ | Health check endpoint |
-| GET | `/api/health` | ❌ | API health check |
 
 ### Authentication (Public)
 
 | Method | Endpoint | Auth Required | Description |
 |--------|----------|---------------|-------------|
-| POST | `/api/auth/register` | ❌ | Register new user |
 | POST | `/api/auth/login` | ❌ | Login and get JWT tokens |
 | POST | `/api/auth/refresh` | ❌ | Refresh access token |
+| POST | `/api/auth/forgot-password` | ❌ | Request password reset |
+| POST | `/api/auth/reset-password` | ❌ | Reset password with token |
 
 ### Authentication (Protected)
 
 | Method | Endpoint | Auth Required | Description |
 |--------|----------|---------------|-------------|
-| GET | `/api/auth/me` | ✅ | Get current user info |
 | POST | `/api/auth/logout` | ✅ | Logout user |
 
 ### Request/Response Examples
-
-**Register:**
-```bash
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123","name":"John Doe"}'
-```
 
 **Login:**
 ```bash
@@ -165,7 +157,7 @@ curl -X POST http://localhost:8080/api/auth/login \
 
 **Protected Route:**
 ```bash
-curl -X GET http://localhost:8080/api/auth/me \
+curl -X GET http://localhost:8080/api/permissions \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
@@ -259,17 +251,17 @@ func (User) TableName() string {
 > 📖 **LENGKAP**: Lihat contoh lengkap di **[docs/crud-flow.md](docs/crud-flow.md)** — section Service & Handler.
 
 ```go
-// ✅ CORRECT — Service dengan prefix feature
-func (s *Services) CreatePermission(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) { ... }
-func (s *Services) GetAllPermissions(ctx context.Context) ([]dtos.PermissionDTO, error) { ... }
+// ✅ CORRECT — Service dengan prefix feature (FeatureName + Action)
+func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) { ... }
+func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, error) { ... }
 
 // ✅ CORRECT — Handler dengan prefix feature
 func (h *Handlers) PermissionCreate(c *gin.Context) { ... }
 func (h *Handlers) PermissionGetAll(c *gin.Context) { ... }
 
-// ❌ WRONG — Tanpa prefix atau struct terpisah
-func (s *Services) Create(...) { }
-func (h *Handlers) GetByID(c *gin.Context) { }
+// ❌ WRONG — Action first instead of feature first
+func (s *Services) CreatePermission(...) { }
+func (s *Services) GetAllPermissions(...) { }
 ```
 
 ### Project Structure
@@ -325,47 +317,47 @@ go-boilerplate/
 
 ## 📝 Logging Rules (MANDATORY)
 
-> ⚠️ **Logger tersedia di Services**: `s.Logger`
+> ⚠️ **Logger available in Services**: `s.Logger`
 
-### **Kapan Wajib Log?**
+### **When to Log?**
 
-| Operasi | Wajib? | Operasi | Wajib? |
-|---------|--------|---------|--------|
-| **CREATE** | ✅ YA | **GET Simple** | ❌ TIDAK |
-| **UPDATE** | ✅ YA | **GET Complex** | ✅ YA |
-| **DELETE** | ✅ YA | **Auth** | ✅ YA |
+| Operation | Required? | Operation | Required? |
+|-----------|-----------|-----------|-----------|
+| **CREATE** | ✅ YES | **GET Simple** | ❌ NO |
+| **UPDATE** | ✅ YES | **GET Complex** | ✅ YES |
+| **DELETE** | ✅ YES | **Auth** | ✅ YES |
 
-### **Cara Menggunakan**
+### **How to Use**
 
 ```go
-s.Logger.LogStart("FuncName", "Message: %s", value)      // Mulai
+s.Logger.LogStart("FuncName", "Message: %s", value)      // Start
 s.Logger.LogStep("FuncName", "Step: %s", value)          // Step
-s.Logger.LogStepWithPrefix("Func", "[OK]", "Done")       // Step dengan prefix
-s.Logger.LogEnd("FuncName", "Success: %s", value)        // Selesai
-s.Logger.LogEndWithError("Func", "Error: %v", err)       // Selesai + error
+s.Logger.LogStepWithPrefix("Func", "[OK]", "Done")       // Step with prefix
+s.Logger.LogEnd("FuncName", "Success: %s", value)        // End
+s.Logger.LogEndWithError("Func", "Error: %v", err)       // End + error
 s.Logger.LogError("FuncName", "Error: %v", err)          // Error
 s.Logger.LogWarn("FuncName", "Warning: %s", value)       // Warning
 s.Logger.LogInfo("FuncName", "Info: %s", value)          // Info
 ```
 
-### **Contoh - CREATE (WAJIB LOG)**
+### **Example - CREATE (MUST LOG)**
 
 ```go
-func (s *Services) CreateUser(ctx context.Context, email string) error {
-    s.Logger.LogStart("CreateUser", "Creating user: %s", email)
+func (s *Services) UserCreate(ctx context.Context, email string) error {
+    s.Logger.LogStart("UserCreate", "Creating user: %s", email)
     
     user := &models.User{Email: email}
     if err := s.repo.User.Create(s.repo.User.DB, user); err != nil {
-        s.Logger.LogEndWithError("CreateUser", "Failed: %v", err)
+        s.Logger.LogEndWithError("UserCreate", "Failed: %v", err)
         return err
     }
     
-    s.Logger.LogEnd("CreateUser", "User created: %s (ID: %d)", email, user.ID)
+    s.Logger.LogEnd("UserCreate", "User created: %s (ID: %d)", email, user.ID)
     return nil
 }
 ```
 
-### **Contoh - GET Simple (TANPA LOG)**
+### **Example - GET Simple (NO LOG)**
 
 ```go
 func (s *Services) GetUserByID(ctx context.Context, id uint) (*models.User, error) {
@@ -785,10 +777,104 @@ func NewRepositories(db *gorm.DB) (*Repositories, error) {
 
 ```go
 // internal/services/your_feature_service.go
-// WAJIB: Prefix nama feature, pakai TxManager untuk write, nil untuk read
-func (s *Services) CreateYourFeature(ctx context.Context, req dtos.YourFeatureRequest) (*dtos.YourFeatureDTO, error) { ... }
-func (s *Services) GetYourFeatureByID(ctx context.Context, id uint) (*dtos.YourFeatureDTO, error) { ... }
+// MANDATORY: Feature name prefix (FeatureName + Action), TxManager for write, nil for read
+func (s *Services) YourFeatureCreate(ctx context.Context, req dtos.YourFeatureRequest) (*dtos.YourFeatureDTO, error) { ... }
+func (s *Services) YourFeatureGetByID(ctx context.Context, id uint) (*dtos.YourFeatureDTO, error) { ... }
 ```
+
+**Write Operations** — Use `s.repo.TxManager.WithinTransaction()`:
+```go
+func (s *Services) YourFeatureCreate(ctx context.Context, req dtos.YourFeatureRequest) (*dtos.YourFeatureDTO, error) {
+    s.Logger.LogStart("YourFeatureCreate", "Creating: %s", req.Name)
+
+    entity := &models.YourModel{Name: req.Name}
+
+    var result *models.YourModel
+    if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+        var err error
+        result, err = s.repo.YourModel.Create(tx, entity)
+        return err
+    }); err != nil {
+        s.Logger.LogEndWithError("YourFeatureCreate", "Failed: %v", err)
+        return nil, err
+    }
+
+    dto := dtos.ToYourFeatureDTO(result)
+    s.Logger.LogEnd("YourFeatureCreate", "Created: %s (ID: %d)", dto.Name, dto.ID)
+    return &dto, nil
+}
+```
+
+**Write with Result Reload** — Use `s.repo.TxManager.WithinTransactionWithResult()` when you need to return the entity after additional operations inside the transaction (e.g., assigning roles, reloading associations):
+```go
+func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (*dtos.UserDTO, error) {
+    s.Logger.LogStart("UserCreate", "Creating user: %s", req.Email)
+
+    user := &models.User{Email: req.Email, Name: req.Name, Password: hashedPassword}
+
+    res, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
+        result, err := s.repo.User.Create(tx, user)
+        if err != nil {
+            return nil, err
+        }
+
+        // Assign roles inside transaction
+        var roles []models.Role
+        for _, roleID := range req.Roles {
+            roles = append(roles, models.Role{ID: roleID})
+        }
+        if err := tx.Model(&result).Association("Roles").Append(roles); err != nil {
+            return nil, err
+        }
+
+        // Reload with associations
+        return s.repo.User.FindByID(tx, result.ID, "Roles")
+    })
+    if err != nil {
+        s.Logger.LogEndWithError("UserCreate", "Failed: %v", err)
+        return nil, err
+    }
+
+    result := res.(*models.User)
+    dto := dtos.ToUserDTO(result)
+    s.Logger.LogEnd("UserCreate", "User created: %s (ID: %d)", dto.Email, dto.ID)
+    return &dto, nil
+}
+```
+
+**Read Operations** — Use `nil` parameter (NOT `s.repo.Feature.DB`):
+```go
+func (s *Services) YourFeatureGetAll(ctx context.Context) ([]dtos.YourFeatureDTO, error) {
+    entities, err := s.repo.YourModel.FindAll(nil)
+    if err != nil {
+        return nil, err
+    }
+    return dtos.ToYourFeatureDTOList(entities), nil
+}
+```
+
+**Pagination** — Use `FindAllWithOpts` for paginated, sorted, and searchable queries:
+```go
+func (s *Services) YourFeatureGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.YourModel], error) {
+    if opts == nil {
+        opts = &repositories.QueryOptions{}
+    }
+    if opts.SortBy == "" {
+        opts.SortBy = "id"
+    }
+    if opts.Order == "" {
+        opts.Order = "ASC"
+    }
+
+    return s.repo.YourModel.FindAllWithOpts(nil, opts)
+}
+```
+
+`QueryOptions` fields:
+- `Page`, `PageSize` — pagination
+- `SortBy`, `Order` — sorting (`"ASC"` or `"DESC"`)
+- `Search`, `SearchFields` — LIKE search across multiple fields
+- `Preloads` — relations to preload (e.g., `[]string{"Roles", "Roles.Permissions"}`)
 
 ### 5. Add Handler Method (MANDATORY: on Handlers struct)
 
@@ -796,7 +882,7 @@ func (s *Services) GetYourFeatureByID(ctx context.Context, id uint) (*dtos.YourF
 
 ```go
 // internal/handlers/your_feature_handler.go
-// WAJIB: Prefix nama feature — {Feature}{Action}
+// MANDATORY: Feature name prefix — {Feature}{Action}
 func (h *Handlers) YourFeatureCreate(c *gin.Context) { ... }
 func (h *Handlers) YourFeatureGetAll(c *gin.Context) { ... }
 ```
