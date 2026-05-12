@@ -19,6 +19,7 @@ import (
 type Container struct {
 	DB           *gorm.DB
 	Redis        *database.RedisCache
+	Access       *helpers.Access
 	EmailClient  *clientEmail.EmailClient
 	Logger       *helpers.Logger
 	RateLimiter  *helpers.RateLimiter
@@ -143,6 +144,11 @@ func NewContainer() (*Container, error) {
 		return nil, fmt.Errorf("failed to initialize JWKS Manager: %w", err)
 	}
 	container.Services.JWKSManager = jwksManager
+
+	// Initialize Access
+	acc := helpers.NewAccess(container.Redis, container.DB)
+	container.Access = acc
+	container.Services.Access = acc
 
 	// Initialize Validator
 	validate := validator.New(validator.WithRequiredStructEnabled())

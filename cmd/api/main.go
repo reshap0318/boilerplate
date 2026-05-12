@@ -54,9 +54,9 @@ func main() {
 	protected.Use(middleware.JWTAuth(container.Services))
 	{
 		routes.RegisterAuthProtectedRoutes(protected, container.Handlers)
-		routes.RegisterPermissionRoutes(protected, container.Handlers)
-		routes.RegisterRoleRoutes(protected, container.Handlers)
-		routes.RegisterUserRoutes(protected, container.Handlers)
+		routes.RegisterPermissionRoutes(protected, container.Handlers, container.Access)
+		routes.RegisterRoleRoutes(protected, container.Handlers, container.Access)
+		routes.RegisterUserRoutes(protected, container.Handlers, container.Access)
 		routes.RegisterSystemProtectedRoutes(protected, container.Handlers)
 	}
 

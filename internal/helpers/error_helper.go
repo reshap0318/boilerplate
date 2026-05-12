@@ -13,4 +13,5 @@ var (
 	ErrTokenExpired      = errors.New("reset token has expired")
 	ErrTokenUsed         = errors.New("reset token has already been used")
 	ErrTokenInvalid      = errors.New("invalid reset token")
+	ErrForbidden         = errors.New("forbidden")
 )

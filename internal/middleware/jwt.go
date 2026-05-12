@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,10 @@ func JWTAuth(svcs *services.Services) gin.HandlerFunc {
 			return
 		}
 
-		// Set user info in context
+		// Set user info in request context and gin context
+		ctx := context.WithValue(c.Request.Context(), helpers.KeyUserID, claims.UserID)
+		c.Request = c.Request.WithContext(ctx)
+
 		c.Set("user_id", claims.UserID)
 		c.Set("user_email", claims.Email)
 

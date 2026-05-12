@@ -215,6 +215,10 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateR
 
 	result := res.(*models.User)
 	dto := dtos.ToUserDTO(result)
+
+	// Invalidate cached session so next request gets updated permissions
+	s.Access.Invalidate(id)
+
 	s.Logger.LogEnd("UserUpdate", "User updated: %s (ID: %d)", dto.Email, dto.ID)
 	return &dto, oldAvatar, nil
 }
@@ -234,6 +238,9 @@ func (s *Services) UserDelete(ctx context.Context, id uint) error {
 		s.Logger.LogEndWithError("UserDelete", "Failed to delete user: %v", err)
 		return err
 	}
+
+	// Invalidate cached session
+	s.Access.Invalidate(id)
 
 	s.Logger.LogEnd("UserDelete", "User deleted: ID: %d", id)
 	return nil

@@ -22,6 +22,7 @@ type Services struct {
 	EmailClient  *email.EmailClient
 	Logger       *helpers.Logger
 	JWKSManager  *JWKSManager
+	Access       *helpers.Access
 	cfg          *JWTConfig
 }
 
