@@ -29,18 +29,3 @@ func RequireRole(acc *helpers.Access, role string) gin.HandlerFunc {
 		c.Next()
 	}
 }
-		c.Next()
-	}
-}
-
-// RequireRole returns middleware that checks if user has the specified role.
-func RequireRole(acc *helpers.Access, role string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if !acc.HasRole(c.Request.Context(), role) {
-			helpers.Forbidden(c, "Role required")
-			c.Abort()
-			return
-		}
-		c.Next()
-	}
-}
