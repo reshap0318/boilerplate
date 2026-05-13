@@ -8,12 +8,15 @@ import (
 	"gorm.io/gorm"
 )
 
-// SeedUserRoles maps users to roles
+// SeedUserRoles maps users to roles.
 func SeedUserRoles(db *gorm.DB, userEmails map[string]uint, roleIDs map[string]uint) {
 	fmt.Println("Seeding user roles...")
 
 	userRoles := map[string]string{
 		"suAdmin@app.com": "Super Admin",
+		"admin@app.com":   "Admin",
+		"editor@app.com":  "Editor",
+		"viewer@app.com":  "Viewer",
 	}
 
 	count := 0

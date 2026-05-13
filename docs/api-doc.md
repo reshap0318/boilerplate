@@ -62,18 +62,6 @@ Authorization: Bearer <token>
 }
 ```
 
-### Single Field Error Response (422)
-
-```json
-{
-  "code": 422,
-  "message": "The given data was invalid.",
-  "errors": {
-    "email": ["Email already exists"]
-  }
-}
-```
-
 ---
 
 ## System Endpoints
@@ -390,13 +378,13 @@ Authorization: Bearer <token>
 
 ## Permissions Endpoints
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/api/permissions` | JWT | Create permission |
-| GET | `/api/permissions` | JWT | List permissions (all or paginated) |
-| GET | `/api/permissions/:id` | JWT | Get permission by ID |
-| PUT | `/api/permissions/:id` | JWT | Update permission |
-| DELETE | `/api/permissions/:id` | JWT | Delete permission |
+| Method | Path | Auth | Permission Required | Description |
+|--------|------|------|---------------------|-------------|
+| POST | `/api/permissions` | JWT | `permission.create` | Create permission |
+| GET | `/api/permissions` | JWT | `permission.index` | List permissions (all or paginated) |
+| GET | `/api/permissions/:id` | JWT | `permission.index` | Get permission by ID |
+| PUT | `/api/permissions/:id` | JWT | `permission.edit` | Update permission |
+| DELETE | `/api/permissions/:id` | JWT | `permission.delete` | Delete permission |
 
 ### POST `/api/permissions`
 
@@ -434,6 +422,7 @@ Create a new permission.
 
 | Status | Message |
 |--------|---------|
+| 403 | Forbidden (missing permission) |
 | 422 | Validation error |
 | 500 | Internal server error |
 
@@ -622,14 +611,14 @@ Soft delete a permission.
 
 ## Roles Endpoints
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/api/roles` | JWT | Create role |
-| GET | `/api/roles` | JWT | List roles (all or paginated) |
-| GET | `/api/roles/:id` | JWT | Get role by ID |
-| PUT | `/api/roles/:id` | JWT | Update role |
-| DELETE | `/api/roles/:id` | JWT | Delete role |
-| GET | `/api/roles/:id/permissions` | JWT | Get role permissions |
+| Method | Path | Auth | Permission Required | Description |
+|--------|------|------|---------------------|-------------|
+| POST | `/api/roles` | JWT | `role.create` | Create role |
+| GET | `/api/roles` | JWT | `role.index` | List roles (all or paginated) |
+| GET | `/api/roles/:id` | JWT | `role.index` | Get role by ID |
+| PUT | `/api/roles/:id` | JWT | `role.edit` | Update role |
+| DELETE | `/api/roles/:id` | JWT | `role.delete` | Delete role |
+| GET | `/api/roles/:id/permissions` | JWT | `role.index` | Get role permissions |
 
 ### POST `/api/roles`
 
@@ -681,6 +670,7 @@ Create a new role with permissions.
 
 | Status | Message |
 |--------|---------|
+| 403 | Forbidden (missing permission) |
 | 422 | Validation error |
 | 500 | Internal server error |
 
@@ -946,13 +936,13 @@ Get all permissions assigned to a role.
 
 ## Users Endpoints
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/api/users` | JWT | Create user |
-| GET | `/api/users` | JWT | List users (all or paginated) |
-| GET | `/api/users/:id` | JWT | Get user by ID |
-| PUT | `/api/users/:id` | JWT | Update user |
-| DELETE | `/api/users/:id` | JWT | Delete user |
+| Method | Path | Auth | Permission Required | Description |
+|--------|------|------|---------------------|-------------|
+| POST | `/api/users` | JWT | `user.create` | Create user |
+| GET | `/api/users` | JWT | `user.index` | List users (all or paginated) |
+| GET | `/api/users/:id` | JWT | `user.index` | Get user by ID |
+| PUT | `/api/users/:id` | JWT | `user.edit` | Update user |
+| DELETE | `/api/users/:id` | JWT | `user.delete` | Delete user |
 
 **Note:** User endpoints use JSON body. To set an avatar, first upload a file via `POST /api/upload` and use the returned `uuid` as `avatar`.
 
@@ -1023,6 +1013,7 @@ Content-Type: application/json
 
 | Status | Message |
 |--------|---------|
+| 403 | Forbidden (missing permission) |
 | 422 | Validation error |
 | 500 | Internal server error |
 

@@ -9,32 +9,28 @@ import (
 	"gorm.io/gorm"
 )
 
-// SeedUsers inserts default user data
+// SeedUsers inserts default user data.
 func SeedUsers(db *gorm.DB) map[string]uint {
 	fmt.Println("Seeding users...")
 
-	// Default users to seed
 	defaultUsers := []struct {
 		Email    string
 		Password string
 		Name     string
 	}{
-		{
-			Email:    "suAdmin@app.com",
-			Password: "@dmin#123",
-			Name:     "Super Admin",
-		},
+		{"suAdmin@app.com", "@dmin#123", "Super Admin"},
+		{"admin@app.com", "Admin#123", "Admin"},
+		{"editor@app.com", "Editor#123", "Editor"},
+		{"viewer@app.com", "Viewer#123", "Viewer"},
 	}
 
 	resultMap := make(map[string]uint)
 
 	for _, userData := range defaultUsers {
-		// Check if user already exists
 		var existing models.User
 		result := db.Where("email = ?", userData.Email).First(&existing)
 
 		if result.Error == gorm.ErrRecordNotFound {
-			// User doesn't exist, create it
 			hashedPassword, err := helpers.HashString(userData.Password)
 			if err != nil {
 				log.Printf("Failed to hash password for %s: %v", userData.Email, err)
@@ -55,7 +51,6 @@ func SeedUsers(db *gorm.DB) map[string]uint {
 		} else if result.Error != nil {
 			log.Printf("Failed to check user %s: %v", userData.Email, result.Error)
 		} else {
-			// User already exists, skip
 			resultMap[userData.Email] = existing.ID
 			fmt.Printf("  ⊘ User %s already exists, skipping\n", userData.Email)
 		}

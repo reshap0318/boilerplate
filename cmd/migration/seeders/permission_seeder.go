@@ -8,39 +8,51 @@ import (
 	"gorm.io/gorm"
 )
 
-// SeedPermissions inserts default permission data
+// SeedPermissions inserts default permission data.
 func SeedPermissions(db *gorm.DB) map[string]uint {
 	fmt.Println("Seeding permissions...")
 
-	permissions := []string{
+	permissions := []struct {
+		Name        string
+		Description string
+	}{
 		// User
-		"user.create", "user.read", "user.update", "user.delete",
+		{"user.index", "View users list"},
+		{"user.create", "Create new user"},
+		{"user.edit", "Update user"},
+		{"user.delete", "Delete user"},
 		// Role
-		"role.create", "role.read", "role.update", "role.delete",
+		{"role.index", "View roles list"},
+		{"role.create", "Create new role"},
+		{"role.edit", "Update role"},
+		{"role.delete", "Delete role"},
 		// Permission
-		"permission.create", "permission.read", "permission.update", "permission.delete",
+		{"permission.index", "View permissions list"},
+		{"permission.create", "Create new permission"},
+		{"permission.edit", "Update permission"},
+		{"permission.delete", "Delete permission"},
 	}
 
 	resultMap := make(map[string]uint)
 
-	for _, name := range permissions {
+	for _, perm := range permissions {
 		var existing models.Permission
-		err := db.Where("name = ?", name).First(&existing).Error
+		err := db.Where("name = ?", perm.Name).First(&existing).Error
 		if err == nil {
-			resultMap[name] = existing.ID
-			fmt.Printf("  ⊘ Permission %s already exists, skipping\n", name)
+			resultMap[perm.Name] = existing.ID
+			fmt.Printf("  ⊘ Permission %s already exists, skipping\n", perm.Name)
 			continue
 		}
 
-		perm := models.Permission{
-			Name:        name,
-			Description: strPtr("Permission for " + name),
+		p := models.Permission{
+			Name:        perm.Name,
+			Description: strPtr(perm.Description),
 		}
 
-		if err := db.Create(&perm).Error; err != nil {
-			log.Printf("Failed to create permission %s: %v", name, err)
+		if err := db.Create(&p).Error; err != nil {
+			log.Printf("Failed to create permission %s: %v", perm.Name, err)
 		} else {
-			resultMap[name] = perm.ID
+			resultMap[perm.Name] = p.ID
 		}
 	}
 

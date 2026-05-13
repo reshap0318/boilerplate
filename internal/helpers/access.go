@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -16,7 +15,7 @@ type userAccessData struct {
 	roles       map[string]bool
 }
 
-// Access handles permission and role checking with 3-tier caching.
+// Access handles permission and role checking with 2-tier caching.
 type Access struct {
 	redis *database.RedisCache
 	db    *gorm.DB
@@ -33,8 +32,8 @@ func NewAccess(redis *database.RedisCache, db *gorm.DB) *Access {
 	}
 }
 
-// getUserAccess retrieves user permissions and roles using 3-tier cache.
-// L1: Local in-memory cache → L2: Redis → L3: Database
+// getUserAccess retrieves user permissions and roles using 2-tier cache.
+// L1: Local in-memory cache → L2: Database
 func (a *Access) getUserAccess(userID uint) (*userAccessData, bool) {
 	// L1: Check local cache
 	a.mu.RLock()
@@ -44,36 +43,13 @@ func (a *Access) getUserAccess(userID uint) (*userAccessData, bool) {
 		return data, true
 	}
 
-	// L2: Check Redis
-	if a.redis != nil && a.redis.IsCacheAvailable() {
-		var user models.User
-		key := fmt.Sprintf("session:%d", userID)
-		if err := a.getRedisJSON(key, &user); err == nil && user.ID != 0 {
-			data = a.buildAccessDataFromUser(&user)
-
-			a.mu.Lock()
-			a.cache[userID] = data
-			a.mu.Unlock()
-
-			return data, true
-		}
-	}
-
-	// L3: Fallback to DB
+	// L2: Fallback to DB
 	user, err := a.findUserWithRolesPermissions(userID)
 	if err != nil {
 		return nil, false
 	}
 
 	data = a.buildAccessDataFromUser(user)
-
-	// Store to Redis (if active)
-	if a.redis != nil && a.redis.IsCacheAvailable() {
-		key := fmt.Sprintf("session:%d", userID)
-		if err := a.setRedisJSON(key, user); err != nil {
-			// Redis error, ignore
-		}
-	}
 
 	a.mu.Lock()
 	a.cache[userID] = data
@@ -104,22 +80,6 @@ func (a *Access) buildAccessDataFromUser(user *models.User) *userAccessData {
 		}
 	}
 	return data
-}
-
-func (a *Access) getRedisJSON(key string, dest interface{}) error {
-	val, err := a.redis.Get(key)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal([]byte(val), dest)
-}
-
-func (a *Access) setRedisJSON(key string, value interface{}) error {
-	data, err := json.Marshal(value)
-	if err != nil {
-		return err
-	}
-	return a.redis.Set(key, data, 0)
 }
 
 // HasPermission checks if the caller has ANY of the specified permissions.
