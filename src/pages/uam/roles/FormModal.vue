@@ -41,7 +41,7 @@ async function show(data?: { id?: number; name: string; description: string; per
   if (data) {
     roleStore.form.id = data.id
     roleStore.form.name = data.name
-    roleStore.form.description = data.description
+    roleStore.form.description = data.description || ''
     roleStore.form.permissions = data.permissions?.map(p => p.id) || []
   } else {
     roleStore.form.id = undefined
@@ -106,7 +106,7 @@ defineExpose({ show, close })
 
         <FormInput
           v-model="roleStore.form.description"
-          label="Deskripsi"
+          label="Deskripsi (opsional)"
           placeholder="Administrator role"
           :validation="v$.description"
         />

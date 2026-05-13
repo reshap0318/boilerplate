@@ -9,7 +9,7 @@ import {
   type IApiResponse,
   type IApiMetadata 
 } from '@/plugins/axios'
-import { required } from '@vuelidate/validators'
+import { required, minLength } from '@vuelidate/validators'
 import swal from '@/plugins/swal'
 
 export interface IPermission {
@@ -43,8 +43,8 @@ export const usePermissionStore = defineStore('permission', () => {
   })
 
   const formRules = {
-    name: { required },
-    description: { required },
+    name: { required, minLength: minLength(3) },
+    description: {},
   }
 
   async function fetchPermissions(page?: number) {
@@ -64,6 +64,16 @@ export const usePermissionStore = defineStore('permission', () => {
       swal.error('Gagal', 'Gagal memuat daftar permission.')
     } finally {
       loading.value.Index = false
+    }
+  }
+
+  async function fetchPermissionById(id: number): Promise<IPermission | null> {
+    try {
+      const { data } = await get<IApiResponse<IPermission>>(`/permissions/${id}`)
+      return data.data || null
+    } catch (error: any) {
+      console.error('Failed to fetch permission', error)
+      return null
     }
   }
 
@@ -134,6 +144,7 @@ export const usePermissionStore = defineStore('permission', () => {
     form,
     formRules,
     fetchPermissions,
+    fetchPermissionById,
     fetchAllPermissions,
     createPermission,
     updatePermission,

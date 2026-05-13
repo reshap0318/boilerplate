@@ -29,12 +29,12 @@ const emit = defineEmits<{
 }>()
 
 const fileInput = ref<HTMLInputElement | null>(null)
-const previewUrl = ref<string | null>(null)
 const errorMessage = ref('')
 
-const hasNewFile = computed(() => props.modelValue !== null)
 const previewImage = computed(() => {
-  if (previewUrl.value) return previewUrl.value
+  if (props.modelValue) {
+    return URL.createObjectURL(props.modelValue)
+  }
   if (props.currentAvatar) return props.currentAvatar
   return null
 })
@@ -55,29 +55,13 @@ function handleFileSelect(event: Event) {
   }
 
   errorMessage.value = ''
-  if (previewUrl.value) {
-    URL.revokeObjectURL(previewUrl.value)
-  }
-  previewUrl.value = URL.createObjectURL(file)
   emit('update:modelValue', file)
   input.value = ''
 }
 
 function handleRemove() {
-  if (previewUrl.value) {
-    URL.revokeObjectURL(previewUrl.value)
-    previewUrl.value = null
-  }
   emit('update:modelValue', null)
   emit('remove')
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 </script>
 
@@ -137,7 +121,7 @@ function formatFileSize(bytes: number): string {
           @click="handleClick"
         >
           <PhUploadSimple :size="16" />
-          {{ hasNewFile ? 'Ganti Avatar' : 'Upload Avatar' }}
+          {{ modelValue ? 'Ganti Avatar' : 'Upload Avatar' }}
         </button>
 
         <p class="mt-1.5 text-xs text-gray-500">
@@ -145,10 +129,10 @@ function formatFileSize(bytes: number): string {
         </p>
 
         <!-- File info -->
-        <div v-if="hasNewFile && modelValue" class="mt-2 flex items-center gap-2 text-xs text-gray-600">
+        <div v-if="modelValue" class="mt-2 flex items-center gap-2 text-xs text-gray-600">
           <span class="truncate max-w-[200px]">{{ modelValue.name }}</span>
           <span class="text-gray-400">•</span>
-          <span>{{ formatFileSize(modelValue.size) }}</span>
+          <span>{{ (modelValue.size / 1024).toFixed(1) }} KB</span>
         </div>
 
         <!-- Error message -->

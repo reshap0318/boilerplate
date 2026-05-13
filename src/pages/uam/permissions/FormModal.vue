@@ -16,7 +16,7 @@ function show(data?: { id?: number; name: string; description: string }) {
   if (data) {
     permissionStore.form.id = data.id
     permissionStore.form.name = data.name
-    permissionStore.form.description = data.description
+    permissionStore.form.description = data.description || ''
   } else {
     permissionStore.form.id = undefined
     permissionStore.form.name = ''
@@ -66,7 +66,7 @@ defineExpose({ show, close })
 
         <FormInput
           v-model="permissionStore.form.description"
-          label="Deskripsi"
+          label="Deskripsi (opsional)"
           placeholder="Melihat daftar pengguna"
           :validation="v$.description"
         />

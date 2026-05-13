@@ -9,7 +9,7 @@ import {
   type IApiResponse,
   type IApiMetadata 
 } from '@/plugins/axios'
-import { required } from '@vuelidate/validators'
+import { required, minLength } from '@vuelidate/validators'
 import { IPermission } from './permission'
 import swal from '@/plugins/swal'
 
@@ -48,8 +48,8 @@ export const useRoleStore = defineStore('role', () => {
   })
 
   const formRules = {
-    name: { required },
-    description: { required },
+    name: { required, minLength: minLength(3) },
+    description: {},
   }
 
   async function fetchRoles(page?: number) {
@@ -72,12 +72,32 @@ export const useRoleStore = defineStore('role', () => {
     }
   }
 
+  async function fetchRoleById(id: number): Promise<IRole | null> {
+    try {
+      const { data } = await get<IApiResponse<IRole>>(`/roles/${id}`)
+      return data.data || null
+    } catch (error: any) {
+      console.error('Failed to fetch role', error)
+      return null
+    }
+  }
+
   async function fetchAllRoles(): Promise<IRole[]> {
     try {
       const { data } = await get<IApiResponse<IRole[]>>('/roles')
       return data.data || []
     } catch (error: any) {
       console.error('Failed to fetch all roles', error)
+      return []
+    }
+  }
+
+  async function fetchRolePermissions(id: number): Promise<IPermission[]> {
+    try {
+      const { data } = await get<IApiResponse<IPermission[]>>(`/roles/${id}/permissions`)
+      return data.data || []
+    } catch (error: any) {
+      console.error('Failed to fetch role permissions', error)
       return []
     }
   }
@@ -141,7 +161,9 @@ export const useRoleStore = defineStore('role', () => {
     form,
     formRules,
     fetchRoles,
+    fetchRoleById,
     fetchAllRoles,
+    fetchRolePermissions,
     createRole,
     updateRole,
     deleteRole,

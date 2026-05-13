@@ -12,6 +12,7 @@ import {
 import { required, email, minLength, sameAs } from '@vuelidate/validators'
 import { IRole } from './role'
 import { IPermission } from './permission'
+import { uploadFile } from '@/helpers/upload'
 import swal from '@/plugins/swal'
 
 export interface IUser {
@@ -71,7 +72,7 @@ export const useUserStore = defineStore('user', () => {
       const { data } = await get<IApiResponse<IUser[]>>('/users', {
         params: {
           page: currentPage,
-          page_size: indexData.value.pagination.page_size,
+          page_size: 12,
         },
       })
       indexData.value.users = data.data || []
@@ -84,24 +85,37 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  async function fetchUserById(id: number): Promise<IUser | null> {
+    try {
+      const { data } = await get<IApiResponse<IUser>>(`/users/${id}`)
+      return data.data || null
+    } catch (error: any) {
+      console.error('Failed to fetch user', error)
+      return null
+    }
+  }
+
   async function createUser() {
     loading.value.Form = true
     try {
-      const formData = new FormData()
-      formData.append('name', form.name)
-      formData.append('email', form.email)
-      formData.append('password', form.password)
-      formData.append('password_confirmation', form.password_confirmation)
-      if (form.roles.length > 0) {
-        formData.append('roles', form.roles.join(','))
-      }
+      let avatarUuid: string | null = null
       if (form.avatar) {
-        formData.append('avatar', form.avatar)
+        const uploaded = await uploadFile(form.avatar)
+        avatarUuid = uploaded.uuid
       }
 
-      await post('/users', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      const payload: any = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        password_confirmation: form.password_confirmation,
+        roles: form.roles,
+      }
+      if (avatarUuid) {
+        payload.avatar = avatarUuid
+      }
+
+      await post('/users', payload)
       swal.success('Berhasil', 'User berhasil dibuat.')
       await fetchUsers()
     } catch (error: any) {
@@ -116,23 +130,26 @@ export const useUserStore = defineStore('user', () => {
   async function updateUser(id: number) {
     loading.value.Form = true
     try {
-      const formData = new FormData()
-      formData.append('name', form.name)
-      formData.append('email', form.email)
-      if (form.roles.length > 0) {
-        formData.append('roles', form.roles.join(','))
-      }
-      if (form.password) {
-        formData.append('password', form.password)
-        formData.append('password_confirmation', form.password_confirmation)
-      }
+      let avatarUuid: string | null = null
       if (form.avatar) {
-        formData.append('avatar', form.avatar)
+        const uploaded = await uploadFile(form.avatar)
+        avatarUuid = uploaded.uuid
       }
 
-      await put(`/users/${id}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      const payload: any = {
+        name: form.name,
+        email: form.email,
+        roles: form.roles,
+      }
+      if (form.password) {
+        payload.password = form.password
+        payload.password_confirmation = form.password_confirmation
+      }
+      if (avatarUuid) {
+        payload.avatar = avatarUuid
+      }
+
+      await put(`/users/${id}`, payload)
       swal.success('Berhasil', 'User berhasil diperbarui.')
       await fetchUsers()
     } catch (error: any) {
@@ -165,6 +182,7 @@ export const useUserStore = defineStore('user', () => {
     form,
     formRules,
     fetchUsers,
+    fetchUserById,
     createUser,
     updateUser,
     deleteUser,

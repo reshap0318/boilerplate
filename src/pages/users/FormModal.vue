@@ -30,7 +30,6 @@ const dynamicRules = computed(() => {
     name: { required, minLength: minLength(2) },
     email: { required, email },
     roles: { required: helpers.withMessage('Role wajib dipilih', (value: number[]) => value.length > 0) },
-    avatar: isEdit.value ? {} : { required: helpers.withMessage('Avatar wajib diisi', (value: File | null) => value !== null) },
   }
 
   if (isEdit.value) {
