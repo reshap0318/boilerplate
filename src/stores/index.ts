@@ -1,5 +1,16 @@
-import { createPinia } from 'pinia'
+export { useAuthStore } from './auth'
+export type {
+  ILoginPayload,
+  ILoginResponse,
+  IRefreshTokenPayload,
+  IRefreshTokenResponse,
+} from './auth'
 
-const pinia = createPinia()
+export { useUserStore } from './user'
+export type { IUser, IUserPayload } from './user'
 
-export default pinia
+export { useRoleStore } from './role'
+export type { IRole, IRolePayload } from './role'
+
+export { usePermissionStore } from './permission'
+export type { IPermission, IPermissionPayload } from './permission'

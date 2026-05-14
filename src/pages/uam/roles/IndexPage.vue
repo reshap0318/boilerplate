@@ -7,6 +7,7 @@ import swal from '@/plugins/swal'
 import UiCard from '@/components/utils/UiCard.vue'
 import UiButton from '@/components/utils/UiButton.vue'
 import UiPagination from '@/components/utils/UiPagination.vue'
+import UiEmptyState from '@/components/utils/UiEmptyState.vue'
 import FormModal from './FormModal.vue'
 
 const roleStore = useRoleStore()
@@ -90,26 +91,19 @@ onMounted(() => {
     </div>
 
     <!-- Empty State -->
-    <div
+    <UiEmptyState
       v-else-if="roleStore.indexData.roles.length === 0"
-      class="text-center py-24 bg-white rounded-2xl border-2 border-dashed border-gray-300 shadow-sm"
+      :icon="PhPlus"
+      title="Belum ada Role"
+      description="Silakan buat role baru untuk mulai mengatur hak akses sistem."
     >
-      <div
-        class="inline-flex items-center justify-center w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full mb-4"
-      >
-        <PhPlus class="w-10 h-10" />
-      </div>
-      <h3 class="text-2xl font-semibold text-gray-900 mb-2">Belum ada Role</h3>
-      <p class="text-gray-600 mb-6">
-        Silakan buat role baru untuk mulai mengatur hak akses sistem.
-      </p>
       <UiButton size="lg" @click="openCreate">
         <template #icon>
           <PhPlus class="w-5 h-5" />
         </template>
         Buat Role Pertama
       </UiButton>
-    </div>
+    </UiEmptyState>
 
     <!-- Data List -->
     <template v-else>
