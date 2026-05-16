@@ -6,6 +6,9 @@ export type {
   IRefreshTokenResponse,
 } from './auth'
 
+export { useProfileStore } from './profile'
+export type { IProfile, IProfilePayload } from './profile'
+
 export { useUserStore } from './user'
 export type { IUser, IUserPayload } from './user'
 

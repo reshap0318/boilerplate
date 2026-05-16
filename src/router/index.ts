@@ -38,6 +38,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/users/IndexView.vue'),
       },
       {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('@/pages/profile/IndexView.vue'),
+      },
+      {
         path: 'uam/permissions',
         name: 'Permissions',
         component: () => import('@/pages/uam/permissions/IndexView.vue'),

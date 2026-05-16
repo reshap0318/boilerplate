@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { PhUser, PhSignOut, PhGear } from '@phosphor-icons/vue'
+import { PhUser, PhSignOut } from '@phosphor-icons/vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -66,9 +66,19 @@ onUnmounted(() => {
       <!-- Avatar with online indicator -->
       <div class="relative">
         <div
-          class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center ring-2 ring-emerald-400 ring-offset-1 transition-transform duration-200 group-hover:scale-105"
+          class="w-7 h-7 rounded-full overflow-hidden ring-2 ring-emerald-400 ring-offset-1 transition-transform duration-200 group-hover:scale-105"
         >
-          <span class="text-xs font-bold text-white leading-none">{{ userInitials }}</span>
+          <img
+            v-if="authStore.user?.avatar"
+            :src="authStore.user.avatar"
+            class="w-full h-full object-cover"
+          />
+          <div
+            v-else
+            class="w-full h-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center"
+          >
+            <span class="text-xs font-bold text-white leading-none">{{ userInitials }}</span>
+          </div>
         </div>
         <!-- Online dot -->
         <span
@@ -98,9 +108,19 @@ onUnmounted(() => {
             <!-- Avatar -->
             <div class="relative shrink-0">
               <div
-                class="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center ring-2 ring-emerald-400 ring-offset-2"
+                class="w-11 h-11 rounded-full overflow-hidden ring-2 ring-emerald-400 ring-offset-2"
               >
-                <span class="text-sm font-bold text-white leading-none">{{ userInitials }}</span>
+                <img
+                  v-if="authStore.user?.avatar"
+                  :src="authStore.user.avatar"
+                  class="w-full h-full object-cover"
+                />
+                <div
+                  v-else
+                  class="w-full h-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center"
+                >
+                  <span class="text-sm font-bold text-white leading-none">{{ userInitials }}</span>
+                </div>
               </div>
               <span
                 class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white"
@@ -131,18 +151,6 @@ onUnmounted(() => {
               <PhUser class="w-4 h-4 text-blue-500" />
             </div>
             <span class="font-medium">Profile</span>
-          </router-link>
-          <router-link
-            to="/settings"
-            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-150 group/item"
-            @click="close"
-          >
-            <div
-              class="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center group-hover/item:bg-violet-100 transition-colors"
-            >
-              <PhGear class="w-4 h-4 text-violet-500" />
-            </div>
-            <span class="font-medium">Settings</span>
           </router-link>
         </div>
 
