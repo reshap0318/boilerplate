@@ -78,7 +78,7 @@ onMounted(() => {
     <!-- Loading State -->
     <div
       v-if="roleStore.loading.Index"
-      class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 animate-pulse"
+      class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 animate-pulse"
     >
       <div
         v-for="i in 6"
@@ -104,7 +104,7 @@ onMounted(() => {
 
     <!-- Data List -->
     <template v-else>
-      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <UiCard
           v-for="(role, index) in roleStore.indexData.roles"
           :key="role.id"

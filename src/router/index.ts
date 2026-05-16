@@ -7,19 +7,19 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/pages/auth/LoginPage.vue'),
+    component: () => import('@/pages/auth/LoginView.vue'),
     meta: { guest: true },
   },
   {
     path: '/forgot-password',
     name: 'ForgotPassword',
-    component: () => import('@/pages/auth/ForgotPasswordPage.vue'),
+    component: () => import('@/pages/auth/ForgotPasswordView.vue'),
     meta: { guest: true },
   },
   {
     path: '/reset-password',
     name: 'ResetPassword',
-    component: () => import('@/pages/auth/ResetPasswordPage.vue'),
+    component: () => import('@/pages/auth/ResetPasswordView.vue'),
     meta: { guest: true },
   },
   {
@@ -30,22 +30,22 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'Home',
-        component: () => import('@/pages/HomePage.vue'),
+        component: () => import('@/pages/HomeView.vue'),
       },
       {
         path: 'users',
         name: 'Users',
-        component: () => import('@/pages/users/IndexPage.vue'),
+        component: () => import('@/pages/users/IndexView.vue'),
       },
       {
         path: 'uam/permissions',
         name: 'Permissions',
-        component: () => import('@/pages/uam/permissions/IndexPage.vue'),
+        component: () => import('@/pages/uam/permissions/IndexView.vue'),
       },
       {
         path: 'uam/roles',
         name: 'Roles',
-        component: () => import('@/pages/uam/roles/IndexPage.vue'),
+        component: () => import('@/pages/uam/roles/IndexView.vue'),
       },
     ],
   },

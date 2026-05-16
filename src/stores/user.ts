@@ -35,7 +35,7 @@ export interface IUserPayload {
   avatar: File | null
 }
 
-export type TLoadingKey = 'Index' | 'Form' | 'Delete'
+type TLoadingKey = 'Index' | 'Form' | 'Delete'
 
 export const useUserStore = defineStore('user', () => {
   const indexData = ref<{ users: IUser[]; pagination: IApiMetadata }>({

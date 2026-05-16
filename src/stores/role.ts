@@ -27,7 +27,7 @@ export interface IRolePayload {
   permissions: number[]
 }
 
-export type TLoadingKey = 'Index' | 'Form' | 'Delete'
+type TLoadingKey = 'Index' | 'Form' | 'Delete'
 
 export const useRoleStore = defineStore('role', () => {
   const indexData = ref<{ roles: IRole[]; pagination: IApiMetadata }>({

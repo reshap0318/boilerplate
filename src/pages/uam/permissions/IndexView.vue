@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import swal from '@/plugins/swal'
+import { ref, onMounted } from 'vue'
 import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
 import FormModal from './FormModal.vue'
-
-import { ref, onMounted } from 'vue'
-import { usePermissionStore, type IPermission } from '@/stores/permission'
+import { usePermissionStore, type IPermission } from '@/stores'
 import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
+import swal from '@/plugins/swal'
 
 const permissionStore = usePermissionStore()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)
@@ -57,7 +56,7 @@ onMounted(() => {
     <!-- Loading State -->
     <div
       v-if="permissionStore.loading.Index"
-      class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 animate-pulse"
+      class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 animate-pulse"
     >
       <div
         v-for="i in 6"
@@ -83,7 +82,7 @@ onMounted(() => {
 
     <!-- No Search Results -->
     <!-- Data List -->
-    <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div v-else class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       <UiCard
         v-for="permission in permissionStore.indexData.permissions"
         :key="permission.id"

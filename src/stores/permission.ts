@@ -24,7 +24,7 @@ export interface IPermissionPayload {
   description: string
 }
 
-export type TLoadingKey = 'Index' | 'Form' | 'Delete'
+type TLoadingKey = 'Index' | 'Form' | 'Delete'
 
 export const usePermissionStore = defineStore('permission', () => {
   const indexData = ref<{ permissions: IPermission[]; pagination: IApiMetadata }>({
