@@ -5,12 +5,7 @@ import { useUserStore } from '@/stores/user'
 import { useRoleStore } from '@/stores/role'
 import type { IRole } from '@/stores/role'
 import { required, email, minLength, helpers } from '@vuelidate/validators'
-import UiModal from '@/components/utils/UiModal.vue'
-import FormInput from '@/components/utils/FormInput.vue'
-import FormPassword from '@/components/utils/FormPassword.vue'
-import FormSelect from '@/components/utils/FormSelect.vue'
-import FormAvatar from '@/components/utils/FormAvatar.vue'
-import UiButton from '@/components/utils/UiButton.vue'
+import { UiModal, FormInput, FormPassword, FormSelect, FormAvatar, UiButton } from '@/components/utils'
 
 const userStore = useUserStore()
 const roleStore = useRoleStore()

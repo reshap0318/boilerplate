@@ -6,9 +6,7 @@ import swal from '@/plugins/swal'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
 import { PhLock } from '@phosphor-icons/vue'
-import FormPassword from '@/components/utils/FormPassword.vue'
-import UiButton from '@/components/utils/UiButton.vue'
-import UiCard from '@/components/utils/UiCard.vue'
+import { FormPassword, UiButton, UiCard } from '@/components/utils'
 
 const router = useRouter()
 const route = useRoute()
@@ -66,7 +64,7 @@ async function handleResetPassword() {
 
 <template>
   <div class="flex min-h-screen items-center justify-center bg-gray-100">
-    <UiCard :padded="false" card-class="p-8" class="max-w-md w-full">
+    <UiCard :padded="false" :classes="{ card: 'p-8' }" class="max-w-md w-full">
       <template #header>
         <h2 class="mb-2 text-center text-2xl font-bold text-gray-800">Reset Password</h2>
         <p class="mb-6 text-center text-sm text-gray-500">

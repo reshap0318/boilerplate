@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import swal from '@/plugins/swal'
-import UiCard from '@/components/utils/UiCard.vue'
-import UiButton from '@/components/utils/UiButton.vue'
-import UiPagination from '@/components/utils/UiPagination.vue'
-import UiEmptyState from '@/components/utils/UiEmptyState.vue'
+import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
 import FormModal from './FormModal.vue'
 
 import { ref, onMounted } from 'vue'

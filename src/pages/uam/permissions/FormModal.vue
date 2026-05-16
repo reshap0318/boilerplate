@@ -2,9 +2,7 @@
 import { computed, ref } from 'vue'
 import useVuelidate from '@vuelidate/core'
 import { usePermissionStore } from '@/stores/permission'
-import UiModal from '@/components/utils/UiModal.vue'
-import FormInput from '@/components/utils/FormInput.vue'
-import UiButton from '@/components/utils/UiButton.vue'
+import { UiModal, FormInput, UiButton } from '@/components/utils'
 
 const permissionStore = usePermissionStore()
 const v$ = useVuelidate(permissionStore.formRules, permissionStore.form)

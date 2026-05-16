@@ -1,22 +1,10 @@
 <script setup lang="ts">
-interface Props {
-  headerClass?: string
-  bodyClass?: string
-  footerClass?: string
-  cardClass?: string
-  cardStyle?: Record<string, string>
-  wrapperClass?: string
-  padded?: boolean
-}
+import type { UiCardProps } from './types'
 
-withDefaults(defineProps<Props>(), {
-  headerClass: '',
-  bodyClass: '',
-  footerClass: '',
-  cardClass: '',
+const props = withDefaults(defineProps<UiCardProps>(), {
   cardStyle: () => ({}),
-  wrapperClass: '',
   padded: true,
+  classes: () => ({}),
 })
 
 defineSlots<{
@@ -27,20 +15,20 @@ defineSlots<{
 </script>
 
 <template>
-  <div :class="['w-full', wrapperClass]">
-    <div :class="['overflow-hidden rounded-lg bg-white shadow-md', cardClass]" :style="cardStyle">
+  <div :class="['w-full', props.classes.wrapper]">
+    <div :class="['overflow-hidden rounded-lg bg-white shadow-md', props.classes.card]" :style="props.cardStyle">
       <!-- Header -->
-      <div v-if="$slots.header" :class="[headerClass]">
+      <div v-if="$slots.header" :class="[props.classes.header]">
         <slot name="header" />
       </div>
 
       <!-- Body -->
-      <div :class="[padded && 'p-6', bodyClass]">
+      <div :class="[props.padded && 'p-6', props.classes.body]">
         <slot />
       </div>
 
       <!-- Footer -->
-      <div v-if="$slots.footer" :class="['bg-gray-50 px-6 py-4', footerClass]">
+      <div v-if="$slots.footer" :class="['bg-gray-50 px-6 py-4', props.classes.footer]">
         <slot name="footer" />
       </div>
     </div>

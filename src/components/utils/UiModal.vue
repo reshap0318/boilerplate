@@ -1,27 +1,15 @@
 <script setup lang="ts">
 import { PhX } from '@phosphor-icons/vue'
+import type { TModalSize, UiModalProps } from './types'
 
-type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | 'full'
-
-const props = withDefaults(defineProps<{
-  modelValue: boolean
-  title?: string
-  size?: ModalSize
-  persistent?: boolean
-  classes?: {
-    container?: string
-    header?: string
-    body?: string
-    footer?: string
-  }
-}>(), {
+const props = withDefaults(defineProps<UiModalProps>(), {
   title: '',
   size: 'md',
   persistent: false,
-  classes: () => ({})
+  classes: () => ({}),
 })
 
-const sizeClasses: Record<ModalSize, string> = {
+const sizeClasses: Record<TModalSize, string> = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-lg',
@@ -61,7 +49,7 @@ function closeFromBackdrop() {
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="modelValue" class="fixed inset-0 z-50 overflow-y-auto">
+      <div v-if="props.modelValue" class="fixed inset-0 z-50 overflow-y-auto">
         <!-- Backdrop -->
         <div class="fixed inset-0 bg-black/50 transition-opacity" @click="closeFromBackdrop" />
 
@@ -76,17 +64,17 @@ function closeFromBackdrop() {
             leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
             <div
-              v-if="modelValue"
+              v-if="props.modelValue"
               :class="[
                 'relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 w-full',
-                sizeClasses[size],
-                classes.container
+                sizeClasses[props.size],
+                props.classes.container
               ]"
             >
               <!-- Header -->
-              <div :class="['flex items-center justify-between border-b border-gray-200 px-6 py-4', classes.header]">
+              <div :class="['flex items-center justify-between border-b border-gray-200 px-6 py-4', props.classes.header]">
                 <slot name="header">
-                  <h3 class="text-lg font-semibold text-gray-900">{{ title }}</h3>
+                  <h3 class="text-lg font-semibold text-gray-900">{{ props.title }}</h3>
                 </slot>
                 <button
                   type="button"
@@ -98,12 +86,12 @@ function closeFromBackdrop() {
               </div>
 
               <!-- Body -->
-              <div :class="['px-6 py-4', classes.body]">
+              <div :class="['px-6 py-4', props.classes.body]">
                 <slot />
               </div>
 
               <!-- Footer -->
-              <div v-if="$slots.footer" :class="['border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end gap-3', classes.footer]">
+              <div v-if="$slots.footer" :class="['border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end gap-3', props.classes.footer]">
                 <slot name="footer" />
               </div>
             </div>

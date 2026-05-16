@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue'
+import type { UiPaginationProps } from './types'
 
-interface Props {
-  page: number
-  totalPages: number
-  /** How many page-number buttons to show at most (excluding prev/next) */
-  maxVisible?: number
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<UiPaginationProps>(), {
   maxVisible: 5,
+  classes: () => ({}),
 })
 
 const emit = defineEmits<{
@@ -68,15 +63,15 @@ function goTo(p: number) {
 
 <template>
   <nav
-    v-if="totalPages > 1"
-    class="flex items-center justify-center gap-1"
+    v-if="props.totalPages > 1"
+    :class="['flex items-center justify-center gap-1', props.classes.wrapper]"
     aria-label="Pagination"
   >
     <!-- Previous -->
     <button
-      class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      :disabled="page <= 1"
-      @click="goTo(page - 1)"
+      :class="['inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed', props.classes.button]"
+      :disabled="props.page <= 1"
+      @click="goTo(props.page - 1)"
     >
       <PhCaretLeft class="w-4 h-4" />
     </button>
@@ -85,18 +80,18 @@ function goTo(p: number) {
     <template v-for="(p, idx) in pages" :key="idx">
       <span
         v-if="p === '...'"
-        class="inline-flex items-center justify-center w-9 h-9 text-sm text-gray-400 select-none"
+        :class="['inline-flex items-center justify-center w-9 h-9 text-sm text-gray-400 select-none', props.classes.ellipsis]"
       >
         …
       </span>
       <button
         v-else
-        class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors"
-        :class="
-          p === page
-            ? 'bg-blue-600 text-white shadow-sm'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-        "
+        :class="[
+          'inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors',
+          p === props.page
+            ? ['bg-blue-600 text-white shadow-sm', props.classes.buttonActive]
+            : ['text-gray-600 hover:bg-gray-100 hover:text-gray-900', props.classes.button],
+        ]"
         @click="goTo(p as number)"
       >
         {{ p }}
@@ -105,9 +100,9 @@ function goTo(p: number) {
 
     <!-- Next -->
     <button
-      class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-      :disabled="page >= totalPages"
-      @click="goTo(page + 1)"
+      :class="['inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed', props.classes.button]"
+      :disabled="props.page >= props.totalPages"
+      @click="goTo(props.page + 1)"
     >
       <PhCaretRight class="w-4 h-4" />
     </button>

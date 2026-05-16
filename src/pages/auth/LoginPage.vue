@@ -4,10 +4,7 @@ import swal from '@/plugins/swal'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { PhEnvelope, PhLock } from '@phosphor-icons/vue'
-import FormInput from '@/components/utils/FormInput.vue'
-import FormPassword from '@/components/utils/FormPassword.vue'
-import UiButton from '@/components/utils/UiButton.vue'
-import UiCard from '@/components/utils/UiCard.vue'
+import { FormInput, FormPassword, UiButton, UiCard } from '@/components/utils'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -31,7 +28,7 @@ async function handleLogin() {
 
 <template>
   <div class="flex min-h-screen items-center justify-center bg-gray-100">
-    <UiCard :padded="false" card-class="p-8" class="max-w-md">
+    <UiCard :padded="false" :classes="{ card: 'p-8' }" class="max-w-md">
       <template #header>
         <h2 class="mb-6 text-center text-2xl font-bold text-gray-800">Login</h2>
       </template>

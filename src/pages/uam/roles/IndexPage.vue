@@ -4,10 +4,7 @@ import { useRoleStore } from '@/stores/role'
 import type { IRole } from '@/stores/role'
 import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
 import swal from '@/plugins/swal'
-import UiCard from '@/components/utils/UiCard.vue'
-import UiButton from '@/components/utils/UiButton.vue'
-import UiPagination from '@/components/utils/UiPagination.vue'
-import UiEmptyState from '@/components/utils/UiEmptyState.vue'
+import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
 import FormModal from './FormModal.vue'
 
 const roleStore = useRoleStore()
@@ -111,10 +108,11 @@ onMounted(() => {
         <UiCard
           v-for="(role, index) in roleStore.indexData.roles"
           :key="role.id"
-          class="group hover:shadow-md transition-shadow"
-          wrapper-class="h-full"
-          card-class="h-full flex flex-col"
-          body-class="flex flex-col flex-1 p-6"
+          :classes="{
+            wrapper: 'group hover:shadow-md transition-shadow h-full',
+            card: 'h-full flex flex-col',
+            body: 'flex flex-col flex-1 p-6',
+          }"
         >
           <!-- Top: Avatar + Name + Actions -->
           <div class="flex items-center gap-3">

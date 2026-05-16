@@ -8,3 +8,28 @@ export { default as FormFile } from './FormFile.vue'
 export { default as FormInput } from './FormInput.vue'
 export { default as FormPassword } from './FormPassword.vue'
 export { default as FormSelect } from './FormSelect.vue'
+
+export type {
+  UiButtonProps,
+  UiCardClasses,
+  UiCardProps,
+  TModalSize,
+  UiModalClasses,
+  UiModalProps,
+  UiEmptyStateClasses,
+  UiEmptyStateProps,
+  UiPaginationClasses,
+  UiPaginationProps,
+  FormInputClasses,
+  FormInputProps,
+  FormPasswordClasses,
+  FormPasswordProps,
+  TSelectOption,
+  FormSelectClasses,
+  FormSelectProps,
+  TFileItem,
+  FormFileClasses,
+  FormFileProps,
+  FormAvatarClasses,
+  FormAvatarProps,
+} from './types'

@@ -4,10 +4,7 @@ import { useUserStore } from '@/stores/user'
 import type { IUser } from '@/stores/user'
 import { PhPlus, PhPencil, PhTrash, PhEnvelope, PhCalendar, PhCrown, PhDotsThreeVertical } from '@phosphor-icons/vue'
 import swal from '@/plugins/swal'
-import UiCard from '@/components/utils/UiCard.vue'
-import UiButton from '@/components/utils/UiButton.vue'
-import UiPagination from '@/components/utils/UiPagination.vue'
-import UiEmptyState from '@/components/utils/UiEmptyState.vue'
+import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
 import FormModal from './FormModal.vue'
 
 const userStore = useUserStore()
@@ -133,10 +130,11 @@ onUnmounted(() => {
         <UiCard
           v-for="(user, index) in userStore.indexData.users"
           :key="user.id"
-          class="group hover:shadow-md transition-all duration-200"
-          wrapper-class="h-full relative"
-          card-class="h-full border-t-4 border-blue-500"
-          body-class="p-4"
+          :classes="{
+            wrapper: 'h-full relative',
+            card: 'group hover:shadow-md transition-all duration-200 h-full border-t-4 border-blue-500',
+            body: 'p-4',
+          }"
         >
           <!-- Content -->
           <div class="flex flex-col">

@@ -2,35 +2,14 @@
 import { computed } from 'vue'
 import Multiselect from '@vueform/multiselect'
 import { getErrorMessage } from '@/helpers/vuelidate'
+import type { FormSelectProps, TSelectOption } from './types'
 
 interface ValidationLike {
   $error: boolean
-  $errors: Array<{ $message: string | { value: string } }>
+  $errors: Array<{ $message: string }>
 }
 
-interface SelectOption {
-  value: string | number
-  label: string
-  [key: string]: any
-}
-
-interface Props {
-  modelValue: any
-  label?: string
-  options?: SelectOption[] | string[]
-  placeholder?: string
-  validation?: ValidationLike
-  searchable?: boolean
-  mode?: 'single' | 'multiple' | 'tags'
-  closable?: boolean
-  disabled?: boolean
-  loading?: boolean
-  labelClass?: string
-  errorClass?: string
-  wrapperClass?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<FormSelectProps>(), {
   label: '',
   options: () => [],
   placeholder: 'Select...',
@@ -40,9 +19,7 @@ const props = withDefaults(defineProps<Props>(), {
   closable: true,
   disabled: false,
   loading: false,
-  labelClass: '',
-  errorClass: '',
-  wrapperClass: '',
+  classes: () => ({}),
 })
 
 const emit = defineEmits<{
@@ -58,29 +35,29 @@ const internalValue = computed({
   },
 })
 
-const hasError = computed(() => props.validation?.$error ?? false)
+const hasError = computed(() => (props.validation as ValidationLike)?.$error ?? false)
 const errorMessage = computed(() => {
   if (!props.validation) return ''
-  const raw = getErrorMessage(props.validation as any)
+  const raw = getErrorMessage(props.validation as ValidationLike)
   return typeof raw === 'string' ? raw : raw.value
 })
 </script>
 
 <template>
-  <div :class="['w-full', wrapperClass]">
-    <label v-if="label" :class="['mb-1 block text-sm font-medium text-gray-700', labelClass]">
-      {{ label }}
+  <div :class="['w-full', props.classes.wrapper]">
+    <label v-if="props.label" :class="['mb-1 block text-sm font-medium text-gray-700', props.classes.label]">
+      {{ props.label }}
     </label>
 
     <Multiselect
       v-model="internalValue"
-      :options="options"
-      :placeholder="placeholder"
-      :searchable="searchable"
-      :mode="mode"
-      :closable="closable"
-      :disabled="disabled"
-      :loading="loading"
+      :options="props.options as TSelectOption[]"
+      :placeholder="props.placeholder"
+      :searchable="props.searchable"
+      :mode="props.mode"
+      :closable="props.closable"
+      :disabled="props.disabled"
+      :loading="props.loading"
       :caret="true"
       :append-to-body="true"
       :value-prop="'value'"
@@ -122,7 +99,7 @@ const errorMessage = computed(() => {
       }"
     />
 
-    <p v-if="hasError && errorMessage" :class="['mt-1 text-sm text-red-500', errorClass]">
+    <p v-if="hasError && errorMessage" :class="['mt-1 text-sm text-red-500', props.classes.error]">
       {{ errorMessage }}
     </p>
   </div>

@@ -2,34 +2,14 @@
 import { ref, computed } from 'vue'
 import { PhUploadSimple, PhX, PhFile } from '@phosphor-icons/vue'
 import { getErrorMessage } from '@/helpers/vuelidate'
+import type { FormFileProps, TFileItem } from './types'
 
 interface ValidationLike {
   $error: boolean
-  $errors: Array<{ $message: string | { value: string } }>
+  $errors: Array<{ $message: string }>
 }
 
-interface FileItem {
-  id: string
-  file: File
-  preview?: string
-}
-
-interface Props {
-  modelValue: FileList | File[] | null
-  label?: string
-  placeholder?: string
-  validation?: ValidationLike
-  accept?: string
-  multiple?: boolean
-  maxSize?: number // dalam MB
-  disabled?: boolean
-  labelClass?: string
-  errorClass?: string
-  wrapperClass?: string
-  dropZoneClass?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<FormFileProps>(), {
   label: '',
   placeholder: 'Drag & drop files here or click to select',
   validation: undefined,
@@ -37,25 +17,22 @@ const props = withDefaults(defineProps<Props>(), {
   multiple: false,
   maxSize: 0,
   disabled: false,
-  labelClass: '',
-  errorClass: '',
-  wrapperClass: '',
-  dropZoneClass: '',
+  classes: () => ({}),
 })
 
 const emit = defineEmits<{
   'update:modelValue': [value: File[] | null]
 }>()
 
-const files = ref<FileItem[]>([])
+const files = ref<TFileItem[]>([])
 const isDragOver = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const errorMessage = ref('')
 
-const hasError = computed(() => props.validation?.$error ?? false)
+const hasError = computed(() => (props.validation as ValidationLike)?.$error ?? false)
 const validationMessage = computed(() => {
   if (!props.validation) return ''
-  const raw = getErrorMessage(props.validation as any)
+  const raw = getErrorMessage(props.validation as ValidationLike)
   return typeof raw === 'string' ? raw : raw.value
 })
 
@@ -75,7 +52,7 @@ function addFile(file: File) {
   }
 
   errorMessage.value = ''
-  const item: FileItem = {
+  const item: TFileItem = {
     id: generateId(),
     file,
     preview: createPreview(file),
@@ -153,9 +130,9 @@ function formatFileSize(bytes: number): string {
 </script>
 
 <template>
-  <div :class="['w-full', wrapperClass]">
-    <label v-if="label" :class="['mb-1 block text-sm font-medium text-gray-700', labelClass]">
-      {{ label }}
+  <div :class="['w-full', props.classes.wrapper]">
+    <label v-if="props.label" :class="['mb-1 block text-sm font-medium text-gray-700', props.classes.label]">
+      {{ props.label }}
     </label>
 
     <div
@@ -166,8 +143,8 @@ function formatFileSize(bytes: number): string {
           : hasError
             ? 'border-red-500 hover:border-red-400'
             : 'border-gray-300 hover:border-gray-400',
-        disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
-        dropZoneClass,
+        props.disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
+        props.classes.dropZone,
       ]"
       @drop="handleDrop"
       @dragover="handleDragOver"
@@ -177,19 +154,19 @@ function formatFileSize(bytes: number): string {
       <input
         ref="fileInput"
         type="file"
-        :accept="accept"
-        :multiple="multiple"
-        :disabled="disabled"
+        :accept="props.accept"
+        :multiple="props.multiple"
+        :disabled="props.disabled"
         class="hidden"
         @change="handleFileSelect"
       />
 
       <PhUploadSimple :size="32" class="mx-auto text-gray-400" />
-      <p class="mt-2 text-sm text-gray-600">{{ placeholder }}</p>
+      <p class="mt-2 text-sm text-gray-600">{{ props.placeholder }}</p>
     </div>
 
     <!-- File List -->
-    <div v-if="files.length > 0" class="mt-2 space-y-2">
+    <div v-if="files.length > 0" :class="['mt-2 space-y-2', props.classes.fileItem]">
       <div
         v-for="item in files"
         :key="item.id"
@@ -218,7 +195,7 @@ function formatFileSize(bytes: number): string {
     </div>
 
     <!-- Error Message -->
-    <p v-if="hasError && validationMessage" :class="['mt-1 text-sm text-red-500', errorClass]">
+    <p v-if="hasError && validationMessage" :class="['mt-1 text-sm text-red-500', props.classes.error]">
       {{ validationMessage }}
     </p>
     <p v-else-if="errorMessage" class="mt-1 text-sm text-red-500">

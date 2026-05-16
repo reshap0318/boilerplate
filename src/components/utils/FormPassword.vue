@@ -1,36 +1,21 @@
 <script setup lang="ts">
-import { ref, computed, type Component } from 'vue'
+import { ref, computed } from 'vue'
 import { PhEye, PhEyeSlash } from '@phosphor-icons/vue'
 import { getErrorMessage } from '@/helpers/vuelidate'
+import type { FormPasswordProps } from './types'
 
 interface ValidationLike {
   $error: boolean
-  $errors: Array<{ $message: string | { value: string } }>
+  $errors: Array<{ $message: string }>
 }
 
-interface Props {
-  modelValue: string
-  label?: string
-  placeholder?: string
-  validation?: ValidationLike
-  leadingIcon?: Component
-  iconSize?: number
-  inputClass?: string
-  labelClass?: string
-  errorClass?: string
-  wrapperClass?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<FormPasswordProps>(), {
   label: '',
   placeholder: '',
   validation: undefined,
   leadingIcon: undefined,
   iconSize: 20,
-  inputClass: '',
-  labelClass: '',
-  errorClass: '',
-  wrapperClass: '',
+  classes: () => ({}),
 })
 
 const emit = defineEmits<{
@@ -41,10 +26,10 @@ const showPassword = ref(false)
 
 const inputType = computed(() => (showPassword.value ? 'text' : 'password'))
 
-const hasError = computed(() => props.validation?.$error ?? false)
+const hasError = computed(() => (props.validation as ValidationLike)?.$error ?? false)
 const errorMessage = computed(() => {
   if (!props.validation) return ''
-  const raw = getErrorMessage(props.validation as any)
+  const raw = getErrorMessage(props.validation as ValidationLike)
   return typeof raw === 'string' ? raw : raw.value
 })
 
@@ -57,36 +42,36 @@ function onInput(event: Event) {
 </script>
 
 <template>
-  <div :class="['w-full', wrapperClass]">
+  <div :class="['w-full', props.classes.wrapper]">
     <label
-      v-if="label"
-      :for="label"
-      :class="['mb-1 block text-sm font-medium text-gray-700', labelClass]"
+      v-if="props.label"
+      :for="props.label"
+      :class="['mb-1 block text-sm font-medium text-gray-700', props.classes.label]"
     >
-      {{ label }}
+      {{ props.label }}
     </label>
 
     <div class="relative">
       <component
-        :is="leadingIcon"
+        :is="props.leadingIcon"
         v-if="hasLeading"
-        :size="iconSize"
+        :size="props.iconSize"
         weight="regular"
         class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
       />
 
       <input
-        :id="label"
+        :id="props.label"
         :type="inputType"
-        :value="modelValue"
-        :placeholder="placeholder"
+        :value="props.modelValue"
+        :placeholder="props.placeholder"
         :class="[
           'w-full rounded-md border px-3 py-2 outline-none transition',
           'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500',
           hasError && 'border-red-500 focus:border-red-500 focus:ring-red-500',
           hasLeading && 'pl-10',
           'pr-10',
-          inputClass,
+          props.classes.input,
         ]"
         @input="onInput"
       />
@@ -101,7 +86,7 @@ function onInput(event: Event) {
       </button>
     </div>
 
-    <p v-if="hasError && errorMessage" :class="['mt-1 text-sm text-red-500', errorClass]">
+    <p v-if="hasError && errorMessage" :class="['mt-1 text-sm text-red-500', props.classes.error]">
       {{ errorMessage }}
     </p>
   </div>

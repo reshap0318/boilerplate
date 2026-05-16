@@ -1,19 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { UiButtonProps } from './types'
 
-interface Props {
-  type?: 'button' | 'submit' | 'reset'
-  disabled?: boolean
-  loading?: boolean
-  variant?: 'primary' | 'secondary' | 'danger' | 'success'
-  outline?: boolean
-  size?: 'sm' | 'md' | 'lg'
-  rounded?: 'none' | 'sm' | 'md' | 'lg' | 'full'
-  fullWidth?: boolean
-  loadingText?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<UiButtonProps>(), {
   type: 'button',
   disabled: false,
   loading: false,
@@ -69,14 +58,14 @@ const buttonClass = computed(() => {
 
 <template>
   <button
-    :type="type"
-    :disabled="disabled || loading"
+    :type="props.type"
+    :disabled="props.disabled || props.loading"
     :class="buttonClass"
   >
-    <template v-if="!loading">
+    <template v-if="!props.loading">
       <slot name="icon" />
       <slot />
     </template>
-    <span v-else>{{ loadingText }}</span>
+    <span v-else>{{ props.loadingText }}</span>
   </button>
 </template>

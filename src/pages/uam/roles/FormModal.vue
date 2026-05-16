@@ -4,9 +4,7 @@ import useVuelidate from '@vuelidate/core'
 import { useRoleStore } from '@/stores/role'
 import { usePermissionStore } from '@/stores/permission'
 import type { IPermission } from '@/stores/permission'
-import UiModal from '@/components/utils/UiModal.vue'
-import FormInput from '@/components/utils/FormInput.vue'
-import UiButton from '@/components/utils/UiButton.vue'
+import { UiModal, FormInput, UiButton } from '@/components/utils'
 
 const roleStore = useRoleStore()
 const permissionStore = usePermissionStore()
