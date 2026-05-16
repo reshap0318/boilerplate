@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
-import { 
+import {
   get,
   post,
   put,
   del,
   ApiMetadataDefaults,
   type IApiResponse,
-  type IApiMetadata 
+  type IApiMetadata,
 } from '@/plugins/axios'
 import { required, email, minLength, sameAs } from '@vuelidate/validators'
 import { IRole } from './role'

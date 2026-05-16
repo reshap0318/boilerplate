@@ -5,7 +5,14 @@ import { useUserStore } from '@/stores/user'
 import { useRoleStore } from '@/stores/role'
 import type { IRole } from '@/stores/role'
 import { required, email, minLength, helpers } from '@vuelidate/validators'
-import { UiModal, FormInput, FormPassword, FormSelect, FormAvatar, UiButton } from '@/components/utils'
+import {
+  UiModal,
+  FormInput,
+  FormPassword,
+  FormSelect,
+  FormAvatar,
+  UiButton,
+} from '@/components/utils'
 
 const userStore = useUserStore()
 const roleStore = useRoleStore()
@@ -24,7 +31,9 @@ const dynamicRules = computed(() => {
   const baseRules = {
     name: { required, minLength: minLength(2) },
     email: { required, email },
-    roles: { required: helpers.withMessage('Role wajib dipilih', (value: number[]) => value.length > 0) },
+    roles: {
+      required: helpers.withMessage('Role wajib dipilih', (value: number[]) => value.length > 0),
+    },
   }
 
   if (isEdit.value) {
@@ -45,7 +54,7 @@ const dynamicRules = computed(() => {
 const v$ = useVuelidate(dynamicRules, userStore.form)
 
 const roleOptions = computed(() => {
-  return allRoles.value.map(role => ({
+  return allRoles.value.map((role) => ({
     value: role.id,
     label: role.name,
   }))
@@ -61,14 +70,20 @@ async function loadRoles() {
   }
 }
 
-async function show(data?: { id?: number; name: string; email: string; avatar?: string | null; roles?: { id: number }[] }) {
+async function show(data?: {
+  id?: number
+  name: string
+  email: string
+  avatar?: string | null
+  roles?: { id: number }[]
+}) {
   if (data) {
     userStore.form.id = data.id
     userStore.form.name = data.name
     userStore.form.email = data.email
     userStore.form.password = ''
     userStore.form.password_confirmation = ''
-    userStore.form.roles = data.roles?.map(r => r.id) || []
+    userStore.form.roles = data.roles?.map((r) => r.id) || []
     userStore.form.avatar = null
     currentAvatar.value = data.avatar || null
   } else {
@@ -120,10 +135,7 @@ defineExpose({ show, close })
   >
     <form @submit.prevent="handleSubmit">
       <div class="space-y-4">
-        <FormAvatar
-          v-model="userStore.form.avatar"
-          :current-avatar="currentAvatar"
-        />
+        <FormAvatar v-model="userStore.form.avatar" :current-avatar="currentAvatar" />
 
         <FormInput
           v-model="userStore.form.name"

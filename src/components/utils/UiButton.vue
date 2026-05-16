@@ -15,17 +15,23 @@ const props = withDefaults(defineProps<UiButtonProps>(), {
 })
 
 const solidClasses: Record<string, string> = {
-  primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 border-2 border-transparent',
-  secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 border-2 border-transparent',
+  primary:
+    'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 border-2 border-transparent',
+  secondary:
+    'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 border-2 border-transparent',
   danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 border-2 border-transparent',
-  success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 border-2 border-transparent',
+  success:
+    'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 border-2 border-transparent',
 }
 
 const outlineClasses: Record<string, string> = {
-  primary: 'bg-transparent border-2 border-blue-600 text-blue-600 hover:bg-blue-50 focus:ring-blue-500',
-  secondary: 'bg-transparent border-2 border-gray-600 text-gray-600 hover:bg-gray-50 focus:ring-gray-500',
+  primary:
+    'bg-transparent border-2 border-blue-600 text-blue-600 hover:bg-blue-50 focus:ring-blue-500',
+  secondary:
+    'bg-transparent border-2 border-gray-600 text-gray-600 hover:bg-gray-50 focus:ring-gray-500',
   danger: 'bg-transparent border-2 border-red-600 text-red-600 hover:bg-red-50 focus:ring-red-500',
-  success: 'bg-transparent border-2 border-green-600 text-green-600 hover:bg-green-50 focus:ring-green-500',
+  success:
+    'bg-transparent border-2 border-green-600 text-green-600 hover:bg-green-50 focus:ring-green-500',
 }
 
 const sizeClasses: Record<string, string> = {
@@ -57,11 +63,7 @@ const buttonClass = computed(() => {
 </script>
 
 <template>
-  <button
-    :type="props.type"
-    :disabled="props.disabled || props.loading"
-    :class="buttonClass"
-  >
+  <button :type="props.type" :disabled="props.disabled || props.loading" :class="buttonClass">
     <template v-if="!props.loading">
       <slot name="icon" />
       <slot />

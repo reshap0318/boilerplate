@@ -45,7 +45,10 @@ const errorMessage = computed(() => {
 
 <template>
   <div :class="['w-full', props.classes.wrapper]">
-    <label v-if="props.label" :class="['mb-1 block text-sm font-medium text-gray-700', props.classes.label]">
+    <label
+      v-if="props.label"
+      :class="['mb-1 block text-sm font-medium text-gray-700', props.classes.label]"
+    >
       {{ props.label }}
     </label>
 

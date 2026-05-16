@@ -2,7 +2,15 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import type { IUser } from '@/stores/user'
-import { PhPlus, PhPencil, PhTrash, PhEnvelope, PhCalendar, PhCrown, PhDotsThreeVertical } from '@phosphor-icons/vue'
+import {
+  PhPlus,
+  PhPencil,
+  PhTrash,
+  PhEnvelope,
+  PhCalendar,
+  PhCrown,
+  PhDotsThreeVertical,
+} from '@phosphor-icons/vue'
 import swal from '@/plugins/swal'
 import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
 import FormModal from './FormModal.vue'
@@ -174,7 +182,7 @@ onUnmounted(() => {
                 >
                   <PhDotsThreeVertical class="w-5 h-5" />
                 </button>
-                
+
                 <!-- Dropdown Menu -->
                 <div
                   v-if="openMenuId === user.id"
@@ -207,7 +215,9 @@ onUnmounted(() => {
             <div class="space-y-3">
               <!-- Joined Date -->
               <div class="flex items-center gap-2 text-xs">
-                <div class="flex items-center justify-center w-6 h-6 rounded-md bg-gray-100 text-gray-500 shrink-0">
+                <div
+                  class="flex items-center justify-center w-6 h-6 rounded-md bg-gray-100 text-gray-500 shrink-0"
+                >
                   <PhCalendar class="w-3.5 h-3.5" />
                 </div>
                 <span class="text-gray-600">{{ formatDate(user.created_at) }}</span>
@@ -215,7 +225,9 @@ onUnmounted(() => {
 
               <!-- Roles -->
               <div v-if="user.roles?.length" class="flex items-center gap-2">
-                <div class="flex items-center justify-center w-6 h-6 rounded-md bg-blue-100 text-blue-600 shrink-0">
+                <div
+                  class="flex items-center justify-center w-6 h-6 rounded-md bg-blue-100 text-blue-600 shrink-0"
+                >
                   <PhCrown class="w-3.5 h-3.5" />
                 </div>
                 <div class="flex flex-wrap gap-1 min-w-0 flex-1">

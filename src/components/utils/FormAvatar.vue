@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<FormAvatarProps>(), {
 
 const emit = defineEmits<{
   'update:modelValue': [value: File | null]
-  'remove': []
+  remove: []
 }>()
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -56,7 +56,10 @@ function handleRemove() {
 
 <template>
   <div :class="['w-full', props.classes.wrapper]">
-    <label v-if="label" :class="['mb-2 block text-sm font-medium text-gray-700', props.classes.label]">
+    <label
+      v-if="label"
+      :class="['mb-2 block text-sm font-medium text-gray-700', props.classes.label]"
+    >
       {{ props.label }}
     </label>
 
@@ -114,9 +117,7 @@ function handleRemove() {
           {{ props.modelValue ? 'Ganti Avatar' : 'Upload Avatar' }}
         </button>
 
-        <p class="mt-1.5 text-xs text-gray-500">
-          JPG, PNG, GIF, WEBP. Max {{ props.maxSize }}MB
-        </p>
+        <p class="mt-1.5 text-xs text-gray-500">JPG, PNG, GIF, WEBP. Max {{ props.maxSize }}MB</p>
 
         <!-- File info -->
         <div v-if="props.modelValue" class="mt-2 flex items-center gap-2 text-xs text-gray-600">

@@ -125,7 +125,9 @@ onUnmounted(() => {
             class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-150 group/item"
             @click="close"
           >
-            <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center group-hover/item:bg-blue-100 transition-colors">
+            <div
+              class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center group-hover/item:bg-blue-100 transition-colors"
+            >
               <PhUser class="w-4 h-4 text-blue-500" />
             </div>
             <span class="font-medium">Profile</span>
@@ -135,7 +137,9 @@ onUnmounted(() => {
             class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-150 group/item"
             @click="close"
           >
-            <div class="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center group-hover/item:bg-violet-100 transition-colors">
+            <div
+              class="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center group-hover/item:bg-violet-100 transition-colors"
+            >
               <PhGear class="w-4 h-4 text-violet-500" />
             </div>
             <span class="font-medium">Settings</span>

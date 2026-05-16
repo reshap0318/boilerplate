@@ -118,18 +118,18 @@ export const useAuthStore = defineStore('auth', () => {
     await post('/auth/reset-password', { token, new_password })
   }
 
-  return { 
-    token, 
+  return {
+    token,
     refreshToken,
-    user, 
-    isLoading, 
-    form, 
-    formRules, 
-    login, 
+    user,
+    isLoading,
+    form,
+    formRules,
+    login,
     refreshTokenFn,
-    logout, 
+    logout,
     forgotPassword,
     resetPassword,
-    isAuthenticated
+    isAuthenticated,
   }
 })

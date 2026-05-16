@@ -79,9 +79,7 @@ const handleMouseLeave = () => {
       // Desktop (md+): always visible, no translate
       'md:translate-x-0',
       // Shadow: overlay shadow when collapsed+hovered, normal shadow otherwise
-      isCollapsed && isHovered
-        ? 'shadow-[4px_0_24px_rgba(0,0,0,0.4)]'
-        : 'shadow-2xl',
+      isCollapsed && isHovered ? 'shadow-[4px_0_24px_rgba(0,0,0,0.4)]' : 'shadow-2xl',
     ]"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
@@ -98,10 +96,7 @@ const handleMouseLeave = () => {
         >
           {{ appName }}
         </span>
-        <span
-          v-else
-          class="text-lg font-bold text-white"
-        >
+        <span v-else class="text-lg font-bold text-white">
           {{ appName.charAt(0) }}
         </span>
       </router-link>

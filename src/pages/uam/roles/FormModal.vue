@@ -35,12 +35,17 @@ async function loadPermissions() {
   }
 }
 
-async function show(data?: { id?: number; name: string; description: string; permissions?: { id: number }[] }) {
+async function show(data?: {
+  id?: number
+  name: string
+  description: string
+  permissions?: { id: number }[]
+}) {
   if (data) {
     roleStore.form.id = data.id
     roleStore.form.name = data.name
     roleStore.form.description = data.description || ''
-    roleStore.form.permissions = data.permissions?.map(p => p.id) || []
+    roleStore.form.permissions = data.permissions?.map((p) => p.id) || []
   } else {
     roleStore.form.id = undefined
     roleStore.form.name = ''
@@ -116,12 +121,10 @@ defineExpose({ show, close })
               Memuat permissions...
             </div>
             <template v-else>
-              <div
-                v-for="(perms, group) in groupedPermissions"
-                :key="group"
-                class="p-3"
-              >
-                <h4 class="text-sm font-bold text-gray-800 bg-gray-100 px-2 py-1 rounded mb-2">{{ group }}</h4>
+              <div v-for="(perms, group) in groupedPermissions" :key="group" class="p-3">
+                <h4 class="text-sm font-bold text-gray-800 bg-gray-100 px-2 py-1 rounded mb-2">
+                  {{ group }}
+                </h4>
                 <div class="grid grid-cols-2 gap-x-4 gap-y-1">
                   <label
                     v-for="perm in perms"
@@ -131,8 +134,8 @@ defineExpose({ show, close })
                     <input
                       type="checkbox"
                       :checked="roleStore.form.permissions.includes(perm.id)"
-                      @change="togglePermission(perm.id)"
                       class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      @change="togglePermission(perm.id)"
                     />
                     <span class="text-sm text-gray-700">{{ perm.name }}</span>
                   </label>

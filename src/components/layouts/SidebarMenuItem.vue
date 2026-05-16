@@ -30,9 +30,7 @@ function groupKey(item: IMenuItem, depth: number): string {
  */
 function isGroupActive(item: IMenuItem): boolean {
   if (!item.children) return false
-  return item.children.some(
-    (child) => route.path === child.to || isGroupActive(child),
-  )
+  return item.children.some((child) => route.path === child.to || isGroupActive(child))
 }
 
 function isGroupExpanded(item: IMenuItem, depth: number): boolean {
@@ -65,24 +63,23 @@ function isGroupExpanded(item: IMenuItem, depth: number): boolean {
         : 'px-4 py-2 rounded-lg gap-3',
     ]"
     :exact-active-class="
-      depth === 0
-        ? '!text-white !bg-white/5 sidebar-item-active'
-        : '!text-white !bg-blue-500/10'
+      depth === 0 ? '!text-white !bg-white/5 sidebar-item-active' : '!text-white !bg-blue-500/10'
     "
     @click="emit('itemClick')"
   >
     <!-- Icon only on root level -->
-    <component v-if="depth === 0 && item.icon" :is="item.icon" class="w-5 h-5 shrink-0" />
+    <component :is="item.icon" v-if="depth === 0 && item.icon" class="w-5 h-5 shrink-0" />
     <!-- Dot indicator for nested items -->
     <span
       v-if="depth > 0"
       class="w-1.5 h-1.5 rounded-full bg-current shrink-0 transition-all duration-200"
-      :class="route.path === item.to ? 'opacity-100 text-white shadow-[0_0_8px_rgba(255,255,255,0.3)]' : 'opacity-50'"
+      :class="
+        route.path === item.to
+          ? 'opacity-100 text-white shadow-[0_0_8px_rgba(255,255,255,0.3)]'
+          : 'opacity-50'
+      "
     />
-    <span
-      v-if="isExpanded"
-      :class="depth === 0 ? 'font-medium text-sm' : 'text-sm'"
-    >
+    <span v-if="isExpanded" :class="depth === 0 ? 'font-medium text-sm' : 'text-sm'">
       {{ item.label }}
     </span>
   </router-link>
@@ -106,12 +103,16 @@ function isGroupExpanded(item: IMenuItem, depth: number): boolean {
       @click="emit('toggleGroup', groupKey(item, depth))"
     >
       <!-- Icon only on root level -->
-      <component v-if="depth === 0 && item.icon" :is="item.icon" class="w-5 h-5 shrink-0" />
+      <component :is="item.icon" v-if="depth === 0 && item.icon" class="w-5 h-5 shrink-0" />
       <!-- Dot indicator for nested group headers -->
       <span
         v-if="depth > 0"
         class="w-1.5 h-1.5 rounded-full bg-current shrink-0 transition-all duration-200"
-        :class="isGroupActive(item) ? 'opacity-100 text-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]' : 'opacity-50'"
+        :class="
+          isGroupActive(item)
+            ? 'opacity-100 text-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.5)]'
+            : 'opacity-50'
+        "
       />
       <span
         v-if="isExpanded"

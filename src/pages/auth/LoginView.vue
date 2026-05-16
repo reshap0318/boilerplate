@@ -20,7 +20,8 @@ async function handleLogin() {
     swal.success('Login Berhasil')
     router.push('/')
   } catch (error: any) {
-    const message = error?.response?.data?.message || 'Login gagal, periksa kembali email dan password'
+    const message =
+      error?.response?.data?.message || 'Login gagal, periksa kembali email dan password'
     swal.error('Login Gagal', message)
   }
 }
@@ -51,20 +52,17 @@ async function handleLogin() {
           :validation="v$.password"
           :leading-icon="PhLock"
         />
-        
+
         <div class="mb-6 text-right">
-          <router-link to="/forgot-password" class="text-sm font-medium text-primary-600 hover:text-primary-700">
+          <router-link
+            to="/forgot-password"
+            class="text-sm font-medium text-primary-600 hover:text-primary-700"
+          >
             Lupa Password?
           </router-link>
         </div>
 
-        <UiButton
-          type="submit"
-          full-width
-          :loading="authStore.isLoading"
-        >
-          Login
-        </UiButton>
+        <UiButton type="submit" full-width :loading="authStore.isLoading"> Login </UiButton>
       </form>
     </UiCard>
   </div>

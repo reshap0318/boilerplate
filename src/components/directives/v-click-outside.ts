@@ -1,11 +1,11 @@
 import type { DirectiveBinding } from 'vue'
 
 interface ExtendedHTMLElement extends HTMLElement {
-  _clickOutsideHandler?: (event: MouseEvent) => void
+  _clickOutsideHandler?: (_event: MouseEvent) => void
 }
 
 export default {
-  mounted(el: ExtendedHTMLElement, binding: DirectiveBinding<(event: MouseEvent) => void>) {
+  mounted(el: ExtendedHTMLElement, binding: DirectiveBinding<(_event: MouseEvent) => void>) {
     el._clickOutsideHandler = (event: MouseEvent) => {
       if (!(el === event.target || el.contains(event.target as Node))) {
         binding.value(event)

@@ -40,7 +40,7 @@ const notifications = ref<INotificationItem[]>([
   },
 ])
 
-const unreadCount = computed(() => notifications.value.filter(n => !n.isRead).length)
+const unreadCount = computed(() => notifications.value.filter((n) => !n.isRead).length)
 
 function closeOthers() {
   window.dispatchEvent(new CustomEvent('close-dropdown', { detail: 'notification' }))
@@ -60,20 +60,20 @@ function toggle() {
 }
 
 function handleMarkRead(id: number) {
-  const notification = notifications.value.find(n => n.id === id)
+  const notification = notifications.value.find((n) => n.id === id)
   if (notification) {
     notification.isRead = true
   }
 }
 
 function handleMarkAllRead() {
-  notifications.value.forEach(n => {
+  notifications.value.forEach((n) => {
     n.isRead = true
   })
 }
 
 function handleDelete(id: number) {
-  notifications.value = notifications.value.filter(n => n.id !== id)
+  notifications.value = notifications.value.filter((n) => n.id !== id)
 }
 
 function handleDeleteAll() {
@@ -88,19 +88,27 @@ function handleClick(notification: INotificationItem) {
 
 function typeIcon(type?: string) {
   switch (type) {
-    case 'success': return PhCheck
-    case 'warning': return PhCircle
-    case 'error': return PhCircle
-    default: return PhCircle
+    case 'success':
+      return PhCheck
+    case 'warning':
+      return PhCircle
+    case 'error':
+      return PhCircle
+    default:
+      return PhCircle
   }
 }
 
 function typeColor(type?: string) {
   switch (type) {
-    case 'success': return 'bg-green-100 text-green-600'
-    case 'warning': return 'bg-yellow-100 text-yellow-600'
-    case 'error': return 'bg-red-100 text-red-600'
-    default: return 'bg-blue-100 text-blue-600'
+    case 'success':
+      return 'bg-green-100 text-green-600'
+    case 'warning':
+      return 'bg-yellow-100 text-yellow-600'
+    case 'error':
+      return 'bg-red-100 text-red-600'
+    default:
+      return 'bg-blue-100 text-blue-600'
   }
 }
 
@@ -128,10 +136,7 @@ onUnmounted(() => {
       @click.stop="toggle"
     >
       <PhBell class="h-5 w-5 text-gray-600" />
-      <span
-        v-if="unreadCount > 0"
-        class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"
-      />
+      <span v-if="unreadCount > 0" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
     </button>
 
     <Transition
@@ -153,7 +158,10 @@ onUnmounted(() => {
           <div class="flex items-center justify-between">
             <h3 class="text-sm font-semibold text-gray-900">
               Notifications
-              <span v-if="unreadCount > 0" class="ml-1.5 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-600 rounded-full">
+              <span
+                v-if="unreadCount > 0"
+                class="ml-1.5 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-600 rounded-full"
+              >
                 {{ unreadCount }}
               </span>
             </h3>
@@ -197,17 +205,26 @@ onUnmounted(() => {
             >
               <div class="flex items-start gap-3">
                 <!-- Icon -->
-                <div :class="['w-8 h-8 rounded-lg flex items-center justify-center shrink-0', typeColor(notification.type)]">
+                <div
+                  :class="[
+                    'w-8 h-8 rounded-lg flex items-center justify-center shrink-0',
+                    typeColor(notification.type),
+                  ]"
+                >
                   <component :is="typeIcon(notification.type)" class="h-4 w-4" />
                 </div>
 
                 <!-- Content -->
                 <div class="flex-1 min-w-0">
                   <div class="flex items-start justify-between gap-2">
-                    <p :class="[
-                      'text-sm truncate',
-                      !notification.isRead ? 'font-semibold text-gray-900' : 'font-medium text-gray-700',
-                    ]">
+                    <p
+                      :class="[
+                        'text-sm truncate',
+                        !notification.isRead
+                          ? 'font-semibold text-gray-900'
+                          : 'font-medium text-gray-700',
+                      ]"
+                    >
                       {{ notification.title }}
                     </p>
                     <button
@@ -226,7 +243,10 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Unread indicator -->
-                <span v-if="!notification.isRead" class="w-2 h-2 bg-blue-500 rounded-full mt-2 shrink-0" />
+                <span
+                  v-if="!notification.isRead"
+                  class="w-2 h-2 bg-blue-500 rounded-full mt-2 shrink-0"
+                />
               </div>
             </button>
           </template>

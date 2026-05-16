@@ -26,10 +26,7 @@ const props = withDefaults(defineProps<UiEmptyStateProps>(), {
         'bg-indigo-100 text-indigo-600',
       ]"
     >
-      <component
-        :is="props.icon"
-        :class="props.variant === 'compact' ? 'w-8 h-8' : 'w-10 h-10'"
-      />
+      <component :is="props.icon" :class="props.variant === 'compact' ? 'w-8 h-8' : 'w-10 h-10'" />
     </div>
     <h3
       :class="[
@@ -40,10 +37,7 @@ const props = withDefaults(defineProps<UiEmptyStateProps>(), {
     >
       {{ props.title }}
     </h3>
-    <p
-      v-if="props.description"
-      :class="['text-gray-600 mb-6', props.classes.description]"
-    >
+    <p v-if="props.description" :class="['text-gray-600 mb-6', props.classes.description]">
       {{ props.description }}
     </p>
     <slot />

@@ -154,7 +154,7 @@ onMounted(() => {
           </p>
 
           <!-- Permissions badges (pushed to bottom) -->
-          <div class="mt-auto pt-3 flex flex-wrap gap-1.5" v-if="role.permissions?.length">
+          <div v-if="role.permissions?.length" class="mt-auto pt-3 flex flex-wrap gap-1.5">
             <span
               v-for="perm in role.permissions.slice(0, 5)"
               :key="perm.id"

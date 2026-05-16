@@ -49,10 +49,7 @@ const toggleSidebar = () => {
       :class="sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'"
     >
       <!-- Top Bar -->
-      <TopBar
-        :show-hamburger="true"
-        @toggle-sidebar="toggleSidebar"
-      >
+      <TopBar :show-hamburger="true" @toggle-sidebar="toggleSidebar">
         <template #menu-icon>
           <PhList class="w-6 h-6" />
         </template>

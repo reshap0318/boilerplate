@@ -69,7 +69,10 @@ function goTo(p: number) {
   >
     <!-- Previous -->
     <button
-      :class="['inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed', props.classes.button]"
+      :class="[
+        'inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+        props.classes.button,
+      ]"
       :disabled="props.page <= 1"
       @click="goTo(props.page - 1)"
     >
@@ -80,7 +83,10 @@ function goTo(p: number) {
     <template v-for="(p, idx) in pages" :key="idx">
       <span
         v-if="p === '...'"
-        :class="['inline-flex items-center justify-center w-9 h-9 text-sm text-gray-400 select-none', props.classes.ellipsis]"
+        :class="[
+          'inline-flex items-center justify-center w-9 h-9 text-sm text-gray-400 select-none',
+          props.classes.ellipsis,
+        ]"
       >
         …
       </span>
@@ -100,7 +106,10 @@ function goTo(p: number) {
 
     <!-- Next -->
     <button
-      :class="['inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed', props.classes.button]"
+      :class="[
+        'inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+        props.classes.button,
+      ]"
       :disabled="props.page >= props.totalPages"
       @click="goTo(props.page + 1)"
     >

@@ -14,15 +14,15 @@ const authStore = useAuthStore()
 
 const formData = ref({
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
 })
 
 const rules = computed(() => ({
   password: { required, minLength: minLength(6) },
-  confirmPassword: { 
-    required, 
-    sameAsPassword: sameAs(formData.value.password) 
-  }
+  confirmPassword: {
+    required,
+    sameAsPassword: sameAs(formData.value.password),
+  },
 }))
 
 const v$ = useVuelidate(rules, formData)
@@ -67,9 +67,7 @@ async function handleResetPassword() {
     <UiCard :padded="false" :classes="{ card: 'p-8' }" class="max-w-md w-full">
       <template #header>
         <h2 class="mb-2 text-center text-2xl font-bold text-gray-800">Reset Password</h2>
-        <p class="mb-6 text-center text-sm text-gray-500">
-          Silakan masukkan kata sandi baru Anda.
-        </p>
+        <p class="mb-6 text-center text-sm text-gray-500">Silakan masukkan kata sandi baru Anda.</p>
       </template>
       <form @submit.prevent="handleResetPassword">
         <FormPassword
@@ -90,12 +88,7 @@ async function handleResetPassword() {
           :leading-icon="PhLock"
         />
 
-        <UiButton
-          type="submit"
-          full-width
-          :loading="isLoading"
-          class="mb-4"
-        >
+        <UiButton type="submit" full-width :loading="isLoading" class="mb-4">
           Simpan Kata Sandi
         </UiButton>
 

@@ -25,7 +25,7 @@ const sizeClasses: Record<TModalSize, string> = {
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  'close': []
+  close: []
 }>()
 
 function close() {
@@ -68,11 +68,16 @@ function closeFromBackdrop() {
               :class="[
                 'relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 w-full',
                 sizeClasses[props.size],
-                props.classes.container
+                props.classes.container,
               ]"
             >
               <!-- Header -->
-              <div :class="['flex items-center justify-between border-b border-gray-200 px-6 py-4', props.classes.header]">
+              <div
+                :class="[
+                  'flex items-center justify-between border-b border-gray-200 px-6 py-4',
+                  props.classes.header,
+                ]"
+              >
                 <slot name="header">
                   <h3 class="text-lg font-semibold text-gray-900">{{ props.title }}</h3>
                 </slot>
@@ -91,7 +96,13 @@ function closeFromBackdrop() {
               </div>
 
               <!-- Footer -->
-              <div v-if="$slots.footer" :class="['border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end gap-3', props.classes.footer]">
+              <div
+                v-if="$slots.footer"
+                :class="[
+                  'border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end gap-3',
+                  props.classes.footer,
+                ]"
+              >
                 <slot name="footer" />
               </div>
             </div>

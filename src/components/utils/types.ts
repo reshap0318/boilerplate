@@ -27,7 +27,18 @@ export interface UiCardProps {
 }
 
 // UiModal types
-export type TModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | '7xl' | 'full'
+export type TModalSize =
+  | 'sm'
+  | 'md'
+  | 'lg'
+  | 'xl'
+  | '2xl'
+  | '3xl'
+  | '4xl'
+  | '5xl'
+  | '6xl'
+  | '7xl'
+  | 'full'
 
 export interface UiModalClasses {
   container?: string
