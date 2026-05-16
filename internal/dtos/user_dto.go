@@ -51,6 +51,14 @@ func ToUserDTO(u *models.User) UserDTO {
 	return dto
 }
 
+// ProfileUpdateRequest represents the request to update profile.
+type ProfileUpdateRequest struct {
+	Name                 string `json:"name" validate:"required,min=2,max=100"`
+	Password             string `json:"password" validate:"omitempty,min=6"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"omitempty,eqfield=Password"`
+	Avatar               string `json:"avatar"`
+}
+
 // ToUserDTOList converts a slice of User models to UserDTOs.
 func ToUserDTOList(users []models.User) []UserDTO {
 	result := make([]UserDTO, len(users))

@@ -946,6 +946,137 @@ Get all permissions assigned to a role.
 
 **Note:** User endpoints use JSON body. To set an avatar, first upload a file via `POST /api/upload` and use the returned `uuid` as `avatar`.
 
+---
+
+## Profile Endpoints
+
+| Method | Path | Auth | Permission Required | Description |
+|--------|------|------|---------------------|-------------|
+| GET | `/api/me` | JWT | None | Get current user profile |
+| PUT | `/api/me` | JWT | None | Update current user profile |
+
+**Note:** Profile endpoints allow authenticated users to manage their own profile without requiring specific permissions. To set an avatar, first upload a file via `POST /api/upload` and use the returned `uuid` as `avatar`.
+
+### GET `/api/me`
+
+Get the authenticated user's profile information.
+
+**Headers**
+
+```
+Authorization: Bearer <token>
+```
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Profile fetched successfully",
+  "data": {
+    "id": 1,
+    "email": "john@example.com",
+    "name": "John Doe",
+    "avatar": "http://localhost:8080/storage/avatars/550e8400-e29b-41d4-a716-446655440000.jpg",
+    "created_at": "2024-01-01T00:00:00Z",
+    "roles": [
+      {
+        "id": 1,
+        "name": "admin",
+        "description": "Administrator role"
+      }
+    ],
+    "permissions": [
+      {
+        "id": 1,
+        "name": "users.create",
+        "description": "Create new users"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 401 | Unauthorized (missing/invalid token) |
+| 404 | Profile not found |
+| 500 | Internal server error |
+
+---
+
+### PUT `/api/me`
+
+Update the authenticated user's profile information.
+
+**Headers**
+
+```
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Request Body**
+
+```json
+{
+  "name": "John Doe Updated",
+  "password": "newpassword123",
+  "password_confirmation": "newpassword123",
+  "avatar": "660e8400-e29b-41d4-a716-446655440001"
+}
+```
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| `name` | string | Yes | 2-100 characters |
+| `password` | string | No | Min 6 characters (empty = no change) |
+| `password_confirmation` | string | No | Must match password if provided |
+| `avatar` | string | No | UUID from upload endpoint |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Profile updated successfully",
+  "data": {
+    "id": 1,
+    "email": "john@example.com",
+    "name": "John Doe Updated",
+    "avatar": "http://localhost:8080/storage/avatars/660e8400-e29b-41d4-a716-446655440001.png",
+    "created_at": "2024-01-01T00:00:00Z",
+    "roles": [
+      {
+        "id": 1,
+        "name": "admin",
+        "description": "Administrator role"
+      }
+    ],
+    "permissions": [
+      {
+        "id": 1,
+        "name": "users.create",
+        "description": "Create new users"
+      }
+    ]
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 401 | Unauthorized (missing/invalid token) |
+| 404 | Profile not found |
+| 422 | Validation error |
+| 500 | Internal server error |
+
+---
+
 ### POST `/api/users`
 
 Create a new user with roles.

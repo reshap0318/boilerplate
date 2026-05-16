@@ -137,6 +137,85 @@ func (s *Services) UserGetByID(ctx context.Context, id uint) (*dtos.UserDTO, err
 	return &dto, nil
 }
 
+// ProfileGet returns the authenticated user's profile.
+func (s *Services) ProfileGet(ctx context.Context, userID uint) (*dtos.UserDTO, error) {
+	s.Logger.LogStart("ProfileGet", "Fetching profile for user ID: %d", userID)
+
+	user, err := s.repo.User.FindByID(nil, userID, "Roles")
+	if err != nil {
+		s.Logger.LogEndWithError("ProfileGet", "User not found: %v", err)
+		return nil, helpers.ErrNotFound
+	}
+
+	dto := dtos.ToUserDTO(user)
+	s.Logger.LogEnd("ProfileGet", "Profile fetched for user: %s", dto.Email)
+	return &dto, nil
+}
+
+// ProfileUpdate updates the authenticated user's profile.
+func (s *Services) ProfileUpdate(ctx context.Context, userID uint, req dtos.ProfileUpdateRequest) (*dtos.UserDTO, error) {
+	s.Logger.LogStart("ProfileUpdate", "Updating profile for user ID: %d", userID)
+
+	existing, err := s.repo.User.FindByID(nil, userID)
+	if err != nil {
+		s.Logger.LogEndWithError("ProfileUpdate", "User not found: %v", err)
+		return nil, helpers.ErrNotFound
+	}
+
+	updates := map[string]interface{}{
+		"name": req.Name,
+	}
+	if req.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			s.Logger.LogEndWithError("ProfileUpdate", "Failed to hash password: %v", err)
+			return nil, err
+		}
+		updates["password"] = string(hashedPassword)
+	}
+
+	oldAvatar := ""
+	if req.Avatar != "" {
+		avatarPath, err := helpers.MoveFile(req.Avatar, "storage/tmp", "storage/avatars")
+		if err != nil {
+			s.Logger.LogStep("ProfileUpdate", "Failed to move avatar: %v", err)
+		} else {
+			updates["avatar"] = avatarPath
+			oldAvatar = existing.Avatar
+		}
+	}
+
+	res, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
+		result, err := s.repo.User.UpdateMap(tx, &models.User{ID: userID}, updates)
+		if err != nil {
+			return nil, err
+		}
+
+		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
+		if err != nil {
+			return nil, err
+		}
+
+		return reloaded, nil
+	})
+	if err != nil {
+		s.Logger.LogEndWithError("ProfileUpdate", "Failed to update profile: %v", err)
+		return nil, err
+	}
+
+	if oldAvatar != "" {
+		helpers.DeleteFile(oldAvatar)
+	}
+
+	result := res.(*models.User)
+	dto := dtos.ToUserDTO(result)
+
+	s.Access.Invalidate(userID)
+
+	s.Logger.LogEnd("ProfileUpdate", "Profile updated for user: %s", dto.Email)
+	return &dto, nil
+}
+
 // UserUpdate updates an existing user with optional roles.
 func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateRequest) (*dtos.UserDTO, error) {
 	s.Logger.LogStart("UserUpdate", "Updating user ID: %d", id)
