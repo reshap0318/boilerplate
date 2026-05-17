@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import FormModal from './FormModal.vue'
+
 import { ref, onMounted } from 'vue'
 import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
-import FormModal from './FormModal.vue'
 import { usePermissionStore, type IPermission } from '@/stores'
 import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
-import swal from '@/plugins/swal'
 
 const permissionStore = usePermissionStore()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)
@@ -18,22 +18,15 @@ function openEdit(permission: IPermission) {
 }
 
 async function handleDelete(id: number) {
-  const result = await swal.warning(
-    'Hapus Permission',
-    'Apakah Anda yakin ingin menghapus permission ini? Tindakan ini tidak dapat dibatalkan.',
-  )
-
-  if (result.isConfirmed) {
-    await permissionStore.deletePermission(id)
-  }
+  await permissionStore.remove(id)
 }
 
 function handlePageChange(page: number) {
-  permissionStore.fetchPermissions(page)
+  permissionStore.fetchAll(page)
 }
 
 onMounted(() => {
-  permissionStore.fetchPermissions()
+  permissionStore.fetchAll()
 })
 </script>
 
@@ -69,7 +62,7 @@ onMounted(() => {
 
     <!-- Empty State -->
     <UiEmptyState
-      v-else-if="permissionStore.indexData.permissions.length === 0"
+      v-else-if="permissionStore.indexData.items.length === 0"
       :icon="PhPlus"
       title="Belum ada Permission"
       description="Silakan buat permission baru untuk mulai mengatur hak akses sistem."
@@ -86,7 +79,7 @@ onMounted(() => {
     <!-- Data List -->
     <div v-else class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       <UiCard
-        v-for="permission in permissionStore.indexData.permissions"
+        v-for="permission in permissionStore.indexData.items"
         :key="permission.id"
         class="group hover:shadow-md transition-shadow"
       >

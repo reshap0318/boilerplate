@@ -3,7 +3,6 @@ import { ref, onMounted } from 'vue'
 import { useRoleStore } from '@/stores/role'
 import type { IRole } from '@/stores/role'
 import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
-import swal from '@/plugins/swal'
 import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
 import FormModal from './FormModal.vue'
 
@@ -40,22 +39,15 @@ function openEdit(role: IRole) {
 }
 
 async function handleDelete(id: number) {
-  const result = await swal.warning(
-    'Hapus Role',
-    'Apakah Anda yakin ingin menghapus role ini? Tindakan ini tidak dapat dibatalkan.',
-  )
-
-  if (result.isConfirmed) {
-    await roleStore.deleteRole(id)
-  }
+  await roleStore.remove(id)
 }
 
 function handlePageChange(page: number) {
-  roleStore.fetchRoles(page)
+  roleStore.fetchAll(page)
 }
 
 onMounted(() => {
-  roleStore.fetchRoles()
+  roleStore.fetchAll()
 })
 </script>
 
@@ -89,7 +81,7 @@ onMounted(() => {
 
     <!-- Empty State -->
     <UiEmptyState
-      v-else-if="roleStore.indexData.roles.length === 0"
+      v-else-if="roleStore.indexData.items.length === 0"
       :icon="PhPlus"
       title="Belum ada Role"
       description="Silakan buat role baru untuk mulai mengatur hak akses sistem."
@@ -106,7 +98,7 @@ onMounted(() => {
     <template v-else>
       <div class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <UiCard
-          v-for="(role, index) in roleStore.indexData.roles"
+          v-for="(role, index) in roleStore.indexData.items"
           :key="role.id"
           :classes="{
             wrapper: 'group hover:shadow-md transition-shadow h-full',

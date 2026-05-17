@@ -11,7 +11,6 @@ import {
   PhCrown,
   PhDotsThreeVertical,
 } from '@phosphor-icons/vue'
-import swal from '@/plugins/swal'
 import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
 import FormModal from './FormModal.vue'
 
@@ -56,14 +55,7 @@ function openEdit(user: IUser) {
 
 async function handleDelete(id: number) {
   openMenuId.value = null
-  const result = await swal.warning(
-    'Hapus User',
-    'Apakah Anda yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan.',
-  )
-
-  if (result.isConfirmed) {
-    await userStore.deleteUser(id)
-  }
+  await userStore.remove(id)
 }
 
 function toggleMenu(userId: number, event: Event) {
@@ -76,11 +68,11 @@ function handleClickOutside() {
 }
 
 function handlePageChange(page: number) {
-  userStore.fetchUsers(page)
+  userStore.fetchAll(page)
 }
 
 onMounted(() => {
-  userStore.fetchUsers()
+  userStore.fetchAll()
   document.addEventListener('click', handleClickOutside)
 })
 
@@ -119,7 +111,7 @@ onUnmounted(() => {
 
     <!-- Empty State -->
     <UiEmptyState
-      v-else-if="userStore.indexData.users.length === 0"
+      v-else-if="userStore.indexData.items.length === 0"
       :icon="PhPlus"
       title="Belum ada User"
       description="Silakan buat user baru untuk mulai mengelola akses pengguna."
@@ -136,7 +128,7 @@ onUnmounted(() => {
     <template v-else>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <UiCard
-          v-for="(user, index) in userStore.indexData.users"
+          v-for="(user, index) in userStore.indexData.items"
           :key="user.id"
           :classes="{
             wrapper: 'h-full relative',

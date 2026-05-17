@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
 import useVuelidate from '@vuelidate/core'
+
+import { computed, ref } from 'vue'
 import { usePermissionStore } from '@/stores/permission'
 import { UiModal, FormInput, UiButton } from '@/components/utils'
 
@@ -16,9 +17,7 @@ function show(data?: { id?: number; name: string; description: string }) {
     permissionStore.form.name = data.name
     permissionStore.form.description = data.description || ''
   } else {
-    permissionStore.form.id = undefined
-    permissionStore.form.name = ''
-    permissionStore.form.description = ''
+    permissionStore.resetForm()
   }
   v$.value.$reset()
   isVisible.value = true
@@ -34,9 +33,9 @@ async function handleSubmit() {
 
   try {
     if (isEdit.value && permissionStore.form.id) {
-      await permissionStore.updatePermission(permissionStore.form.id)
+      await permissionStore.update(permissionStore.form.id)
     } else {
-      await permissionStore.createPermission()
+      await permissionStore.create()
     }
   } finally {
     close()

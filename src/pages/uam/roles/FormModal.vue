@@ -47,10 +47,7 @@ async function show(data?: {
     roleStore.form.description = data.description || ''
     roleStore.form.permissions = data.permissions?.map((p) => p.id) || []
   } else {
-    roleStore.form.id = undefined
-    roleStore.form.name = ''
-    roleStore.form.description = ''
-    roleStore.form.permissions = []
+    roleStore.resetForm()
   }
   v$.value.$reset()
   isVisible.value = true
@@ -66,9 +63,9 @@ async function handleSubmit() {
 
   try {
     if (isEdit.value && roleStore.form.id) {
-      await roleStore.updateRole(roleStore.form.id)
+      await roleStore.update(roleStore.form.id)
     } else {
-      await roleStore.createRole()
+      await roleStore.create()
     }
   } finally {
     close()

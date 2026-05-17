@@ -110,9 +110,9 @@ async function handleSubmit() {
 
   try {
     if (isEdit.value && userStore.form.id) {
-      await userStore.updateUser(userStore.form.id)
+      await userStore.update(userStore.form.id)
     } else {
-      await userStore.createUser()
+      await userStore.create()
     }
   } finally {
     close()

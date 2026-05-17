@@ -26,11 +26,9 @@ export interface IProfilePayload {
   avatar: File | null
 }
 
-type TLoadingKey = 'Fetch' | 'Update'
-
 export const useProfileStore = defineStore('profile', () => {
   const profile = ref<IProfile | null>(null)
-  const loading = ref<Record<TLoadingKey, boolean>>({
+  const loading = ref<Record<string, boolean>>({
     Fetch: false,
     Update: false,
   })
@@ -75,22 +73,19 @@ export const useProfileStore = defineStore('profile', () => {
   async function updateProfile() {
     loading.value.Update = true
     try {
-      let avatarUuid: string | null = null
-      if (form.avatar) {
-        const uploaded = await uploadFile(form.avatar)
-        avatarUuid = uploaded.uuid
-      }
-
-      const payload: any = {
+      const payload: Record<string, any> = {
         name: form.name,
         email: form.email,
       }
+
+      if (form.avatar) {
+        const uploaded = await uploadFile(form.avatar)
+        payload.avatar = uploaded.uuid
+      }
+
       if (form.password) {
         payload.password = form.password
         payload.password_confirmation = form.password_confirmation
-      }
-      if (avatarUuid) {
-        payload.avatar = avatarUuid
       }
 
       const { data } = await put<IApiResponse<IProfile>>('/me', payload)
