@@ -423,6 +423,148 @@ Call `s.Access.Invalidate(userID)` when user's roles/permissions change.
 
 ---
 
+## 📢 Notification Rules
+
+> 🔔 **Rule**: Every transaction Create, Update, Delete operation MUST create a notification for the affected user.
+
+### Notification Service — `s.NotificationCreate()`
+
+```go
+s.NotificationCreate(&services.NotificationCreateParams{
+    UserID:  userID,
+    Type:    "info",           // info, warning, success, error
+    Title:   "Title here",
+    Message: "Message here",
+    Data:    map[string]interface{}{"key": "value"}, // optional
+})
+```
+
+### When to Create Notifications
+
+| Operation | Must Notify? | Example |
+|-----------|--------------|---------|
+| CREATE | ✅ YES | "New record created: {name}" |
+| UPDATE | ✅ YES | "Record updated: {name}" |
+| DELETE | ✅ YES | "Record deleted: {name}" |
+| GET (simple) | ❌ NO | |
+| GET (complex) | ❌ NO | |
+
+### Example — CREATE with Notification
+
+```go
+func (s *Services) UserCreate(ctx context.Context, req *dtos.UserRequest) (*models.User, error) {
+    s.Logger.LogStart("UserCreate", "Creating user: %s", req.Email)
+
+    var result *models.User
+    err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+        user := &models.User{Email: req.Email, Name: req.Name}
+        var err error
+        result, err = s.repo.User.Create(tx, user)
+        if err != nil {
+            return err
+        }
+
+        // Create notification after successful operation
+        _ = s.NotificationCreate(&services.NotificationCreateParams{
+            UserID:  result.ID,
+            Type:    "success",
+            Title:   "Account Created",
+            Message: fmt.Sprintf("Welcome %s! Your account has been created.", result.Name),
+        })
+
+        return nil
+    })
+    if err != nil {
+        s.Logger.LogEndWithError("UserCreate", "Failed: %v", err)
+        return nil, err
+    }
+
+    s.Logger.LogEnd("UserCreate", "User created: %s (ID: %d)", req.Email, result.ID)
+    return result, nil
+}
+```
+
+### Example — UPDATE with Notification
+
+```go
+func (s *Services) UserUpdate(ctx context.Context, id uint, req *dtos.UserRequest) (*models.User, error) {
+    s.Logger.LogStart("UserUpdate", "Updating user %d", id)
+
+    var result *models.User
+    err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+        var err error
+        result, err = s.repo.User.Update(tx, &models.User{ID: id}, &models.User{Name: req.Name})
+        if err != nil {
+            return err
+        }
+
+        // Create notification after successful operation
+        _ = s.NotificationCreate(&services.NotificationCreateParams{
+            UserID:  result.ID,
+            Type:    "info",
+            Title:   "Profile Updated",
+            Message: "Your profile has been updated successfully.",
+        })
+
+        return nil
+    })
+    if err != nil {
+        s.Logger.LogEndWithError("UserUpdate", "Failed: %v", err)
+        return nil, err
+    }
+
+    s.Logger.LogEnd("UserUpdate", "User %d updated", id)
+    return result, nil
+}
+```
+
+### Example — DELETE with Notification
+
+```go
+func (s *Services) UserDelete(ctx context.Context, id uint) error {
+    s.Logger.LogStart("UserDelete", "Deleting user %d", id)
+
+    err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+        user, err := s.repo.User.FindByID(nil, id)
+        if err != nil {
+            return err
+        }
+
+        _, err = s.repo.User.Delete(tx, id)
+        if err != nil {
+            return err
+        }
+
+        // Create notification before deletion completes
+        _ = s.NotificationCreate(&services.NotificationCreateParams{
+            UserID:  user.ID,
+            Type:    "warning",
+            Title:   "Account Deleted",
+            Message: "Your account has been deleted.",
+        })
+
+        return nil
+    })
+    if err != nil {
+        s.Logger.LogEndWithError("UserDelete", "Failed: %v", err)
+        return err
+    }
+
+    s.Logger.LogEnd("UserDelete", "User %d deleted", id)
+    return nil
+}
+```
+
+### Important Notes
+
+1. **Notification errors should NOT fail the transaction** — use `_ = s.NotificationCreate(...)` to ignore errors
+2. **Notification is created INSIDE the transaction** — so it rolls back if the main operation fails
+3. **UserID** — use the affected user's ID (the record owner, not necessarily the caller)
+4. **Type values** — `info`, `warning`, `success`, `error`
+5. **Data field** — optional, use for additional context (e.g., record ID, old values)
+
+---
+
 ## Creating New Helpers
 
 > 💡 **Rule of Thumb**: If a function can be used in more than 1 place, make it a helper!
@@ -494,6 +636,7 @@ type Handlers struct {
 - [ ] Write operations use `TxManager.WithinTransaction()` or `WithinTransactionWithResult()`
 - [ ] Read operations use `nil` parameter
 - [ ] CREATE/UPDATE/DELETE have logging
+- [ ] CREATE/UPDATE/DELETE create notifications via `s.NotificationCreate()`
 - [ ] Repository registered in `00_repository.go`
 - [ ] Routes registered in `cmd/api/main.go`
 - [ ] Handler uses `c.BindJSON()` + `h.Validate.Struct()` (NOT `ShouldBindJSON`)
