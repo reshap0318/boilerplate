@@ -1,10 +1,4 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
-import useVuelidate from '@vuelidate/core'
-import { useUserStore } from '@/stores/user'
-import { useRoleStore } from '@/stores/role'
-import type { IRole } from '@/stores/role'
-import { required, email, minLength, helpers } from '@vuelidate/validators'
 import {
   UiModal,
   FormInput,
@@ -13,6 +7,13 @@ import {
   FormAvatar,
   UiButton,
 } from '@/components/utils'
+
+import { computed, ref, onMounted } from 'vue'
+import useVuelidate from '@vuelidate/core'
+import { required, email, minLength, helpers } from '@vuelidate/validators'
+import { useUserStore } from '@/stores/user'
+import { useRoleStore } from '@/stores/role'
+import type { IRole } from '@/stores/role'
 
 const userStore = useUserStore()
 const roleStore = useRoleStore()
@@ -139,6 +140,7 @@ defineExpose({ show, close })
 
         <FormInput
           v-model="userStore.form.name"
+          name="name"
           label="Nama"
           placeholder="John Doe"
           :validation="v$.name"
@@ -146,6 +148,7 @@ defineExpose({ show, close })
 
         <FormInput
           v-model="userStore.form.email"
+          name="email"
           label="Email"
           type="email"
           placeholder="john@example.com"
@@ -154,6 +157,7 @@ defineExpose({ show, close })
 
         <FormPassword
           v-model="userStore.form.password"
+          name="password"
           label="Password"
           :placeholder="isEdit ? 'Kosongkan jika tidak ingin mengubah' : 'password123'"
           :validation="v$.password"
@@ -161,6 +165,7 @@ defineExpose({ show, close })
 
         <FormPassword
           v-model="userStore.form.password_confirmation"
+          name="password_confirmation"
           label="Konfirmasi Password"
           placeholder="password123"
           :validation="v$.password_confirmation"
@@ -168,6 +173,7 @@ defineExpose({ show, close })
 
         <FormSelect
           v-model="userStore.form.roles"
+          name="roles"
           label="Roles"
           :options="roleOptions"
           placeholder="Pilih role..."

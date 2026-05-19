@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { FormInput, FormPassword, UiButton, UiCard } from '@/components/utils'
+
 import useVuelidate from '@vuelidate/core'
-import swal from '@/plugins/swal'
-import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { PhEnvelope } from '@phosphor-icons/vue'
-import { FormInput, FormPassword, UiButton, UiCard } from '@/components/utils'
+import swal from '@/plugins/swal'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -36,6 +37,7 @@ async function handleLogin() {
       <form @submit.prevent="handleLogin">
         <FormInput
           v-model="authStore.form.email"
+          name="email"
           label="Email"
           type="email"
           class="mb-4"
@@ -46,6 +48,7 @@ async function handleLogin() {
 
         <FormPassword
           v-model="authStore.form.password"
+          name="password"
           label="Password"
           placeholder="••••••••"
           class="mb-2"

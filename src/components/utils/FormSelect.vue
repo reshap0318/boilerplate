@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import Multiselect from '@vueform/multiselect'
-import { getErrorMessage } from '@/helpers/vuelidate'
+import FormError from './FormError.vue'
 import type { FormSelectProps, TSelectOption } from './types'
 
-interface ValidationLike {
-  $error: boolean
-  $errors: Array<{ $message: string }>
-}
+import { computed } from 'vue'
+import type { ValidationLike } from '@/helpers/vuelidate'
 
 const props = withDefaults(defineProps<FormSelectProps>(), {
+  name: '',
   label: '',
   options: () => [],
   placeholder: 'Select...',
@@ -33,13 +31,6 @@ const internalValue = computed({
     emit('update:modelValue', value)
     emit('change', value)
   },
-})
-
-const hasError = computed(() => (props.validation as ValidationLike)?.$error ?? false)
-const errorMessage = computed(() => {
-  if (!props.validation) return ''
-  const raw = getErrorMessage(props.validation as ValidationLike)
-  return typeof raw === 'string' ? raw : raw.value
 })
 </script>
 
@@ -102,9 +93,11 @@ const errorMessage = computed(() => {
       }"
     />
 
-    <p v-if="hasError && errorMessage" :class="['mt-1 text-sm text-red-500', props.classes.error]">
-      {{ errorMessage }}
-    </p>
+    <FormError
+      :name="props.name || undefined"
+      :validation="props.validation as ValidationLike"
+      :classes="{ error: props.classes.error }"
+    />
   </div>
 </template>
 

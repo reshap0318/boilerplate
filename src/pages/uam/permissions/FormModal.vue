@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import useVuelidate from '@vuelidate/core'
+import { UiModal, FormInput, UiButton } from '@/components/utils'
 
+import useVuelidate from '@vuelidate/core'
 import { computed, ref } from 'vue'
 import { usePermissionStore } from '@/stores/permission'
-import { UiModal, FormInput, UiButton } from '@/components/utils'
 
 const permissionStore = usePermissionStore()
 const v$ = useVuelidate(permissionStore.formRules, permissionStore.form)
@@ -56,6 +56,7 @@ defineExpose({ show, close })
       <div class="space-y-4">
         <FormInput
           v-model="permissionStore.form.name"
+          name="name"
           label="Nama Permission"
           placeholder="e.g. users.index"
           :validation="v$.name"
@@ -63,6 +64,7 @@ defineExpose({ show, close })
 
         <FormInput
           v-model="permissionStore.form.description"
+          name="description"
           label="Deskripsi (opsional)"
           placeholder="Melihat daftar pengguna"
           :validation="v$.description"

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { UiButton, UiModal, FormInput, FormPassword, FormAvatar } from '@/components/utils'
+
 import { ref, onMounted } from 'vue'
 import useVuelidate from '@vuelidate/core'
 import {
@@ -9,7 +11,6 @@ import {
   PhLock,
   PhUploadSimple,
 } from '@phosphor-icons/vue'
-import { UiButton, UiModal, FormInput, FormPassword, FormAvatar } from '@/components/utils'
 import { useProfileStore } from '@/stores'
 
 const profileStore = useProfileStore()
@@ -255,6 +256,7 @@ function getInitials(name: string): string {
         <!-- Name -->
         <FormInput
           v-model="profileStore.form.name"
+          name="name"
           label="Nama"
           placeholder="Masukkan nama"
           :prefix-icon="PhUser"
@@ -264,6 +266,7 @@ function getInitials(name: string): string {
         <!-- Email -->
         <FormInput
           v-model="profileStore.form.email"
+          name="email"
           label="Email"
           placeholder="Masukkan email"
           :prefix-icon="PhEnvelope"
@@ -291,6 +294,7 @@ function getInitials(name: string): string {
 
         <FormPassword
           v-model="passwordForm.password"
+          name="password"
           label="Password Baru"
           placeholder="Masukkan password baru"
           :validation="vPassword$.password"
@@ -298,6 +302,7 @@ function getInitials(name: string): string {
 
         <FormPassword
           v-model="passwordForm.password_confirmation"
+          name="password_confirmation"
           label="Konfirmasi Password"
           placeholder="Masukkan ulang password"
           :validation="vPassword$.password_confirmation"

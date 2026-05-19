@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import { PhUploadSimple, PhX, PhFile } from '@phosphor-icons/vue'
-import { getErrorMessage } from '@/helpers/vuelidate'
+import FormError from './FormError.vue'
 import type { FormFileProps, TFileItem } from './types'
 
-interface ValidationLike {
-  $error: boolean
-  $errors: Array<{ $message: string }>
-}
+import { ref, computed } from 'vue'
+import type { ValidationLike } from '@/helpers/vuelidate'
 
 const props = withDefaults(defineProps<FormFileProps>(), {
+  name: '',
   label: '',
   placeholder: 'Drag & drop files here or click to select',
   validation: undefined,
@@ -30,11 +28,6 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const errorMessage = ref('')
 
 const hasError = computed(() => (props.validation as ValidationLike)?.$error ?? false)
-const validationMessage = computed(() => {
-  if (!props.validation) return ''
-  const raw = getErrorMessage(props.validation as ValidationLike)
-  return typeof raw === 'string' ? raw : raw.value
-})
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9)
@@ -201,13 +194,12 @@ function formatFileSize(bytes: number): string {
     </div>
 
     <!-- Error Message -->
-    <p
-      v-if="hasError && validationMessage"
-      :class="['mt-1 text-sm text-red-500', props.classes.error]"
-    >
-      {{ validationMessage }}
-    </p>
-    <p v-else-if="errorMessage" class="mt-1 text-sm text-red-500">
+    <FormError
+      :name="props.name || undefined"
+      :validation="props.validation as ValidationLike"
+      :classes="{ error: props.classes.error }"
+    />
+    <p v-if="errorMessage" class="mt-1 text-sm text-red-500">
       {{ errorMessage }}
     </p>
   </div>

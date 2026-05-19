@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import { PhUploadSimple, PhX } from '@phosphor-icons/vue'
 import type { FormAvatarProps } from './types'
+
+import { ref, computed } from 'vue'
 
 const props = withDefaults(defineProps<FormAvatarProps>(), {
   currentAvatar: null,

@@ -140,6 +140,7 @@ export interface FormSelectClasses {
 
 export interface FormSelectProps {
   modelValue: any
+  name?: string
   label?: string
   options?: TSelectOption[] | string[]
   placeholder?: string
@@ -187,6 +188,7 @@ export interface FormFileClasses {
 
 export interface FormFileProps {
   modelValue: FileList | File[] | null
+  name?: string
   label?: string
   placeholder?: string
   validation?: object
