@@ -10,6 +10,7 @@ type Repositories struct {
 	Role          *RoleRepository
 	RoleHasPerm   *RoleHasPermissionRepository
 	UserRole      *UserRoleRepository
+	Notification  *NotificationRepository
 }
 
 func NewRepositories(db *gorm.DB) (*Repositories, error) {
@@ -20,6 +21,7 @@ func NewRepositories(db *gorm.DB) (*Repositories, error) {
 	roleRepo := NewRoleRepository(db)
 	roleHasPermRepo := NewRoleHasPermissionRepository(db)
 	userRoleRepo := NewUserRoleRepository(db)
+	notificationRepo := NewNotificationRepository(db)
 
 	return &Repositories{
 		TxManager:     txManager,
@@ -29,5 +31,6 @@ func NewRepositories(db *gorm.DB) (*Repositories, error) {
 		Role:          roleRepo,
 		RoleHasPerm:   roleHasPermRepo,
 		UserRole:      userRoleRepo,
+		Notification:  notificationRepo,
 	}, nil
 }

@@ -88,6 +88,7 @@ func runMigration(db *gorm.DB, command string) {
 			&models.Role{},
 			&models.RoleHasPermission{},
 			&models.UserHasRole{},
+			&models.Notification{},
 		)
 		if err != nil {
 			log.Fatalf("Migration failed: %v", err)
@@ -100,6 +101,7 @@ func runMigration(db *gorm.DB, command string) {
 
 		// Drop tables in correct order (foreign key constraints)
 		err := db.Migrator().DropTable(
+			&models.Notification{},
 			&models.UserHasRole{},
 			&models.RoleHasPermission{},
 			&models.Role{},

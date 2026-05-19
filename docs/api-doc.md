@@ -1393,6 +1393,236 @@ Soft delete a user.
 
 ---
 
+## Notifications Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/notifications` | JWT | List notifications (paginated, default page 1) |
+| GET | `/api/notifications/unread-count` | JWT | Get unread notification count |
+| GET | `/api/notifications/:id` | JWT | Get notification by ID |
+| PATCH | `/api/notifications/:id/read` | JWT | Mark notification as read |
+| PATCH | `/api/notifications/mark-all-read` | JWT | Mark all notifications as read |
+| DELETE | `/api/notifications/:id` | JWT | Delete notification |
+
+**Note:** All notification endpoints return only the authenticated user's own notifications. No additional permission required beyond authentication.
+
+### GET `/api/notifications`
+
+List notifications for the authenticated user. Always returns paginated results.
+
+**Query Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `page` | integer | No | Page number (default: 1) |
+| `page_size` | integer | No | Items per page (default: 10) |
+| `is_read` | string | No | Filter by read status: `true` or `false` |
+| `type` | string | No | Filter by notification type (e.g., `order_completed`) |
+
+**Example Request**
+
+```
+GET /api/notifications?page=1&page_size=10&is_read=false&type=order_completed
+```
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Notifications fetched successfully",
+  "data": [
+    {
+      "id": 1,
+      "user_id": 5,
+      "type": "order_completed",
+      "title": "Order Completed",
+      "message": "Your order #123 has been completed",
+      "data": "{\"order_id\":123,\"total\":99.99}",
+      "read_at": null,
+      "created_at": "2024-01-15T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "user_id": 5,
+      "type": "password_changed",
+      "title": "Password Changed",
+      "message": "Your password has been changed successfully",
+      "data": null,
+      "read_at": "2024-01-15T11:00:00Z",
+      "created_at": "2024-01-14T09:00:00Z"
+    }
+  ],
+  "metadata": {
+    "total": 25,
+    "page": 1,
+    "page_size": 10,
+    "total_pages": 3
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 401 | Unauthorized (missing/invalid token) |
+| 500 | Internal server error |
+
+---
+
+### GET `/api/notifications/unread-count`
+
+Get the count of unread notifications for the authenticated user.
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Unread count fetched successfully",
+  "data": {
+    "unread_count": 5
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 401 | Unauthorized (missing/invalid token) |
+| 500 | Internal server error |
+
+---
+
+### GET `/api/notifications/:id`
+
+Get a single notification by ID. Only returns the notification if it belongs to the authenticated user.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | Notification ID |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Notification fetched successfully",
+  "data": {
+    "id": 1,
+    "user_id": 5,
+    "type": "order_completed",
+    "title": "Order Completed",
+    "message": "Your order #123 has been completed",
+    "data": "{\"order_id\":123,\"total\":99.99}",
+    "read_at": null,
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid notification ID |
+| 401 | Unauthorized (missing/invalid token) |
+| 403 | You don't have access to this notification |
+| 404 | Notification not found |
+| 500 | Internal server error |
+
+---
+
+### PATCH `/api/notifications/:id/read`
+
+Mark a single notification as read. Only works for notifications belonging to the authenticated user.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | Notification ID |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Notification marked as read",
+  "data": null
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid notification ID |
+| 401 | Unauthorized (missing/invalid token) |
+| 404 | Notification not found |
+| 500 | Internal server error |
+
+---
+
+### PATCH `/api/notifications/mark-all-read`
+
+Mark all unread notifications as read for the authenticated user.
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "All notifications marked as read",
+  "data": null
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 401 | Unauthorized (missing/invalid token) |
+| 500 | Internal server error |
+
+---
+
+### DELETE `/api/notifications/:id`
+
+Soft delete a notification. Only works for notifications belonging to the authenticated user.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | Notification ID |
+
+**Response (200 OK)**
+
+```json
+{
+  "code": 200,
+  "message": "Notification deleted successfully",
+  "data": null
+}
+```
+
+**Error Responses**
+
+| Status | Message |
+|--------|---------|
+| 400 | Invalid notification ID |
+| 401 | Unauthorized (missing/invalid token) |
+| 403 | You don't have access to this notification |
+| 404 | Notification not found |
+| 500 | Internal server error |
+
+---
+
 ## HTTP Status Codes
 
 | Code | Description |
