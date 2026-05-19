@@ -1,20 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import FormError from './FormError.vue'
 import { PhEye, PhEyeSlash } from '@phosphor-icons/vue'
-import { getErrorMessage } from '@/helpers/vuelidate'
 import type { FormPasswordProps } from './types'
 
-interface ValidationLike {
-  $error: boolean
-  $errors: Array<{ $message: string }>
-}
+import { ref, computed } from 'vue'
+import type { ValidationLike } from '@/helpers/vuelidate'
 
 const props = withDefaults(defineProps<FormPasswordProps>(), {
+  name: '',
   label: '',
   placeholder: '',
   validation: undefined,
-  leadingIcon: undefined,
-  iconSize: 20,
   classes: () => ({}),
 })
 
@@ -27,13 +23,6 @@ const showPassword = ref(false)
 const inputType = computed(() => (showPassword.value ? 'text' : 'password'))
 
 const hasError = computed(() => (props.validation as ValidationLike)?.$error ?? false)
-const errorMessage = computed(() => {
-  if (!props.validation) return ''
-  const raw = getErrorMessage(props.validation as ValidationLike)
-  return typeof raw === 'string' ? raw : raw.value
-})
-
-const hasLeading = computed(() => !!props.leadingIcon)
 
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement
@@ -52,14 +41,6 @@ function onInput(event: Event) {
     </label>
 
     <div class="relative">
-      <component
-        :is="props.leadingIcon"
-        v-if="hasLeading"
-        :size="props.iconSize"
-        weight="regular"
-        class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-      />
-
       <input
         :id="props.label"
         :type="inputType"
@@ -69,7 +50,6 @@ function onInput(event: Event) {
           'w-full rounded-md border px-3 py-2 outline-none transition',
           'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500',
           hasError && 'border-red-500 focus:border-red-500 focus:ring-red-500',
-          hasLeading && 'pl-10',
           'pr-10',
           props.classes.input,
         ]"
@@ -86,8 +66,10 @@ function onInput(event: Event) {
       </button>
     </div>
 
-    <p v-if="hasError && errorMessage" :class="['mt-1 text-sm text-red-500', props.classes.error]">
-      {{ errorMessage }}
-    </p>
+    <FormError
+      :name="props.name || undefined"
+      :validation="props.validation as ValidationLike"
+      :classes="{ error: props.classes.error }"
+    />
   </div>
 </template>

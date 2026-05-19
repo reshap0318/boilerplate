@@ -98,7 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout(): Promise<void> {
     try {
       if (token.value) {
-        await post('/auth/logout')
+        post('/auth/logout')
       }
     } catch (error) {
       console.error('Logout error', error)

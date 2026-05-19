@@ -97,12 +97,13 @@ export interface FormInputClasses {
 
 export interface FormInputProps {
   modelValue: string
+  name?: string
   label?: string
   type?: string
   placeholder?: string
   validation?: object
-  leadingIcon?: object
-  trailingIcon?: object
+  prefixIcon?: object
+  suffixIcon?: object
   iconSize?: number
   classes?: FormInputClasses
 }
@@ -117,11 +118,10 @@ export interface FormPasswordClasses {
 
 export interface FormPasswordProps {
   modelValue: string
+  name?: string
   label?: string
   placeholder?: string
   validation?: object
-  leadingIcon?: object
-  iconSize?: number
   classes?: FormPasswordClasses
 }
 

@@ -3,7 +3,7 @@ import useVuelidate from '@vuelidate/core'
 import swal from '@/plugins/swal'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-import { PhEnvelope, PhLock } from '@phosphor-icons/vue'
+import { PhEnvelope } from '@phosphor-icons/vue'
 import { FormInput, FormPassword, UiButton, UiCard } from '@/components/utils'
 
 const router = useRouter()
@@ -41,7 +41,7 @@ async function handleLogin() {
           class="mb-4"
           placeholder="admin@example.com"
           :validation="v$.email"
-          :leading-icon="PhEnvelope"
+          :prefix-icon="PhEnvelope"
         />
 
         <FormPassword
@@ -50,7 +50,6 @@ async function handleLogin() {
           placeholder="••••••••"
           class="mb-2"
           :validation="v$.password"
-          :leading-icon="PhLock"
         />
 
         <div class="mb-6 text-right">

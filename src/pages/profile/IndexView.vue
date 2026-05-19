@@ -257,7 +257,7 @@ function getInitials(name: string): string {
           v-model="profileStore.form.name"
           label="Nama"
           placeholder="Masukkan nama"
-          :leading-icon="PhUser"
+          :prefix-icon="PhUser"
           :validation="v$.name"
         />
 
@@ -266,7 +266,7 @@ function getInitials(name: string): string {
           v-model="profileStore.form.email"
           label="Email"
           placeholder="Masukkan email"
-          :leading-icon="PhEnvelope"
+          :prefix-icon="PhEnvelope"
           :validation="v$.email"
         />
       </div>
