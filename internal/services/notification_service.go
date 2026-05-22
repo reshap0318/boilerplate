@@ -12,15 +12,15 @@ import (
 )
 
 type NotificationCreateParams struct {
-	UserID  uint
 	Type    string
 	Title   string
 	Message string
 	Data    map[string]interface{}
 }
 
-func (s *Services) NotificationCreate(params *NotificationCreateParams) error {
-	s.Logger.LogStart("NotificationCreate", "Creating notification for user %d: %s", params.UserID, params.Title)
+func (s *Services) NotificationCreate(ctx context.Context, params *NotificationCreateParams) error {
+	userID := helpers.GetCallerID(ctx)
+	s.Logger.LogStart("NotificationCreate", "Creating notification for user %d: %s", userID, params.Title)
 
 	var dataJSON string
 	if params.Data != nil {
@@ -33,7 +33,7 @@ func (s *Services) NotificationCreate(params *NotificationCreateParams) error {
 	}
 
 	notification := &models.Notification{
-		UserID:  params.UserID,
+		UserID:  userID,
 		Type:    params.Type,
 		Title:   params.Title,
 		Message: params.Message,
@@ -46,7 +46,7 @@ func (s *Services) NotificationCreate(params *NotificationCreateParams) error {
 		return fmt.Errorf("failed to create notification: %w", err)
 	}
 
-	s.Logger.LogEnd("NotificationCreate", "Notification created for user %d", params.UserID)
+	s.Logger.LogEnd("NotificationCreate", "Notification created for user %d", userID)
 	return nil
 }
 
