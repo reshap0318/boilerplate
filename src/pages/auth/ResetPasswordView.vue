@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { FormPassword, UiButton, UiCard } from '@/components/utils'
 import { ref, computed, onMounted } from 'vue'
 import useVuelidate from '@vuelidate/core'
 import { required, minLength, sameAs } from '@vuelidate/validators'
@@ -6,7 +7,6 @@ import swal from '@/plugins/swal'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
 import { PhLock } from '@phosphor-icons/vue'
-import { FormPassword, UiButton, UiCard } from '@/components/utils'
 
 const router = useRouter()
 const route = useRoute()

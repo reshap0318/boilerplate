@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
+import FormModal from './FormModal.vue'
 import { ref, onMounted } from 'vue'
 import { useRoleStore } from '@/stores/role'
 import type { IRole } from '@/stores/role'
 import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
-import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
-import FormModal from './FormModal.vue'
 
 const roleStore = useRoleStore()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)

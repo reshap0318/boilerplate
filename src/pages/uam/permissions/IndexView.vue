@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import FormModal from './FormModal.vue'
-
-import { ref, onMounted } from 'vue'
 import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
+import { ref, onMounted } from 'vue'
 import { usePermissionStore, type IPermission } from '@/stores'
 import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
 

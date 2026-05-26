@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
+import FormModal from './FormModal.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import type { IUser } from '@/stores/user'
@@ -11,8 +13,6 @@ import {
   PhCrown,
   PhDotsThreeVertical,
 } from '@phosphor-icons/vue'
-import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
-import FormModal from './FormModal.vue'
 
 const userStore = useUserStore()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)

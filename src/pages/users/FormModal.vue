@@ -1,10 +1,4 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
-import useVuelidate from '@vuelidate/core'
-import { useUserStore } from '@/stores/user'
-import { useRoleStore } from '@/stores/role'
-import type { IRole } from '@/stores/role'
-import { required, email, minLength, helpers } from '@vuelidate/validators'
 import {
   UiModal,
   FormInput,
@@ -13,6 +7,12 @@ import {
   FormAvatar,
   UiButton,
 } from '@/components/utils'
+import { computed, ref, onMounted } from 'vue'
+import useVuelidate from '@vuelidate/core'
+import { useUserStore } from '@/stores/user'
+import { useRoleStore } from '@/stores/role'
+import type { IRole } from '@/stores/role'
+import { required, email, minLength, helpers } from '@vuelidate/validators'
 
 const userStore = useUserStore()
 const roleStore = useRoleStore()

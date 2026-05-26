@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { UiModal, FormInput, UiButton } from '@/components/utils'
 import { computed, ref, onMounted } from 'vue'
 import useVuelidate from '@vuelidate/core'
 import { useRoleStore } from '@/stores/role'
 import { usePermissionStore } from '@/stores/permission'
 import type { IPermission } from '@/stores/permission'
-import { UiModal, FormInput, UiButton } from '@/components/utils'
 
 const roleStore = useRoleStore()
 const permissionStore = usePermissionStore()
