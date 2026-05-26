@@ -17,3 +17,6 @@ export type { IRole, IRolePayload } from './role'
 
 export { usePermissionStore } from './permission'
 export type { IPermission, IPermissionPayload } from './permission'
+
+export { useNotificationStore } from './notification'
+export type { INotification, INotificationFilters, IUnreadCountResponse } from './notification'

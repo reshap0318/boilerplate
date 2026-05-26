@@ -54,6 +54,12 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
+  // Catch-all route for 404 - must be last
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/pages/errors/NotFoundView.vue'),
+  },
 ]
 
 const router = createRouter({

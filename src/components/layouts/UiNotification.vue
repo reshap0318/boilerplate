@@ -1,46 +1,29 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { PhBell, PhCheck, PhTrash, PhCircle } from '@phosphor-icons/vue'
+import { useNotificationStore } from '@/stores/notification'
+import { formatTimeForHuman } from '@/helpers/date'
 
-export interface INotificationItem {
-  id: number
-  title: string
-  message: string
-  time: string
-  isRead: boolean
-  type?: 'info' | 'success' | 'warning' | 'error'
-}
-
+const notificationStore = useNotificationStore()
 const isOpen = ref(false)
+const scrollContainerRef = ref<HTMLElement | null>(null)
+const sentinelRef = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
 
-const notifications = ref<INotificationItem[]>([
-  {
-    id: 1,
-    title: 'New User Registered',
-    message: 'A new user has registered to the system.',
-    time: '2 minutes ago',
-    isRead: false,
-    type: 'info',
-  },
-  {
-    id: 2,
-    title: 'Role Updated',
-    message: 'Admin role has been updated successfully.',
-    time: '1 hour ago',
-    isRead: false,
-    type: 'success',
-  },
-  {
-    id: 3,
-    title: 'Permission Warning',
-    message: 'Some permissions may conflict with existing rules.',
-    time: '3 hours ago',
-    isRead: true,
-    type: 'warning',
-  },
-])
+const displayNotifications = computed(() =>
+  notificationStore.notifications.map((n) => ({
+    id: n.id,
+    title: n.title,
+    message: n.message,
+    time: formatTimeForHuman(n.created_at),
+    isRead: !notificationStore.isUnread(n),
+    type: notificationStore.getNotificationType(n.type),
+  })),
+)
 
-const unreadCount = computed(() => notifications.value.filter((n) => !n.isRead).length)
+const unreadCount = computed(() => notificationStore.unreadCount)
+const isLoadingMore = computed(() => notificationStore.loading.LoadMore)
+const hasMoreNotifications = computed(() => notificationStore.hasMore)
 
 function closeOthers() {
   window.dispatchEvent(new CustomEvent('close-dropdown', { detail: 'notification' }))
@@ -56,33 +39,27 @@ function toggle() {
   } else {
     closeOthers()
     isOpen.value = true
+    // Reset and fetch notifications when opening
+    notificationStore.resetNotifications()
+    notificationStore.fetchNotifications()
   }
 }
 
-function handleMarkRead(id: number) {
-  const notification = notifications.value.find((n) => n.id === id)
-  if (notification) {
-    notification.isRead = true
-  }
+async function handleMarkRead(id: number) {
+  await notificationStore.markAsRead(id)
 }
 
-function handleMarkAllRead() {
-  notifications.value.forEach((n) => {
-    n.isRead = true
-  })
+async function handleMarkAllRead() {
+  await notificationStore.markAllAsRead()
 }
 
-function handleDelete(id: number) {
-  notifications.value = notifications.value.filter((n) => n.id !== id)
+async function handleDelete(id: number) {
+  await notificationStore.deleteNotification(id)
 }
 
-function handleDeleteAll() {
-  notifications.value = []
-}
-
-function handleClick(notification: INotificationItem) {
+async function handleClick(notification: { id: number; isRead: boolean }) {
   if (!notification.isRead) {
-    handleMarkRead(notification.id)
+    await handleMarkRead(notification.id)
   }
 }
 
@@ -119,12 +96,57 @@ function handleOutsideClose(event: Event) {
   }
 }
 
+function setupIntersectionObserver() {
+  if (observer) {
+    observer.disconnect()
+  }
+
+  observer = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0]
+      if (entry.isIntersecting && hasMoreNotifications.value && !isLoadingMore.value) {
+        notificationStore.loadMoreNotifications()
+      }
+    },
+    {
+      root: scrollContainerRef.value,
+      rootMargin: '50px',
+      threshold: 0.1,
+    },
+  )
+
+  if (sentinelRef.value) {
+    observer.observe(sentinelRef.value)
+  }
+}
+
+watch(
+  () => isOpen.value,
+  async (newVal) => {
+    if (newVal) {
+      await nextTick()
+      setupIntersectionObserver()
+    } else {
+      if (observer) {
+        observer.disconnect()
+        observer = null
+      }
+    }
+  },
+)
+
 onMounted(() => {
   window.addEventListener('close-dropdown', handleOutsideClose)
+  // Fetch unread count on mount
+  notificationStore.fetchUnreadCount()
 })
 
 onUnmounted(() => {
   window.removeEventListener('close-dropdown', handleOutsideClose)
+  if (observer) {
+    observer.disconnect()
+    observer = null
+  }
 })
 </script>
 
@@ -136,7 +158,12 @@ onUnmounted(() => {
       @click.stop="toggle"
     >
       <PhBell class="h-5 w-5 text-gray-600" />
-      <span v-if="unreadCount > 0" class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+      <span
+        v-if="unreadCount > 0"
+        class="absolute top-1 right-1 min-w-[0.5rem] h-2 px-1 flex items-center justify-center bg-red-500 rounded-full"
+      >
+        <span v-if="unreadCount > 99" class="text-[0.5rem] text-white font-medium">99+</span>
+      </span>
     </button>
 
     <Transition
@@ -167,7 +194,7 @@ onUnmounted(() => {
             </h3>
             <div class="flex items-center gap-1">
               <button
-                v-if="notifications.length > 0"
+                v-if="displayNotifications.length > 0"
                 class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                 title="Mark all as read"
                 @click="handleMarkAllRead"
@@ -175,10 +202,10 @@ onUnmounted(() => {
                 <PhCheck class="h-4 w-4" />
               </button>
               <button
-                v-if="notifications.length > 0"
+                v-if="displayNotifications.length > 0"
                 class="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                 title="Clear all"
-                @click="handleDeleteAll"
+                @click="notificationStore.fetchNotifications()"
               >
                 <PhTrash class="h-4 w-4" />
               </button>
@@ -186,16 +213,26 @@ onUnmounted(() => {
           </div>
         </div>
 
+        <!-- Loading State (Initial Load) -->
+        <div
+          v-if="notificationStore.loading.Index && displayNotifications.length === 0"
+          class="px-4 py-8"
+        >
+          <div class="flex items-center justify-center">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+
         <!-- Notification List -->
-        <div class="max-h-96 overflow-y-auto">
-          <div v-if="notifications.length === 0" class="px-4 py-8 text-center">
+        <div v-else ref="scrollContainerRef" class="max-h-96 overflow-y-auto">
+          <div v-if="displayNotifications.length === 0" class="px-4 py-8 text-center">
             <PhBell class="h-8 w-8 text-gray-300 mx-auto mb-2" />
-            <p class="text-sm text-gray-500">No notifications</p>
+            <p class="text-sm text-gray-500">Tidak ada notifikasi</p>
           </div>
 
           <template v-else>
             <button
-              v-for="notification in notifications"
+              v-for="notification in displayNotifications"
               :key="notification.id"
               :class="[
                 'w-full px-4 py-3 text-left border-b border-gray-50 hover:bg-gray-50 transition-colors',
@@ -249,6 +286,17 @@ onUnmounted(() => {
                 />
               </div>
             </button>
+
+            <!-- Load More Sentinel -->
+            <div ref="sentinelRef" class="py-3">
+              <div v-if="isLoadingMore" class="flex items-center justify-center">
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                <span class="ml-2 text-xs text-gray-500">Memuat...</span>
+              </div>
+              <div v-else-if="!hasMoreNotifications" class="text-center">
+                <p class="text-xs text-gray-400">Tidak ada notifikasi lagi</p>
+              </div>
+            </div>
           </template>
         </div>
       </div>
