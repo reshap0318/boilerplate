@@ -2,7 +2,6 @@
 import type { UiCardProps } from './types'
 
 const props = withDefaults(defineProps<UiCardProps>(), {
-  cardStyle: () => ({}),
   padded: true,
   classes: () => ({}),
 })
@@ -16,10 +15,7 @@ defineSlots<{
 
 <template>
   <div :class="['w-full', props.classes.wrapper]">
-    <div
-      :class="['overflow-hidden rounded-lg bg-white shadow-md', props.classes.card]"
-      :style="props.cardStyle"
-    >
+    <div :class="['overflow-hidden rounded-lg bg-white shadow-md', props.classes.card]">
       <!-- Header -->
       <div v-if="$slots.header" :class="[props.classes.header]">
         <slot name="header" />

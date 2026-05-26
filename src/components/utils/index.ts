@@ -3,6 +3,8 @@ export { default as UiCard } from './UiCard.vue'
 export { default as UiEmptyState } from './UiEmptyState.vue'
 export { default as UiModal } from './UiModal.vue'
 export { default as UiPagination } from './UiPagination.vue'
+export { default as UiSkeleton } from './UiSkeleton.vue'
+export { default as UiTable } from './UiTable.vue'
 export { default as FormAvatar } from './FormAvatar.vue'
 export { default as FormFile } from './FormFile.vue'
 export { default as FormInput } from './FormInput.vue'
@@ -32,4 +34,10 @@ export type {
   FormFileProps,
   FormAvatarClasses,
   FormAvatarProps,
+  TSkeletonVariant,
+  UiSkeletonClasses,
+  UiSkeletonProps,
+  TSortOrder,
+  TTableColumn,
+  TTableRow,
 } from './types'

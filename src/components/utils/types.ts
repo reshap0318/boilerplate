@@ -21,7 +21,6 @@ export interface UiCardClasses {
 }
 
 export interface UiCardProps {
-  cardStyle?: Record<string, string>
   padded?: boolean
   classes?: UiCardClasses
 }
@@ -195,4 +194,38 @@ export interface FormFileProps {
   maxSize?: number
   disabled?: boolean
   classes?: FormFileClasses
+}
+
+// UiSkeleton types
+export type TSkeletonVariant = 'text' | 'circle' | 'rect' | 'card'
+
+export interface UiSkeletonClasses {
+  wrapper?: string
+  bar?: string
+}
+
+export interface UiSkeletonProps {
+  variant?: TSkeletonVariant
+  width?: string
+  height?: string
+  rounded?: boolean
+  count?: number
+  classes?: UiSkeletonClasses
+}
+
+export type TSortOrder = 'asc' | 'desc' | 'none'
+
+// UiTable types
+export interface TTableColumn {
+  title: string
+  data: string
+  class?: string
+  headerClass?: string
+  sortable?: boolean
+}
+
+export interface TTableRow {
+  id?: number | string
+  class?: string
+  [key: string]: unknown
 }

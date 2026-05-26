@@ -154,7 +154,7 @@ onUnmounted(() => {
         @click.stop
       >
         <!-- Header -->
-        <div class="px-4 py-3 bg-gradient-to-br from-gray-50 to-white border-b border-gray-100">
+        <div class="px-4 py-3 bg-linear-to-br from-gray-50 to-white border-b border-gray-100">
           <div class="flex items-center justify-between">
             <h3 class="text-sm font-semibold text-gray-900">
               Notifications

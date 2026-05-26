@@ -120,7 +120,7 @@ function getInitials(name: string): string {
       <div class="relative">
         <!-- Gradient Banner -->
         <div
-          class="h-48 sm:h-56 bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 rounded-b-2xl"
+          class="h-48 sm:h-56 bg-linear-to-r from-blue-600 via-violet-600 to-purple-600 rounded-b-2xl"
         />
 
         <!-- Profile Content -->
@@ -138,7 +138,7 @@ function getInitials(name: string): string {
                 </div>
                 <div
                   v-else
-                  class="w-28 h-28 rounded-full border-4 border-white shadow-md bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center"
+                  class="w-28 h-28 rounded-full border-4 border-white shadow-md bg-linear-to-br from-blue-500 to-violet-500 flex items-center justify-center"
                 >
                   <span class="text-3xl font-bold text-white">
                     {{ getInitials(profileStore.profile.name) }}
@@ -287,8 +287,6 @@ function getInitials(name: string): string {
     <!-- Change Password Modal -->
     <UiModal v-model="showPasswordModal" title="Ubah Password" size="md" :persistent="true">
       <div class="space-y-5">
-        <p class="text-sm text-gray-500">Masukkan password baru Anda.</p>
-
         <FormPassword
           v-model="passwordForm.password"
           label="Password Baru"
