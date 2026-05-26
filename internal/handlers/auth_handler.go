@@ -27,13 +27,12 @@ func (h *Handlers) AuthLogin(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	response, err := h.svcs.AuthLogin(c.Request.Context(), req.Email, req.Password)
-	if err != nil {
-		helpers.Unauthorized(c, err.Error())
+	if helpers.HandleError(c, err, "Login failed") {
 		return
 	}
 
@@ -60,13 +59,12 @@ func (h *Handlers) AuthRefreshToken(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	response, err := h.svcs.AuthRefreshToken(c.Request.Context(), req.RefreshToken)
-	if err != nil {
-		helpers.Unauthorized(c, err.Error())
+	if helpers.HandleError(c, err, "Token refresh failed") {
 		return
 	}
 
@@ -105,17 +103,14 @@ func (h *Handlers) AuthForgetPassword(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	if err := h.svcs.AuthForgetPassword(c.Request.Context(), req.Email); err != nil {
-		if err == helpers.ErrNotFound {
-			helpers.NotFound(c, "Email not found")
+		if helpers.HandleError(c, err, err.Error()) {
 			return
 		}
-		helpers.InternalServerError(c, err.Error())
-		return
 	}
 
 	helpers.OK(c, "Reset password email sent", nil)
@@ -141,21 +136,14 @@ func (h *Handlers) AuthResetPassword(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	if err := h.svcs.AuthResetPassword(c.Request.Context(), req.Token, req.NewPassword); err != nil {
-		if err == helpers.ErrTokenInvalid || err == helpers.ErrTokenExpired || err == helpers.ErrTokenUsed {
-			helpers.Unauthorized(c, err.Error())
+		if helpers.HandleError(c, err, err.Error()) {
 			return
 		}
-		if err == helpers.ErrNotFound {
-			helpers.NotFound(c, err.Error())
-			return
-		}
-		helpers.InternalServerError(c, err.Error())
-		return
 	}
 
 	helpers.OK(c, "Password has been reset successfully", nil)

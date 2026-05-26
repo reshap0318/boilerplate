@@ -61,16 +61,7 @@ func (h *Handlers) NotificationGetByID(c *gin.Context) {
 	}
 
 	dto, err := h.svcs.NotificationGetByID(c.Request.Context(), uint(id))
-	if err != nil {
-		if err == helpers.ErrNotFound {
-			helpers.NotFound(c, "Notification not found")
-			return
-		}
-		if err == helpers.ErrForbidden {
-			helpers.Forbidden(c, "You don't have access to this notification")
-			return
-		}
-		helpers.InternalServerError(c, "Failed to fetch notification")
+	if helpers.HandleError(c, err, "Failed to fetch notification") {
 		return
 	}
 
@@ -85,12 +76,7 @@ func (h *Handlers) NotificationMarkAsRead(c *gin.Context) {
 	}
 
 	err = h.svcs.NotificationMarkAsRead(c.Request.Context(), uint(id))
-	if err != nil {
-		if err == helpers.ErrNotFound {
-			helpers.NotFound(c, "Notification not found")
-			return
-		}
-		helpers.InternalServerError(c, "Failed to mark notification as read")
+	if helpers.HandleError(c, err, "Failed to mark notification as read") {
 		return
 	}
 
@@ -127,16 +113,7 @@ func (h *Handlers) NotificationDelete(c *gin.Context) {
 	}
 
 	err = h.svcs.NotificationDelete(c.Request.Context(), uint(id))
-	if err != nil {
-		if err == helpers.ErrNotFound {
-			helpers.NotFound(c, "Notification not found")
-			return
-		}
-		if err == helpers.ErrForbidden {
-			helpers.Forbidden(c, "You don't have access to this notification")
-			return
-		}
-		helpers.InternalServerError(c, "Failed to delete notification")
+	if helpers.HandleError(c, err, "Failed to delete notification") {
 		return
 	}
 

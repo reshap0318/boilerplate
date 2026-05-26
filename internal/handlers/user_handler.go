@@ -20,17 +20,12 @@ func (h *Handlers) UserCreate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.UserCreate(c.Request.Context(), req)
-	if err != nil {
-		if err == helpers.ErrUserExists {
-			helpers.ValidationErrorWithField(c, "email", "Email already exists")
-			return
-		}
-		helpers.InternalServerError(c, "Failed to create user")
+	if helpers.HandleError(c, err, "Failed to create user") {
 		return
 	}
 
@@ -80,8 +75,7 @@ func (h *Handlers) UserGetByID(c *gin.Context) {
 	}
 
 	dto, err := h.svcs.UserGetByID(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.NotFound(c, "User not found")
+	if helpers.HandleError(c, err, "Failed to fetch user") {
 		return
 	}
 
@@ -108,21 +102,12 @@ func (h *Handlers) UserUpdate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.UserUpdate(c.Request.Context(), uint(id), req)
-	if err != nil {
-		if err == helpers.ErrNotFound {
-			helpers.NotFound(c, "User not found")
-			return
-		}
-		if err == helpers.ErrUserExists {
-			helpers.ValidationErrorWithField(c, "email", "Email already exists")
-			return
-		}
-		helpers.InternalServerError(c, "Failed to update user")
+	if helpers.HandleError(c, err, "Failed to update user") {
 		return
 	}
 
@@ -138,8 +123,7 @@ func (h *Handlers) UserDelete(c *gin.Context) {
 	}
 
 	err = h.svcs.UserDelete(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.NotFound(c, "User not found")
+	if helpers.HandleError(c, err, "Failed to delete user") {
 		return
 	}
 
@@ -151,8 +135,7 @@ func (h *Handlers) ProfileGet(c *gin.Context) {
 	userID := c.GetUint("user_id")
 
 	dto, err := h.svcs.ProfileGet(c.Request.Context(), userID)
-	if err != nil {
-		helpers.NotFound(c, "Profile not found")
+	if helpers.HandleError(c, err, "Failed to fetch profile") {
 		return
 	}
 
@@ -175,17 +158,12 @@ func (h *Handlers) ProfileUpdate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.ProfileUpdate(c.Request.Context(), userID, req)
-	if err != nil {
-		if err == helpers.ErrNotFound {
-			helpers.NotFound(c, "Profile not found")
-			return
-		}
-		helpers.InternalServerError(c, "Failed to update profile")
+	if helpers.HandleError(c, err, "Failed to update profile") {
 		return
 	}
 

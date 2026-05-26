@@ -19,13 +19,12 @@ func (h *Handlers) RoleCreate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.RoleCreate(c.Request.Context(), req)
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to create role")
+	if helpers.HandleError(c, err, "Failed to create role") {
 		return
 	}
 
@@ -73,8 +72,7 @@ func (h *Handlers) RoleGetByID(c *gin.Context) {
 	}
 
 	dto, err := h.svcs.RoleGetByID(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.NotFound(c, "Role not found")
+	if helpers.HandleError(c, err, "Failed to fetch role") {
 		return
 	}
 
@@ -96,13 +94,12 @@ func (h *Handlers) RoleUpdate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.RoleUpdate(c.Request.Context(), uint(id), req)
-	if err != nil {
-		helpers.NotFound(c, "Role not found")
+	if helpers.HandleError(c, err, "Failed to update role") {
 		return
 	}
 
@@ -118,8 +115,7 @@ func (h *Handlers) RoleDelete(c *gin.Context) {
 	}
 
 	err = h.svcs.RoleDelete(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.NotFound(c, "Role not found")
+	if helpers.HandleError(c, err, "Failed to delete role") {
 		return
 	}
 
@@ -135,8 +131,7 @@ func (h *Handlers) RoleGetPermissions(c *gin.Context) {
 	}
 
 	perms, err := h.svcs.RoleGetPermissions(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to fetch role permissions")
+	if helpers.HandleError(c, err, "Failed to fetch role permissions") {
 		return
 	}
 

@@ -19,13 +19,12 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.PermissionCreate(c.Request.Context(), req)
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to create permission")
+	if helpers.HandleError(c, err, "Failed to create permission") {
 		return
 	}
 
@@ -73,8 +72,7 @@ func (h *Handlers) PermissionGetByID(c *gin.Context) {
 	}
 
 	dto, err := h.svcs.PermissionGetByID(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.NotFound(c, "Permission not found")
+	if helpers.HandleError(c, err, "Failed to fetch permission") {
 		return
 	}
 
@@ -96,13 +94,12 @@ func (h *Handlers) PermissionUpdate(c *gin.Context) {
 	}
 
 	if err := h.Validate.Struct(req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.PermissionUpdate(c.Request.Context(), uint(id), req)
-	if err != nil {
-		helpers.NotFound(c, "Permission not found")
+	if helpers.HandleError(c, err, "Failed to update permission") {
 		return
 	}
 
@@ -118,8 +115,7 @@ func (h *Handlers) PermissionDelete(c *gin.Context) {
 	}
 
 	err = h.svcs.PermissionDelete(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.NotFound(c, "Permission not found")
+	if helpers.HandleError(c, err, "Failed to delete permission") {
 		return
 	}
 

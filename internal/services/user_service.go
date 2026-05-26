@@ -23,7 +23,7 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (
 	}
 	if exists {
 		s.Logger.LogEndWithError("UserCreate", "Email already exists: %s", req.Email)
-		return nil, helpers.ErrUserExists
+		return nil, &helpers.FieldError{Field: "email", Message: "user already exists"}
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -234,7 +234,7 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateR
 		}
 		if exists {
 			s.Logger.LogEndWithError("UserUpdate", "Email already exists: %s", req.Email)
-			return nil, helpers.ErrUserExists
+			return nil, &helpers.FieldError{Field: "email", Message: "user already exists"}
 		}
 	}
 

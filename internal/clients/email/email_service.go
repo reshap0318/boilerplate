@@ -40,7 +40,7 @@ func (c *EmailClient) SendEmail(req EmailRequest) error {
 	}
 
 	if len(req.To) == 0 {
-		return helpers.ErrInvalidEmail
+		return &helpers.FieldError{Field: "email", Message: "invalid email address"}
 	}
 
 	// Build email message

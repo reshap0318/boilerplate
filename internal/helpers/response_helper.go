@@ -92,8 +92,8 @@ func InternalServerError(c *gin.Context, message string) {
 	ErrorResponse(c, http.StatusInternalServerError, message)
 }
 
-// ValidationErrorWithMap sends 422 Unprocessable Entity response with pre-formatted errors map.
-func ValidationErrorWithMap(c *gin.Context, errorsMap map[string][]string) {
+// ValidationResponse sends 422 Unprocessable Entity response with pre-formatted errors map.
+func ValidationResponse(c *gin.Context, errorsMap map[string][]string) {
 	resp := Response{
 		Code:    http.StatusUnprocessableEntity,
 		Message: "The given data was invalid.",
@@ -102,10 +102,34 @@ func ValidationErrorWithMap(c *gin.Context, errorsMap map[string][]string) {
 	c.JSON(http.StatusUnprocessableEntity, resp)
 }
 
-// ValidationErrorWithField sends 422 Unprocessable Entity response for a single field error.
-func ValidationErrorWithField(c *gin.Context, field string, message string) {
-	errorsMap := map[string][]string{
+// ValidationError sends 422 Unprocessable Entity response for a single field error.
+func ValidationError(c *gin.Context, field string, message string) {
+	ValidationResponse(c, map[string][]string{
 		field: {message},
+	})
+}
+
+// HandleError handles service errors and sends appropriate HTTP response.
+// Returns true if error was handled, false if err is nil.
+func HandleError(c *gin.Context, err error, fallbackMsg string) bool {
+	if err == nil {
+		return false
 	}
-	ValidationErrorWithMap(c, errorsMap)
+
+	if fe, ok := err.(*FieldError); ok {
+		ValidationError(c, fe.Field, fe.Message)
+		return true
+	}
+
+	switch err {
+	case ErrNotFound:
+		NotFound(c, "Data not found")
+	case ErrForbidden:
+		Forbidden(c, "Forbidden")
+	case ErrInvalidToken, ErrExpiredToken, ErrInvalidCredential, ErrTokenExpired, ErrTokenUsed, ErrTokenInvalid:
+		Unauthorized(c, err.Error())
+	default:
+		InternalServerError(c, fallbackMsg)
+	}
+	return true
 }

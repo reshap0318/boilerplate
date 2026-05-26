@@ -1,338 +1,289 @@
 ---
 name: go-coding-rules
-description: Go project coding rules and conventions including architecture, naming conventions, helpers, clients, and anti-patterns
+description: Go project coding rules and conventions — see references/ for code examples
 ---
 
 ## When to use me
 
 Use this skill when:
-- Writing new Go code — to follow naming conventions, struct patterns, and architecture rules
-- Reviewing code — to check for anti-patterns and rule violations
-- You need a reference for available helpers, clients, or GenericRepository methods
-- You need to understand how logging, permissions, or response helpers work
 
-> ⚠️ **For CRUD implementation flow** (step-by-step: Model → DTO → Repository → Service → Handler → Routes with full examples), use the **go-development-guide** skill instead. This skill provides the rules and references that the CRUD flow must follow.
+- Writing or modifying Go code — follow rules below, see `references/` for examples
+- Adding features to existing codebase — ensure consistency with project conventions
+- Reviewing code — check for anti-patterns and rule violations
+- Need reference for helpers, clients, or GenericRepository methods
 
 ---
 
-# Go Coding Rules & Conventions
+# Go Coding Rules
 
 > **READ THIS ENTIRELY before writing any code.** These rules are MANDATORY.
 
 ## Project Identity
 
-- **Module**: `github.com/reshap0318/go-project`
-- **Go Version**: 1.25.0+
-- **Framework**: Gin (HTTP), GORM (ORM), JWT auth, Redis (optional), bcrypt
-- **Database**: MySQL (default) / PostgreSQL
-- **Entry Point**: `cmd/api/main.go`
+| Item        | Value                              |
+| ----------- | ---------------------------------- |
+| Module      | `github.com/reshap0318/go-project` |
+| Go Version  | 1.25.0+                            |
+| Framework   | Gin, GORM, JWT, Redis, bcrypt      |
+| Database    | MySQL (default) / PostgreSQL       |
+| Entry Point | `cmd/api/main.go`                  |
 
 ## Architecture
 
 ```
 Routes → Handlers → Services → Repositories → Database/Redis
               ↑
-         Middleware (JWT Auth, CORS, Rate Limit)
+         Middleware (JWT, CORS, Rate Limit)
 ```
 
 All layers use **Dependency Injection** via `internal/di/container.go`.
 
-## Project Structure
+## Code Examples
 
-```
-go-project/
-├── cmd/
-│   ├── api/main.go            # App entry point
-│   └── migration/             # DB migration scripts
-├── internal/
-│   ├── clients/email/         # Email client (injected as s.EmailClient)
-│   ├── database/              # DB connections & Redis cache
-│   ├── di/container.go        # DI container — wires everything
-│   ├── dtos/                  # Request/Response DTOs
-│   ├── handlers/              # HTTP handlers (single struct: Handlers)
-│   │   └── 00_handlers.go     # Handlers struct definition
-│   ├── helpers/               # Pure utility functions
-│   ├── middleware/             # JWT, CORS, rate limit middleware
-│   ├── models/                # GORM models (must have TableName)
-│   ├── repositories/          # Data access layer
-│   │   ├── 00_generic.go      # ⛔ DO NOT MODIFY — Generic CRUD
-│   │   ├── 00_transaction.go  # ⛔ DO NOT MODIFY — Transaction manager
-│   │   └── 00_repository.go   # Registry — add new repos here
-│   ├── routes/                # Route registration
-│   └── services/              # Business logic (single struct: Services)
-│       └── 00_services.go     # Services struct definition
-├── storage/                   # Application storage
-│   ├── keys/                  # JWT keys (private.pem, public.pem)
-│   ├── logs/                  # Application logs (YYYY-MM-DD.log)
-│   ├── tmp/                   # Temporary file uploads
-│   └── avatars/               # User avatar files
-└── docs/                      # Documentation
-```
+All examples are in `references/` folder:
+
+- `references/model.go` — Model with TableName()
+- `references/dto.go` — Request/Response DTOs
+- `references/repository.go` — Repository registration + custom repo
+- `references/service.go` — CRUD methods with logging + notification
+- `references/handler.go` — HTTP handlers with validation
+- `references/route.go` — Routes with permission middleware
 
 ---
 
-## ⛔ CRITICAL RULES
+## CRITICAL RULES
 
-### 1. NEVER modify these files
+### 1. NEVER modify
+
 - `internal/repositories/00_generic.go`
 - `internal/repositories/00_transaction.go`
 
-### 2. Models MUST define `TableName()`
+### 2. Models MUST have `TableName()`
+
 ```go
-func (Permission) TableName() string {
-    return "permissions"
-}
+func (Permission) TableName() string { return "permissions" }
 ```
 
-### 3. Single Struct Pattern (NO separate structs)
+### 3. Single Struct Pattern
+
 - ALL service methods → `func (s *Services) ...`
 - ALL handler methods → `func (h *Handlers) ...`
-- ❌ NEVER create `type PermissionService struct` or `type PermissionHandler struct`
+- NEVER create `type PermissionService struct`
 
-### 4. Function Naming: `{Feature}{Action}` — Feature FIRST
+### 4. Naming: `{Feature}{Action}` — Feature FIRST
+
 ```go
-// ✅ CORRECT
+// CORRECT
 func (s *Services) PermissionCreate(...)
-func (s *Services) PermissionGetAll(...)
-func (h *Handlers) PermissionCreate(...)
 func (h *Handlers) PermissionGetByID(...)
 
-// ❌ WRONG — action first
+// WRONG
 func (s *Services) CreatePermission(...)
-func (s *Services) GetAllPermissions(...)
 ```
 
-### 5. Write Operations MUST use Transaction
+### 5. Write Operations → MUST use Transaction
+
 ```go
-// ✅ Create/Update/Delete — always wrap in transaction
 s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
     result, err = s.repo.Permission.Create(tx, permission)
     return err
 })
 ```
 
-### 6. Read Operations MUST use `nil` (NOT `.DB`)
-```go
-// ✅ CORRECT
-s.repo.Permission.FindByID(nil, id)
-s.repo.Permission.FindAll(nil)
+### 6. Read Operations → MUST use `nil`
 
-// ❌ WRONG
-s.repo.Permission.FindByID(s.repo.Permission.DB, id)
+```go
+s.repo.Permission.FindByID(nil, id)  // CORRECT
+s.repo.Permission.FindByID(s.repo.Permission.DB, id)  // WRONG
 ```
 
----
+### 7. Read Operations → Return DTOs, NOT Models
 
-## 📖 Reference: CRUD Quick Order
-
-> ⚠️ For full CRUD implementation with detailed examples (Model → DTO → Repository → Service → Handler → Routes), use the **go-development-guide** skill.
-
-### Quick Implementation Order
-1. Model          → `internal/models/{feature}.go`
-2. DTOs           → `internal/dtos/{feature}_dto.go`
-3. Repository     → `internal/repositories/{feature}_repository.go`
-4. Register Repo  → `internal/repositories/00_repository.go`
-5. Service        → `internal/services/{feature}_service.go`
-6. Handler        → `internal/handlers/{feature}_handler.go`
-7. Routes         → `internal/routes/{feature}_route.go`
-8. Register Routes → `cmd/api/main.go`
-
----
-
-## File Naming Conventions
-
-| Layer | Pattern | Example |
-|-------|---------|---------|
-| Model | `{feature}.go` | `permission.go` |
-| DTO | `{feature}_dto.go` | `permission_dto.go` |
-| Repository | `{feature}_repository.go` | `permission_repository.go` |
-| Service | `{feature}_service.go` | `permission_service.go` |
-| Handler | `{feature}_handler.go` | `permission_handler.go` |
-| Route | `{feature}_route.go` | `permission_route.go` |
-
----
-
-## Logging Rules
-
-Logger is available in Services via `s.Logger`.
-
-| Operation | Must Log? | Operation | Must Log? |
-|-----------|-----------|-----------|-----------|
-| CREATE | ✅ YES | GET (simple) | ❌ NO |
-| UPDATE | ✅ YES | GET (complex) | ✅ YES |
-| DELETE | ✅ YES | Auth ops | ✅ YES |
-
-### Logger Methods
 ```go
-s.Logger.LogStart("FuncName", "Message: %s", value)        // Start
-s.Logger.LogStep("FuncName", "Step: %s", value)            // Step
-s.Logger.LogStepWithPrefix("Func", "[OK]", "Done")         // Step + prefix
-s.Logger.LogEnd("FuncName", "Success: %s", value)          // End success
-s.Logger.LogEndWithError("Func", "Error: %v", err)         // End error
-s.Logger.LogError("FuncName", "Error: %v", err)            // Error
-s.Logger.LogWarn("FuncName", "Warning: %s", value)         // Warning
-s.Logger.LogInfo("FuncName", "Info: %s", value)            // Info
-```
-
-### Example — CREATE (MUST LOG)
-```go
-func (s *Services) UserCreate(ctx context.Context, email string) error {
-    s.Logger.LogStart("UserCreate", "Creating user: %s", email)
-
-    user := &models.User{Email: email}
-    if err := s.repo.User.Create(s.repo.User.DB, user); err != nil {
-        s.Logger.LogEndWithError("UserCreate", "Failed: %v", err)
-        return err
+// Convert models to DTOs using To{Feature}DTO()
+func (s *Services) PermissionGetByID(ctx context.Context, id uint) (*dtos.PermissionDTO, error) {
+    permission, err := s.repo.Permission.FindByID(nil, id, "Roles")
+    if err != nil {
+        return nil, err
     }
-
-    s.Logger.LogEnd("UserCreate", "User created: %s (ID: %d)", email, user.ID)
-    return nil
+    return dtos.ToPermissionDTO(permission), nil
 }
 ```
 
-### Example — GET Simple (NO LOG)
+### 8. Paginated Read → Handle nil opts
+
 ```go
-func (s *Services) GetUserByID(ctx context.Context, id uint) (*models.User, error) {
-    return s.repo.User.FindByID(nil, id)
+func (s *Services) PermissionGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.PermissionDTO], error) {
+    if opts == nil {
+        opts = &repositories.QueryOptions{}
+    }
+    // ... convert to DTOs, return PagedResult[DTO]
 }
 ```
 
-**Log Output**: `storage/logs/YYYY-MM-DD.log` | Auto rotation & cleanup (30 days)
+### 9. File Naming
+
+| Layer      | Pattern                   | Example                    |
+| ---------- | ------------------------- | -------------------------- |
+| Model      | `{feature}.go`            | `permission.go`            |
+| DTO        | `{feature}_dto.go`        | `permission_dto.go`        |
+| Repository | `{feature}_repository.go` | `permission_repository.go` |
+| Service    | `{feature}_service.go`    | `permission_service.go`    |
+| Handler    | `{feature}_handler.go`    | `permission_handler.go`    |
+| Route      | `{feature}_route.go`      | `permission_route.go`      |
 
 ---
 
-## GenericRepository Available Methods
+## Logging
 
-All repositories extend `GenericRepository[T]`. These methods are ALREADY AVAILABLE — do NOT re-implement:
+Logger available via `s.Logger`. CREATE/UPDATE/DELETE MUST log. GET simple: NO log.
 
-| Method | Signature | Use Case |
-|--------|-----------|----------|
-| `FindByID` | `(tx *gorm.DB, id uint, preloads ...string)` | Get by ID |
-| `FindByIDWithOpts` | `(tx *gorm.DB, id uint, opts *QueryOptions)` | Get by ID + options |
-| `Create` | `(tx *gorm.DB, request *T) (*T, error)` | Create record |
-| `CreateMany` | `(tx *gorm.DB, request []T) error` | Batch create |
-| `Update` | `(tx *gorm.DB, filter *T, update *T) (*T, error)` | Update by filter |
-| `UpdateMap` | `(tx *gorm.DB, filter *T, update map[string]interface{})` | Partial update (supports zero values) |
-| `Delete` | `(tx *gorm.DB, id uint) (*T, error)` | Soft delete |
-| `FindAll` | `(tx *gorm.DB, preloads ...string)` | Get all |
-| `FindAllWithOpts` | `(tx *gorm.DB, opts *QueryOptions) (*PagedResult[T], error)` | Paginated list |
-| `FindByField` | `(tx *gorm.DB, filter *T, preloads ...string)` | Filter by struct |
-| `FindByFieldWithOpts` | `(tx *gorm.DB, filter *T, opts *QueryOptions)` | Filter + pagination |
-| `FindByFieldMap` | `(tx *gorm.DB, filter map[string]interface{}, preloads ...string)` | Filter by map |
-| `FindByFieldMapWithOpts` | `(tx *gorm.DB, filter map[string]interface{}, opts *QueryOptions)` | Map filter + pagination |
-| `Count` | `(tx *gorm.DB) (int64, error)` | Count all |
-| `Exists` | `(tx *gorm.DB, filter map[string]interface{}) (bool, error)` | Check exists (map) |
-| `ExistsByField` | `(tx *gorm.DB, filter *T) (bool, error)` | Check exists (struct) |
-
-### QueryOptions
 ```go
-type QueryOptions struct {
-    Page           int      // Page number (default: 1)
-    PageSize       int      // Items per page (default: 10, 0 = no pagination)
-    SortBy         string   // Field to sort by
-    Order          string   // "ASC" or "DESC"
-    Search         string   // Search keyword
-    SearchFields   []string // Fields to search
-    Preloads       []string // Relations to preload
-}
+s.Logger.LogStart("FuncName", "Message: %s", value)
+s.Logger.LogStep("FuncName", "Step: %s", value)
+s.Logger.LogEnd("FuncName", "Success: %s", value)
+s.Logger.LogEndWithError("Func", "Error: %v", err)
+s.Logger.LogError("FuncName", "Error: %v", err)
+s.Logger.LogWarn("FuncName", "Warning: %s", value)
+s.Logger.LogInfo("FuncName", "Info: %s", value)
 ```
+
+See `references/service.go` for full examples.
+
+---
+
+## Notification
+
+Every CREATE/UPDATE/DELETE MUST create notification via `s.NotificationCreate()`:
+
+```go
+_ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
+    Type:    "success",  // info, warning, success, error
+    Title:   "Title",
+    Message: "Message",
+    Data:    map[string]interface{}{"id": result.ID, "name": result.Name}, // identifier data only
+})
+```
+
+**Rules:**
+
+- Errors MUST NOT fail the transaction → use `_ = s.NotificationCreate(...)`
+- Created INSIDE transaction → rolls back if main operation fails
+- Data = identifier data only (id, name, status, etc) — NOT full object
+
+See `references/service.go` for full examples.
+
+---
+
+## GenericRepository Methods
+
+All repos extend `GenericRepository[T]`. Do NOT re-implement:
+
+| Method                | Signature                                                          |
+| --------------------- | ------------------------------------------------------------------ |
+| `FindByID`            | `(tx *gorm.DB, id uint, preloads ...string)`                       |
+| `Create`              | `(tx *gorm.DB, request *T) (*T, error)`                            |
+| `CreateMany`          | `(tx *gorm.DB, request []T) error`                                 |
+| `Update`              | `(tx *gorm.DB, filter *T, update *T) (*T, error)`                  |
+| `UpdateMap`           | `(tx *gorm.DB, filter *T, update map[string]interface{})`          |
+| `Delete`              | `(tx *gorm.DB, id uint) (*T, error)`                               |
+| `FindAll`             | `(tx *gorm.DB, preloads ...string)`                                |
+| `FindAllWithOpts`     | `(tx *gorm.DB, opts *QueryOptions) (*PagedResult[T], error)`       |
+| `FindByField`         | `(tx *gorm.DB, filter *T, preloads ...string)`                     |
+| `FindByFieldWithOpts` | `(tx *gorm.DB, filter *T, opts *QueryOptions)`                     |
+| `FindByFieldMap`      | `(tx *gorm.DB, filter map[string]interface{}, preloads ...string)` |
+| `Count`               | `(tx *gorm.DB) (int64, error)`                                     |
+| `Exists`              | `(tx *gorm.DB, filter map[string]interface{}) (bool, error)`       |
 
 ### Transaction Manager
-```go
-// Simple transaction
-s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-    // all operations inside use tx
-    return nil
-})
 
-// Transaction with result (for complex ops like role assignment)
-result, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
-    return someResult, nil
-})
+```go
+s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error { ... })
+result, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) { ... })
 ```
 
 ---
 
-## Available Helpers
+## Helpers
 
-### Environment Helpers (`env_helper.go`)
-| Function | Description | Example |
-|----------|-------------|---------|
-| `GetEnv(key, default)` | Get environment variable with default | `helpers.GetEnv("APP_PORT", "8080")` |
-| `GetEnvInt(key, default)` | Get environment variable as int | `helpers.GetEnvInt("JWT_EXPIRATION", 24)` |
+### Error Sentinels
 
-### Error Sentinels (`error_helper.go`)
 ```go
-helpers.ErrNotFound          // "record not found"
-helpers.ErrInvalidToken      // "invalid token"
-helpers.ErrExpiredToken      // "token expired"
-helpers.ErrInvalidCredential // "invalid email or password"
-helpers.ErrUserExists        // "user already exists"
-helpers.ErrInvalidEmail      // "invalid email address"
-helpers.ErrTokenExpired      // "reset token has expired"
-helpers.ErrTokenUsed         // "reset token has already been used"
-helpers.ErrTokenInvalid      // "invalid reset token"
-helpers.ErrForbidden         // "forbidden"
+helpers.ErrNotFound, helpers.ErrInvalidToken, helpers.ErrExpiredToken
+helpers.ErrInvalidCredential, helpers.ErrTokenExpired, helpers.ErrTokenUsed
+helpers.ErrTokenInvalid, helpers.ErrForbidden
 ```
 
-### Crypto Helpers (`crypto_helper.go`)
+### FieldError — for service-level field validation errors
+
 ```go
-helpers.GenerateRandomString(32)     // secure random string
-helpers.HashString("value")          // bcrypt hash
-helpers.VerifyString("value", hash)  // verify bcrypt
+// Return directly from service when a specific field is invalid
+return nil, &helpers.FieldError{Field: "email", Message: "user already exists"}
 ```
 
-### Response Helpers (`response_helper.go`)
+### Response Helpers
+
 ```go
-helpers.OK(c, "message", data)                    // 200
-helpers.Created(c, "message", data)               // 201
-helpers.BadRequest(c, "message")                  // 400 (JSON syntax, invalid params)
-helpers.Unauthorized(c, "message")                // 401
-helpers.Forbidden(c, "message")                   // 403
-helpers.NotFound(c, "message")                    // 404
-helpers.InternalServerError(c, "message")         // 500
-helpers.ValidationErrorWithMap(c, errorsMap)      // 422 (validation errors map)
-helpers.ValidationErrorWithField(c, field, msg)   // 422 (single field error)
+helpers.OK(c, "msg", data)              // 200
+helpers.Created(c, "msg", data)         // 201
+helpers.BadRequest(c, "msg")            // 400
+helpers.Unauthorized(c, "msg")          // 401
+helpers.Forbidden(c, "msg")             // 403
+helpers.NotFound(c, "msg")              // 404
+helpers.InternalServerError(c, "msg")   // 500
+helpers.ValidationResponse(c, errs)     // 422 — pre-service (validator errors)
+helpers.ValidationError(c, field, msg)  // 422 — single field error
 ```
 
-**Response format:**
-```json
-{"code": 200, "message": "...", "data": {}}
-```
+### HandleError — single gate for all post-service errors
 
-**Validation error format:**
-```json
-{"code": 422, "message": "The given data was invalid.", "errors": {"field": ["message"]}}
-```
-
-**Validation pattern in handlers:**
 ```go
+// Handles: FieldError → 422, ErrNotFound → 404, ErrForbidden → 403,
+//          token/credential errors → 401, default → 500
+if helpers.HandleError(c, err, "Failed to create user") {
+    return
+}
+```
+
+### Validation Pattern (Handler)
+
+```go
+// Pre-service: validator errors
 if err := c.BindJSON(&req); err != nil {
     helpers.BadRequest(c, "Invalid JSON payload")
     return
 }
-if err := h.Validate.Struct(req); err != nil {
-    helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+if err := h.Validate.Struct(&req); err != nil {
+    helpers.ValidationResponse(c, h.getErrorsMap(err))
+    return
+}
+
+// Post-service: single line handles ALL error types
+dto, err := h.svcs.UserCreate(c.Request.Context(), req)
+if helpers.HandleError(c, err, "Failed to create user") {
     return
 }
 ```
 
-**Field-related business errors (422):**
+### Service Pattern — return FieldError directly
+
 ```go
-// Examples: email already exists, password mismatch, etc.
-if err == helpers.ErrUserExists {
-    helpers.ValidationErrorWithField(c, "email", "Email already exists")
-    return
+// In service, return FieldError for field-specific validation
+exists, _ := s.repo.User.Exists(nil, map[string]interface{}{"email": req.Email})
+if exists {
+    return nil, &helpers.FieldError{Field: "email", Message: "user already exists"}
 }
 ```
+
+See `references/handler.go` for full examples.
 
 ---
 
-## Available Clients (injected into Services)
+## Clients
 
 ### Redis — `s.RedisClient`
 
-> 🔴 Always check `s.RedisClient.IsCacheAvailable()` first. Redis errors **MUST NOT** cause operations to fail.
+Always check `IsCacheAvailable()` first. Redis errors MUST NOT fail operations.
 
 ```go
 if s.RedisClient.IsCacheAvailable() {
@@ -342,304 +293,117 @@ if s.RedisClient.IsCacheAvailable() {
 }
 ```
 
-**Recommended Key Pattern:**
-| Pattern | Example | Description |
-|---------|--------|-----------|
-| `session:{userID}` | `session:1` | User session cache |
-
 ### Email — `s.EmailClient`
 
 ```go
 s.EmailClient.IsConfigured()
 s.EmailClient.SendResetPasswordEmail(email, token, resetURL)
-s.EmailClient.SendEmail(email.EmailRequest{To: []string{...}, Subject: "...", Body: "..."})
 ```
 
-**EmailRequest DTO:**
+### Access — `s.Access` (Permission/Role)
+
+3-tier cache: L1 (in-memory) → L2 (Redis) → L3 (DB)
+
 ```go
-type EmailRequest struct {
-    To      []string  // Recipients
-    Subject string    // Email subject
-    Body    string    // HTML body
-    CC      []string  // CC recipients
-    BCC     []string  // BCC recipients
+s.Access.HasPermission(ctx, "user.delete")  // Check ANY permission
+s.Access.HasRole(ctx, "admin")              // Check role
+s.Access.Invalidate(userID)                 // Clear cache
+```
+
+Permission naming: `{resource}.{action}` (e.g., `user.create`, `user.delete`)
+
+### Scoped Permissions (Satker/Unit Restriction)
+
+When a role must only access data within their own unit/satker, use scoped permission naming:
+
+| Pattern                      | Example             | Description                                  |
+| ---------------------------- | ------------------- | -------------------------------------------- |
+| `{resource}.{action}`        | `user.index`        | Full access — view all data                  |
+| `{resource}.{action}-satker` | `user.index-satker` | Scoped access — view data in own satker only |
+
+**Route Usage (Access Control):**
+
+```go
+// Allow BOTH permissions — middleware checks if user has ANY of them
+users.GET("", middleware.RequirePermission(acc, "user.index", "user.index-satker"), handlers.UserGetAll)
+```
+
+**Service Usage (Data Filtering):**
+
+```go
+func (s *Services) UserGetAll(ctx context.Context) ([]dtos.UserDTO, error) {
+    // Scoped access — filter by caller's satker
+    if s.Access.HasPermission(ctx, "user.index-satker") {
+        callerID := helpers.GetCallerID(ctx)
+        caller, _ := s.repo.User.FindByID(nil, callerID, "Satker")
+        return s.repo.User.FindByFieldMap(nil, map[string]interface{}{
+            "satker_id": caller.SatkerID,
+        }, "Roles")
+    }
+    // Default: return all (full access or no restriction)
+    return s.repo.User.FindAll(nil, "Roles")
 }
 ```
+
+**Rules:**
+
+- Routes allow BOTH permissions (full OR scoped)
+- Service decides data scope based on which permission user actually has
+- Filtering logic belongs in Service layer, NOT handler or route
+
+See `references/route.go` for full examples.
 
 ---
 
-## Access — Permission & Role Checking (`s.Access`)
-
-> 🔐 Access helper is injected into Services via DI Container. Also available in routes as `container.Access` for middleware.
-
-**3-Tier Caching:**
-| Layer | Source | Behavior |
-|-------|--------|----------|
-| **L1** | Local in-memory (`sync.RWMutex` map) | Fastest, checked first |
-| **L2** | Redis (`session:{userID}`) | Checked if L1 miss |
-| **L3** | Database (user.Roles.Permissions) | Fallback if L1+L2 miss, then caches result to L1+L2 |
-
-**Methods:**
-| Method | Description | Example |
-|--------|-------------|---------|
-| `HasPermission(ctx, permissions...) bool` | Check if user has **ANY** of the specified permissions | `s.Access.HasPermission(ctx, "user.delete", "user.admin")` |
-| `HasRole(ctx, role string) bool` | Check if user has the specified role | `s.Access.HasRole(ctx, "admin")` |
-| `Invalidate(userID uint)` | Clear cached access data for a user | `s.Access.Invalidate(userID)` |
-
-**Usage in Services:**
-```go
-func (s *Services) UserDelete(ctx context.Context, id uint) error {
-    if !s.Access.HasPermission(ctx, "user.delete") {
-        return helpers.ErrForbidden
-    }
-    // ... delete logic
-}
-```
-
-**Usage in Routes (Middleware):**
-```go
-func RegisterUserRoutes(r *gin.RouterGroup, handlers *handlers.Handlers, acc *helpers.Access) {
-    users := r.Group("/users")
-    {
-        users.POST("", middleware.RequirePermission(acc, "user.create"), handlers.UserCreate)
-        users.GET("", middleware.RequirePermission(acc, "user.index"), handlers.UserGetAll)
-        users.GET("/:id", middleware.RequirePermission(acc, "user.index"), handlers.UserGetByID)
-        users.PUT("/:id", middleware.RequirePermission(acc, "user.edit"), handlers.UserUpdate)
-        users.DELETE("/:id", middleware.RequirePermission(acc, "user.delete"), handlers.UserDelete)
-    }
-}
-```
-
-**Cache Invalidation:**
-Call `s.Access.Invalidate(userID)` when user's roles/permissions change.
-
-**Permission Naming Convention:** `{resource}.{action}`
-| Permission | Description |
-|------------|-------------|
-| `user.index` | View users list |
-| `user.create` | Create new user |
-| `user.edit` | Update user |
-| `user.delete` | Delete user |
-
----
-
-## 📢 Notification Rules
-
-> 🔔 **Rule**: Every transaction Create, Update, Delete operation MUST create a notification for the affected user.
-
-### Notification Service — `s.NotificationCreate()`
-
-```go
-s.NotificationCreate(&services.NotificationCreateParams{
-    UserID:  userID,
-    Type:    "info",           // info, warning, success, error
-    Title:   "Title here",
-    Message: "Message here",
-    Data:    map[string]interface{}{"key": "value"}, // optional
-})
-```
-
-### When to Create Notifications
-
-| Operation | Must Notify? | Example |
-|-----------|--------------|---------|
-| CREATE | ✅ YES | "New record created: {name}" |
-| UPDATE | ✅ YES | "Record updated: {name}" |
-| DELETE | ✅ YES | "Record deleted: {name}" |
-| GET (simple) | ❌ NO | |
-| GET (complex) | ❌ NO | |
-
-### Example — CREATE with Notification
-
-```go
-func (s *Services) UserCreate(ctx context.Context, req *dtos.UserRequest) (*models.User, error) {
-    s.Logger.LogStart("UserCreate", "Creating user: %s", req.Email)
-
-    var result *models.User
-    err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-        user := &models.User{Email: req.Email, Name: req.Name}
-        var err error
-        result, err = s.repo.User.Create(tx, user)
-        if err != nil {
-            return err
-        }
-
-        // Create notification after successful operation
-        _ = s.NotificationCreate(&services.NotificationCreateParams{
-            UserID:  result.ID,
-            Type:    "success",
-            Title:   "Account Created",
-            Message: fmt.Sprintf("Welcome %s! Your account has been created.", result.Name),
-        })
-
-        return nil
-    })
-    if err != nil {
-        s.Logger.LogEndWithError("UserCreate", "Failed: %v", err)
-        return nil, err
-    }
-
-    s.Logger.LogEnd("UserCreate", "User created: %s (ID: %d)", req.Email, result.ID)
-    return result, nil
-}
-```
-
-### Example — UPDATE with Notification
-
-```go
-func (s *Services) UserUpdate(ctx context.Context, id uint, req *dtos.UserRequest) (*models.User, error) {
-    s.Logger.LogStart("UserUpdate", "Updating user %d", id)
-
-    var result *models.User
-    err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-        var err error
-        result, err = s.repo.User.Update(tx, &models.User{ID: id}, &models.User{Name: req.Name})
-        if err != nil {
-            return err
-        }
-
-        // Create notification after successful operation
-        _ = s.NotificationCreate(&services.NotificationCreateParams{
-            UserID:  result.ID,
-            Type:    "info",
-            Title:   "Profile Updated",
-            Message: "Your profile has been updated successfully.",
-        })
-
-        return nil
-    })
-    if err != nil {
-        s.Logger.LogEndWithError("UserUpdate", "Failed: %v", err)
-        return nil, err
-    }
-
-    s.Logger.LogEnd("UserUpdate", "User %d updated", id)
-    return result, nil
-}
-```
-
-### Example — DELETE with Notification
-
-```go
-func (s *Services) UserDelete(ctx context.Context, id uint) error {
-    s.Logger.LogStart("UserDelete", "Deleting user %d", id)
-
-    err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-        user, err := s.repo.User.FindByID(nil, id)
-        if err != nil {
-            return err
-        }
-
-        _, err = s.repo.User.Delete(tx, id)
-        if err != nil {
-            return err
-        }
-
-        // Create notification before deletion completes
-        _ = s.NotificationCreate(&services.NotificationCreateParams{
-            UserID:  user.ID,
-            Type:    "warning",
-            Title:   "Account Deleted",
-            Message: "Your account has been deleted.",
-        })
-
-        return nil
-    })
-    if err != nil {
-        s.Logger.LogEndWithError("UserDelete", "Failed: %v", err)
-        return err
-    }
-
-    s.Logger.LogEnd("UserDelete", "User %d deleted", id)
-    return nil
-}
-```
-
-### Important Notes
-
-1. **Notification errors should NOT fail the transaction** — use `_ = s.NotificationCreate(...)` to ignore errors
-2. **Notification is created INSIDE the transaction** — so it rolls back if the main operation fails
-3. **UserID** — use the affected user's ID (the record owner, not necessarily the caller)
-4. **Type values** — `info`, `warning`, `success`, `error`
-5. **Data field** — optional, use for additional context (e.g., record ID, old values)
-
----
-
-## Creating New Helpers
-
-> 💡 **Rule of Thumb**: If a function can be used in more than 1 place, make it a helper!
-
-**Criteria for creating new helpers:**
-1. ✅ General operation (not specific business logic)
-2. ✅ Reusable across multiple services
-3. ✅ No dependencies on repo, db, etc
-4. ✅ Pure function (input → output, no side effects)
-
-**❌ DO NOT create helpers if:**
-- ❌ Only used in 1 service
-- ❌ Contains specific business logic
-- ❌ Requires dependency injection (db, repo, etc)
-- ❌ Has side effects (write to db, send email, etc)
-
----
-
-## Services Struct (Dependencies)
+## Services & Handlers Struct
 
 ```go
 type Services struct {
-    repo         *repositories.Repositories  // Access repos: s.repo.User, s.repo.Permission, etc.
-    RedisClient  *database.RedisCache        // Redis cache client
-    EmailClient  *email.EmailClient          // Email client
-    JWKSManager  *services.JWKSManager       // JWKS manager
-    Access       *helpers.Access             // Permission/role checker
-    Logger       *helpers.Logger             // Logger
-    cfg          *JWTConfig                  // JWT config
+    repo         *repositories.Repositories
+    RedisClient  *database.RedisCache
+    EmailClient  *email.EmailClient
+    Access       *helpers.Access
+    Logger       *helpers.Logger
+    // ...
 }
-```
 
-## Handlers Struct
-
-```go
 type Handlers struct {
-    svcs     *services.Services      // Access services: h.svcs.PermissionCreate(...)
-    Validate *validator.Validate     // Validator instance with translator
-    trans    ut.Translator           // Translator for error messages
+    svcs     *services.Services
+    Validate *validator.Validate
+    trans    ut.Translator
 }
 ```
 
 ---
 
-## Anti-Patterns (NEVER DO)
+## Anti-Patterns
 
-| ❌ WRONG | ✅ CORRECT |
-|----------|-----------|
-| `type PermissionService struct` | Method on `(s *Services)` |
-| `func (s *Services) CreatePermission(...)` | `func (s *Services) PermissionCreate(...)` |
-| `s.repo.Permission.FindByID(s.repo.Permission.DB, id)` | `s.repo.Permission.FindByID(nil, id)` |
-| Direct DB write without transaction | `s.repo.TxManager.WithinTransaction(...)` |
-| Separate `CreateRequest` & `UpdateRequest` for simple features | Single `{Feature}Request` with `omitempty` |
-| `FindByID` check before Update/Delete | Generic repo handles not found automatically |
-| `c.ShouldBindJSON(&req)` + `helpers.ValidationError(c, err)` | `c.BindJSON(&req)` + `h.Validate.Struct(req)` + `helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))` |
-| `helpers.BadRequest(c, "Email already exists")` | `helpers.ValidationErrorWithField(c, "email", "Email already exists")` |
-| File operations in handler layer | File move/delete in service layer |
-| Modifying `00_generic.go` or `00_transaction.go` | Create custom repository file |
+| WRONG                                           | CORRECT                                               |
+| ----------------------------------------------- | ----------------------------------------------------- |
+| `type PermissionService struct`                 | Method on `(s *Services)`                             |
+| `func (s *Services) CreatePermission(...)`      | `func (s *Services) PermissionCreate(...)`            |
+| `FindByID(s.repo.Permission.DB, id)`            | `FindByID(nil, id)`                                   |
+| Direct DB write without transaction             | `TxManager.WithinTransaction(...)`                    |
+| `c.ShouldBindJSON(&req)`                        | `c.BindJSON(&req)` + `h.Validate.Struct(&req)`        |
+| `helpers.BadRequest(c, "msg")` for field errors | `helpers.ValidationError(c, "field", "msg")` |
+| Multiple `if err ==` blocks in handler | `helpers.HandleError(c, err, "fallback")` |
 
 ---
 
 ## Pre-Implementation Checklist
 
-- [ ] Model has `TableName()` method
-- [ ] DTO structs use feature prefix (`{Feature}DTO`, `{Feature}Request`)
-- [ ] Request DTO: merged for simple features OR separate for complex features
-- [ ] Service functions: `{Feature}{Action}` on `(s *Services)`
-- [ ] Handler functions: `{Feature}{Action}` on `(h *Handlers)`
-- [ ] Write operations use `TxManager.WithinTransaction()` or `WithinTransactionWithResult()`
-- [ ] Read operations use `nil` parameter
-- [ ] CREATE/UPDATE/DELETE have logging
-- [ ] CREATE/UPDATE/DELETE create notifications via `s.NotificationCreate()`
+- [ ] Model has `TableName()`
+- [ ] DTO variables use feature prefix
+- [ ] Service/Handler: `{Feature}{Action}` on single struct
+- [ ] Write ops use `TxManager.WithinTransaction()`
+- [ ] Read ops use `nil` parameter
+- [ ] Read ops return DTOs, NOT models
+- [ ] Paginated reads handle nil opts
+- [ ] CREATE/UPDATE/DELETE have logging + notification
+- [ ] Notification Data = identifier only (id, name, status)
 - [ ] Repository registered in `00_repository.go`
-- [ ] Routes registered in `cmd/api/main.go`
-- [ ] Handler uses `c.BindJSON()` + `h.Validate.Struct()` (NOT `ShouldBindJSON`)
-- [ ] Field-related business errors use `ValidationErrorWithField()` (422)
-- [ ] Build success: `go build ./...`
-- [ ] Vet clean: `go vet ./...`
+- [ ] Handler uses `c.BindJSON()` + `h.Validate.Struct()`
+- [ ] Pre-service errors use `ValidationResponse()` (422)
+- [ ] Post-service errors use `HandleError()` (1 line)
+- [ ] Service returns `&helpers.FieldError{Field: "...", Message: "..."}` for field errors
+- [ ] Build: `go build ./...` | Vet: `go vet ./...`
