@@ -16,20 +16,21 @@ const props = withDefaults(defineProps<Props>(), {
 const colorClasses = computed(() => {
   const baseClasses = {
     primary: {
-      solid: 'bg-primary text-primary-foreground hover:bg-primary/80',
-      outline: 'border border-primary text-primary hover:bg-primary/10',
+      solid: 'bg-primary text-primary-foreground hover:bg-primary/80 focus:ring-primary',
+      outline: 'border border-primary text-primary hover:bg-primary/10 focus:ring-primary',
     },
     danger: {
-      solid: 'bg-red-500 text-white hover:bg-red-500/80',
-      outline: 'border border-red-500 text-red-500 hover:bg-red-500/10',
+      solid: 'bg-red-500 text-white hover:bg-red-500/80 focus:ring-red-500',
+      outline: 'border border-red-500 text-red-500 hover:bg-red-500/10 focus:ring-red-500',
     },
     info: {
-      solid: 'bg-blue-500 text-white hover:bg-blue-500/80',
-      outline: 'border border-blue-500 text-blue-500 hover:bg-blue-500/10',
+      solid: 'bg-blue-500 text-white hover:bg-blue-500/80 focus:ring-blue-500',
+      outline: 'border border-blue-500 text-blue-500 hover:bg-blue-500/10 focus:ring-blue-500',
     },
     warning: {
-      solid: 'bg-yellow-500 text-white hover:bg-yellow-500/80',
-      outline: 'border border-yellow-500 text-yellow-500 hover:bg-yellow-500/10',
+      solid: 'bg-yellow-500 text-white hover:bg-yellow-500/80 focus:ring-yellow-500',
+      outline:
+        'border border-yellow-500 text-yellow-500 hover:bg-yellow-500/10 focus:ring-yellow-500',
     },
   }
 
@@ -37,11 +38,14 @@ const colorClasses = computed(() => {
   return baseClasses[props.color][style]
 })
 
-const sizeClasses = computed(() => ({
-  default: 'px-2.5 py-0.5 text-xs',
-  sm: 'px-1.5 py-0.5 text-xs',
-  lg: 'px-3 py-1 text-sm',
-}[props.size]))
+const sizeClasses = computed(
+  () =>
+    ({
+      default: 'px-2.5 py-0.5 text-xs',
+      sm: 'px-1.5 py-0.5 text-xs',
+      lg: 'px-3 py-1 text-sm',
+    })[props.size],
+)
 </script>
 
 <template>
