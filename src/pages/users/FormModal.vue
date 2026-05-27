@@ -14,13 +14,6 @@ import { useRoleStore } from '@/stores/role'
 import type { IRole } from '@/stores/role'
 import { required, email, minLength, helpers } from '@vuelidate/validators'
 
-import { computed, ref, onMounted } from 'vue'
-import useVuelidate from '@vuelidate/core'
-import { required, email, minLength, helpers } from '@vuelidate/validators'
-import { useUserStore } from '@/stores/user'
-import { useRoleStore } from '@/stores/role'
-import type { IRole } from '@/stores/role'
-
 const userStore = useUserStore()
 const roleStore = useRoleStore()
 const isVisible = ref(false)
