@@ -75,7 +75,7 @@ onUnmounted(() => {
           />
           <div
             v-else
-            class="w-full h-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center"
+            class="w-full h-full bg-linear-to-br from-blue-500 to-violet-500 flex items-center justify-center"
           >
             <span class="text-xs font-bold text-white leading-none">{{ userInitials }}</span>
           </div>
@@ -103,7 +103,7 @@ onUnmounted(() => {
         @click.stop
       >
         <!-- User Info Header -->
-        <div class="px-5 py-4 bg-gradient-to-br from-gray-50 to-white border-b border-gray-100">
+        <div class="px-5 py-4 bg-linear-to-br from-gray-50 to-white border-b border-gray-100">
           <div class="flex items-center gap-3">
             <!-- Avatar -->
             <div class="relative shrink-0">
@@ -117,7 +117,7 @@ onUnmounted(() => {
                 />
                 <div
                   v-else
-                  class="w-full h-full bg-gradient-to-br from-blue-500 to-violet-500 flex items-center justify-center"
+                  class="w-full h-full bg-linear-to-br from-blue-500 to-violet-500 flex items-center justify-center"
                 >
                   <span class="text-sm font-bold text-white leading-none">{{ userInitials }}</span>
                 </div>

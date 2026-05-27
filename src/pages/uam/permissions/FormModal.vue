@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { UiModal, FormInput, UiButton } from '@/components/utils'
-
-import useVuelidate from '@vuelidate/core'
 import { computed, ref } from 'vue'
+import useVuelidate from '@vuelidate/core'
+
 import { usePermissionStore } from '@/stores/permission'
 
 const permissionStore = usePermissionStore()

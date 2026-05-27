@@ -122,7 +122,7 @@ function handleRemove() {
 
         <!-- File info -->
         <div v-if="props.modelValue" class="mt-2 flex items-center gap-2 text-xs text-gray-600">
-          <span class="truncate max-w-[200px]">{{ props.modelValue.name }}</span>
+          <span class="truncate max-w-50">{{ props.modelValue.name }}</span>
           <span class="text-gray-400">•</span>
           <span>{{ (props.modelValue.size / 1024).toFixed(1) }} KB</span>
         </div>

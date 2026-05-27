@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { UiCard, UiButton, UiPagination, UiEmptyState, UiSkeleton } from '@/components/utils'
+import FormModal from './FormModal.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import type { IUser } from '@/stores/user'
@@ -11,8 +13,6 @@ import {
   PhCrown,
   PhDotsThreeVertical,
 } from '@phosphor-icons/vue'
-import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
-import FormModal from './FormModal.vue'
 
 const userStore = useUserStore()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)
@@ -100,13 +100,16 @@ onUnmounted(() => {
     <!-- Loading State -->
     <div
       v-if="userStore.loading.Index"
-      class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 animate-pulse"
+      class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
     >
-      <div
-        v-for="i in 10"
+      <UiSkeleton
+        v-for="i in userStore.indexData.pagination.page_size"
         :key="i"
-        class="h-40 bg-linear-to-br from-gray-200 to-gray-300 rounded-xl"
-      ></div>
+        variant="rect"
+        width="w-full"
+        height="h-40"
+        rounded
+      />
     </div>
 
     <!-- Empty State -->

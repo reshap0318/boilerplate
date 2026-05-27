@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import FormModal from './FormModal.vue'
-
+import { UiCard, UiButton, UiPagination, UiEmptyState, UiSkeleton } from '@/components/utils'
 import { ref, onMounted } from 'vue'
-import { UiCard, UiButton, UiPagination, UiEmptyState } from '@/components/utils'
 import { usePermissionStore, type IPermission } from '@/stores'
 import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
 
@@ -51,13 +50,16 @@ onMounted(() => {
     <!-- Loading State -->
     <div
       v-if="permissionStore.loading.Index"
-      class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 animate-pulse"
+      class="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
     >
-      <div
-        v-for="i in 6"
+      <UiSkeleton
+        v-for="i in permissionStore.indexData.pagination.page_size"
         :key="i"
-        class="h-40 bg-linear-to-br from-gray-200 to-gray-300 rounded-xl"
-      ></div>
+        variant="rect"
+        width="w-full"
+        height="h-26"
+        rounded
+      />
     </div>
 
     <!-- Empty State -->

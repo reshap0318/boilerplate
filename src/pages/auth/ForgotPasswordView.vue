@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { FormInput, UiButton, UiCard } from '@/components/utils'
 import { ref } from 'vue'
 import { required, email } from '@vuelidate/validators'
 import { useAuthStore } from '@/stores/auth'
@@ -6,7 +7,6 @@ import { useRouter } from 'vue-router'
 import { PhEnvelope } from '@phosphor-icons/vue'
 import useVuelidate from '@vuelidate/core'
 import swal from '@/plugins/swal'
-import { FormInput, UiButton, UiCard } from '@/components/utils'
 
 const router = useRouter()
 const authStore = useAuthStore()

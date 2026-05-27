@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import SidebarMenu from '@/components/layouts/SidebarMenu.vue'
+import TopBar from '@/components/layouts/TopBar.vue'
 import { ref } from 'vue'
 import { PhList, PhHouse, PhShieldCheck, PhUsers } from '@phosphor-icons/vue'
 import type { IMenuItem } from '@/components/layouts/SidebarMenu.vue'
-import SidebarMenu from '@/components/layouts/SidebarMenu.vue'
-import TopBar from '@/components/layouts/TopBar.vue'
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { FormInput, FormPassword, UiButton, UiCard } from '@/components/utils'
-
 import useVuelidate from '@vuelidate/core'
 import { useRouter } from 'vue-router'
 import { PhEnvelope } from '@phosphor-icons/vue'

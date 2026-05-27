@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import SidebarMenuItem from './SidebarMenuItem.vue'
+import { ref, computed } from 'vue'
 
 export interface IMenuItem {
   icon?: unknown
