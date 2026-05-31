@@ -39,8 +39,7 @@ func (h *Handlers) UserGetAll(c *gin.Context) {
 	if pageStr == "" {
 		// No pagination - return all
 		users, err := h.svcs.UserGetAll(c.Request.Context())
-		if err != nil {
-			helpers.InternalServerError(c, "Failed to fetch users")
+		if helpers.HandleError(c, err, "Failed to fetch users") {
 			return
 		}
 
@@ -58,8 +57,7 @@ func (h *Handlers) UserGetAll(c *gin.Context) {
 	}
 
 	result, err := h.svcs.UserGetAllPaginated(c.Request.Context(), opts)
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to fetch users")
+	if helpers.HandleError(c, err, "Failed to fetch users") {
 		return
 	}
 

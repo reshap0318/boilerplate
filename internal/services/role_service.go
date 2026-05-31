@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
 
@@ -37,6 +38,16 @@ func (s *Services) RoleCreate(ctx context.Context, req dtos.RoleRequest) (*dtos.
 			s.Logger.LogStep("RoleCreate", "Failed to assign permissions: %v", err)
 		}
 
+		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+			Type:    "success",
+			Title:   "Role Created",
+			Message: fmt.Sprintf("New role created: %s", req.Name),
+			Data: map[string]interface{}{
+				"id":   result.ID,
+				"name": result.Name,
+			},
+		})
+
 		// Reload role with permissions
 		reloaded, err := s.repo.Role.FindByID(tx, result.ID, "Permissions")
 		if err != nil {
@@ -68,7 +79,7 @@ func (s *Services) RoleGetAllUnpaginated(ctx context.Context) ([]dtos.RoleDTO, e
 }
 
 // RoleGetAllPaginated returns paginated roles with permissions.
-func (s *Services) RoleGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.Role], error) {
+func (s *Services) RoleGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.RoleDTO], error) {
 	if opts == nil {
 		opts = &repositories.QueryOptions{}
 	}
@@ -80,7 +91,20 @@ func (s *Services) RoleGetAllPaginated(ctx context.Context, opts *repositories.Q
 	}
 	opts.Preloads = []string{"Permissions"}
 
-	return s.repo.Role.FindAllWithOpts(nil, opts)
+	result, err := s.repo.Role.FindAllWithOpts(nil, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	dtoList := dtos.ToRoleDTOList(result.Data)
+
+	return &repositories.PagedResult[dtos.RoleDTO]{
+		Data:       dtoList,
+		Total:      result.Total,
+		Page:       result.Page,
+		PageSize:   result.PageSize,
+		TotalPages: result.TotalPages,
+	}, nil
 }
 
 // RoleGetByID returns a role by ID with permissions.
@@ -127,6 +151,16 @@ func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest
 			s.Logger.LogStep("RoleUpdate", "Failed to assign permissions: %v", err)
 		}
 
+		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+			Type:    "info",
+			Title:   "Role Updated",
+			Message: fmt.Sprintf("Role updated: %s", result.Name),
+			Data: map[string]interface{}{
+				"id":   result.ID,
+				"name": result.Name,
+			},
+		})
+
 		// Reload role with permissions
 		reloaded, err := s.repo.Role.FindByID(tx, result.ID, "Permissions")
 		if err != nil {
@@ -162,6 +196,15 @@ func (s *Services) RoleDelete(ctx context.Context, id uint) error {
 		s.Logger.LogEndWithError("RoleDelete", "Failed to delete role: %v", err)
 		return err
 	}
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "warning",
+		Title:   "Role Deleted",
+		Message: fmt.Sprintf("Role deleted: ID %d", id),
+		Data: map[string]interface{}{
+			"id": id,
+		},
+	})
 
 	s.Logger.LogEnd("RoleDelete", "Role deleted: ID: %d", id)
 	return nil

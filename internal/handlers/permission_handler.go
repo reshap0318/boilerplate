@@ -37,8 +37,7 @@ func (h *Handlers) PermissionGetAll(c *gin.Context) {
 
 	if pageStr == "" {
 		permissions, err := h.svcs.PermissionGetAll(c.Request.Context())
-		if err != nil {
-			helpers.InternalServerError(c, "Failed to fetch permissions")
+		if helpers.HandleError(c, err, "Failed to fetch permissions") {
 			return
 		}
 
@@ -55,8 +54,7 @@ func (h *Handlers) PermissionGetAll(c *gin.Context) {
 	}
 
 	result, err := h.svcs.PermissionGetAllPaginated(c.Request.Context(), opts)
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to fetch permissions")
+	if helpers.HandleError(c, err, "Failed to fetch permissions") {
 		return
 	}
 

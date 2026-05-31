@@ -37,8 +37,7 @@ func (h *Handlers) RoleGetAll(c *gin.Context) {
 
 	if pageStr == "" {
 		roles, err := h.svcs.RoleGetAllUnpaginated(c.Request.Context())
-		if err != nil {
-			helpers.InternalServerError(c, "Failed to fetch roles")
+		if helpers.HandleError(c, err, "Failed to fetch roles") {
 			return
 		}
 
@@ -55,8 +54,7 @@ func (h *Handlers) RoleGetAll(c *gin.Context) {
 	}
 
 	result, err := h.svcs.RoleGetAllPaginated(c.Request.Context(), opts)
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to fetch roles")
+	if helpers.HandleError(c, err, "Failed to fetch roles") {
 		return
 	}
 

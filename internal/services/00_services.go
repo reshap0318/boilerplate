@@ -3,7 +3,7 @@ package services
 import (
 	"time"
 
-	"github.com/reshap0318/go-boilerplate/internal/clients/email"
+	"github.com/reshap0318/go-boilerplate/internal/pkg/email"
 	"github.com/reshap0318/go-boilerplate/internal/database"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 	"github.com/reshap0318/go-boilerplate/internal/repositories"

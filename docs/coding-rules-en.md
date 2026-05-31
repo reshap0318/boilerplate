@@ -235,9 +235,9 @@ func (s *Services) GetUserByID(ctx context.Context, id uint) (*models.User, erro
 
 ---
 
-### **Clients** (`internal/clients/`)
+### **Clients** (`internal/pkg/`)
 
-#### **Email Client** (`internal/clients/email/`)
+#### **Email Client** (`internal/pkg/email/`)
 
 > 📧 Email client is injected into Services via DI Container. Access via `s.EmailClient`.
 
@@ -283,7 +283,7 @@ req := email.EmailRequest{
 err := s.EmailClient.SendEmail(req)
 ```
 
-**Templates** (`internal/clients/email/templates/`):
+**Templates** (`internal/pkg/email/templates/`):
 
 | Template | Description |
 |----------|-------------|

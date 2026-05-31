@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -61,6 +62,16 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (
 		if err := tx.Model(&result).Association("Roles").Append(roles); err != nil {
 			s.Logger.LogStep("UserCreate", "Failed to assign roles: %v", err)
 		}
+
+		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+			Type:    "success",
+			Title:   "User Created",
+			Message: fmt.Sprintf("New user created: %s", req.Email),
+			Data: map[string]interface{}{
+				"id":    result.ID,
+				"email": result.Email,
+			},
+		})
 
 		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
 		if err != nil {
@@ -139,16 +150,12 @@ func (s *Services) UserGetByID(ctx context.Context, id uint) (*dtos.UserDTO, err
 
 // ProfileGet returns the authenticated user's profile.
 func (s *Services) ProfileGet(ctx context.Context, userID uint) (*dtos.UserDTO, error) {
-	s.Logger.LogStart("ProfileGet", "Fetching profile for user ID: %d", userID)
-
 	user, err := s.repo.User.FindByID(nil, userID, "Roles")
 	if err != nil {
-		s.Logger.LogEndWithError("ProfileGet", "User not found: %v", err)
 		return nil, helpers.ErrNotFound
 	}
 
 	dto := dtos.ToUserDTO(user)
-	s.Logger.LogEnd("ProfileGet", "Profile fetched for user: %s", dto.Email)
 	return &dto, nil
 }
 
@@ -190,6 +197,15 @@ func (s *Services) ProfileUpdate(ctx context.Context, userID uint, req dtos.Prof
 		if err != nil {
 			return nil, err
 		}
+
+		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+			Type:    "info",
+			Title:   "Profile Updated",
+			Message: "User profile has been updated",
+			Data: map[string]interface{}{
+				"id": result.ID,
+			},
+		})
 
 		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
 		if err != nil {
@@ -280,6 +296,16 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateR
 			s.Logger.LogStep("UserUpdate", "Failed to assign roles: %v", err)
 		}
 
+		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+			Type:    "info",
+			Title:   "User Updated",
+			Message: fmt.Sprintf("User updated: %s", req.Email),
+			Data: map[string]interface{}{
+				"id":    result.ID,
+				"email": result.Email,
+			},
+		})
+
 		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
 		if err != nil {
 			return nil, err
@@ -321,6 +347,15 @@ func (s *Services) UserDelete(ctx context.Context, id uint) error {
 		s.Logger.LogEndWithError("UserDelete", "Failed to delete user: %v", err)
 		return err
 	}
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "warning",
+		Title:   "User Deleted",
+		Message: fmt.Sprintf("User deleted: ID %d", id),
+		Data: map[string]interface{}{
+			"id": id,
+		},
+	})
 
 	// Invalidate cached session
 	s.Access.Invalidate(id)

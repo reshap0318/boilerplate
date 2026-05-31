@@ -12,7 +12,7 @@ import (
 	en_trans "github.com/go-playground/validator/v10/translations/en"
 	"gorm.io/gorm"
 
-	clientEmail "github.com/reshap0318/go-boilerplate/internal/clients/email"
+	clientEmail "github.com/reshap0318/go-boilerplate/internal/pkg/email"
 	"github.com/reshap0318/go-boilerplate/internal/database"
 	"github.com/reshap0318/go-boilerplate/internal/handlers"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"

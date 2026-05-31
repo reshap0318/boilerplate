@@ -6,6 +6,11 @@ import (
 	"github.com/reshap0318/go-project/internal/helpers"
 )
 
+// NOTE: ALL service errors MUST be handled via helpers.HandleError().
+// Do NOT manually check errors (e.g., err == helpers.ErrNotFound).
+// HandleError automatically handles: FieldError, CustomError, ErrNotFound,
+// ErrForbidden, ErrInvalidToken, etc. Fallback message for unknown errors.
+
 // ============================================================
 // CREATE
 // ============================================================
@@ -16,7 +21,7 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
 		return
 	}
 	if err := h.Validate.Struct(&req); err != nil {
-		helpers.ValidationResponse(c, h.getErrorsMap(err))
+		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
 		return
 	}
 
@@ -83,7 +88,7 @@ func (h *Handlers) PermissionUpdate(c *gin.Context) {
 		return
 	}
 	if err := h.Validate.Struct(&req); err != nil {
-		helpers.ValidationResponse(c, h.getErrorsMap(err))
+		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
 		return
 	}
 

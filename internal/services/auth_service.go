@@ -37,7 +37,7 @@ func (s *Services) AuthValidateToken(tokenString string) (*helpers.JWTClaims, er
 	}
 
 	// Fallback: validate user from database
-	_, err = s.repo.User.FindByID(s.repo.User.DB, claims.UserID)
+	_, err = s.repo.User.FindByID(nil, claims.UserID)
 	if err != nil {
 		s.Logger.LogStep("AuthValidateToken", "User not found in DB: %d", claims.UserID)
 		return nil, helpers.ErrInvalidCredential
@@ -82,7 +82,7 @@ func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos
 	s.Logger.LogStep("AuthLogin", "Refresh token generated")
 
 	// Reload user with roles for response
-	userWithRoles, err := s.repo.User.FindByID(s.repo.User.DB, user.ID, "Roles.Permissions")
+	userWithRoles, err := s.repo.User.FindByID(nil, user.ID, "Roles.Permissions")
 	if err != nil {
 		s.Logger.LogWarn("AuthLogin", "Failed to load user roles: %v", err)
 		userWithRoles = user
@@ -119,7 +119,7 @@ func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*
 	}
 	s.Logger.LogStep("AuthRefreshToken", "Refresh token validated")
 
-	user, err := s.repo.User.FindByID(s.repo.User.DB, claims.UserID)
+	user, err := s.repo.User.FindByID(nil, claims.UserID)
 	if err != nil {
 		s.Logger.LogStep("AuthRefreshToken", "User not found: %v", err)
 		s.Logger.LogEndWithError("AuthRefreshToken", "Token refresh failed - user not found")
@@ -166,7 +166,7 @@ func (s *Services) checkPassword(password, hash string) bool {
 
 // getUserRolesAndPermissions fetches role names and permission names for a user
 func (s *Services) getUserRolesAndPermissions(userID uint) (roles []string, permissions []string) {
-	user, err := s.repo.User.FindByID(s.repo.User.DB, userID, "Roles.Permissions")
+	user, err := s.repo.User.FindByID(nil, userID, "Roles.Permissions")
 	if err != nil {
 		return []string{}, []string{}
 	}
@@ -260,11 +260,25 @@ func (s *Services) AuthForgetPassword(ctx context.Context, email string) error {
 		Used:      false,
 	}
 
-	if _, err := s.repo.PasswordReset.Create(nil, passwordReset); err != nil {
+	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+		if _, err := s.repo.PasswordReset.Create(tx, passwordReset); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
 		s.Logger.LogError("AuthForgetPassword", "Failed to save reset token: %v", err)
 		s.Logger.LogEndWithError("AuthForgetPassword", "Reset password failed - database error")
 		return err
 	}
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "info",
+		Title:   "Password Reset Requested",
+		Message: fmt.Sprintf("Password reset requested for %s", user.Email),
+		Data: map[string]interface{}{
+			"email": user.Email,
+		},
+	})
 
 	s.Logger.LogStep("AuthForgetPassword", "Reset token saved to database")
 
@@ -286,6 +300,8 @@ func (s *Services) AuthForgetPassword(ctx context.Context, email string) error {
 
 // AuthResetPassword validates token and resets user password.
 func (s *Services) AuthResetPassword(ctx context.Context, token, newPassword string) error {
+	s.Logger.LogStart("AuthResetPassword", "Password reset attempt")
+
 	// Hash token to find in database
 	hashedToken, err := helpers.HashString(token)
 	if err != nil {
@@ -330,8 +346,23 @@ func (s *Services) AuthResetPassword(ctx context.Context, token, newPassword str
 			return nil, err
 		}
 
+		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+			Type:    "success",
+			Title:   "Password Reset Successful",
+			Message: "Your password has been reset successfully",
+			Data: map[string]interface{}{
+				"email": reset.Email,
+			},
+		})
+
 		return nil, nil
 	})
 
-	return err
+	if err != nil {
+		s.Logger.LogEndWithError("AuthResetPassword", "Password reset failed: %v", err)
+		return err
+	}
+
+	s.Logger.LogEnd("AuthResetPassword", "Password reset successful")
+	return nil
 }

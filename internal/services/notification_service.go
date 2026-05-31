@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"gorm.io/gorm"
+
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 	"github.com/reshap0318/go-boilerplate/internal/models"
@@ -134,8 +136,9 @@ func (s *Services) NotificationMarkAsRead(ctx context.Context, id uint) error {
 		return helpers.ErrInvalidToken
 	}
 
-	err := s.repo.Notification.MarkAsRead(id, userID)
-	if err != nil {
+	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+		return s.repo.Notification.MarkAsRead(id, userID)
+	}); err != nil {
 		s.Logger.LogEndWithError("NotificationMarkAsRead", "Failed to mark notification as read: %v", err)
 		return err
 	}
@@ -152,8 +155,9 @@ func (s *Services) NotificationMarkAllAsRead(ctx context.Context) error {
 		return helpers.ErrInvalidToken
 	}
 
-	err := s.repo.Notification.MarkAllAsRead(userID)
-	if err != nil {
+	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+		return s.repo.Notification.MarkAllAsRead(userID)
+	}); err != nil {
 		s.Logger.LogEndWithError("NotificationMarkAllAsRead", "Failed to mark all notifications as read: %v", err)
 		return err
 	}
@@ -198,8 +202,10 @@ func (s *Services) NotificationDelete(ctx context.Context, id uint) error {
 		return helpers.ErrForbidden
 	}
 
-	_, err = s.repo.Notification.Delete(nil, id)
-	if err != nil {
+	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+		_, err = s.repo.Notification.Delete(tx, id)
+		return err
+	}); err != nil {
 		s.Logger.LogEndWithError("NotificationDelete", "Failed to delete notification: %v", err)
 		return err
 	}

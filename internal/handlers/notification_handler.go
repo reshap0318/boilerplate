@@ -35,8 +35,7 @@ func (h *Handlers) NotificationGetAll(c *gin.Context) {
 
 	if isRead != nil || notifType != "" {
 		result, err := h.svcs.NotificationGetAllWithFilters(c.Request.Context(), opts, isRead, notifType)
-		if err != nil {
-			helpers.InternalServerError(c, "Failed to fetch notifications")
+		if helpers.HandleError(c, err, "Failed to fetch notifications") {
 			return
 		}
 
@@ -45,8 +44,7 @@ func (h *Handlers) NotificationGetAll(c *gin.Context) {
 	}
 
 	result, err := h.svcs.NotificationGetAll(c.Request.Context(), opts)
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to fetch notifications")
+	if helpers.HandleError(c, err, "Failed to fetch notifications") {
 		return
 	}
 
@@ -85,8 +83,7 @@ func (h *Handlers) NotificationMarkAsRead(c *gin.Context) {
 
 func (h *Handlers) NotificationMarkAllAsRead(c *gin.Context) {
 	err := h.svcs.NotificationMarkAllAsRead(c.Request.Context())
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to mark all notifications as read")
+	if helpers.HandleError(c, err, "Failed to mark all notifications as read") {
 		return
 	}
 
@@ -95,8 +92,7 @@ func (h *Handlers) NotificationMarkAllAsRead(c *gin.Context) {
 
 func (h *Handlers) NotificationCountUnread(c *gin.Context) {
 	count, err := h.svcs.NotificationCountUnread(c.Request.Context())
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to count unread notifications")
+	if helpers.HandleError(c, err, "Failed to count unread notifications") {
 		return
 	}
 

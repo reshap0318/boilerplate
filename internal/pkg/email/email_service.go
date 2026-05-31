@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/smtp"
 
-	"github.com/reshap0318/go-boilerplate/internal/clients/email/templates"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/pkg/email/templates"
 )
 
 // EmailClient represents an email client for sending emails via SMTP.

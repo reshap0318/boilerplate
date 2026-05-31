@@ -121,6 +121,15 @@ func HandleError(c *gin.Context, err error, fallbackMsg string) bool {
 		return true
 	}
 
+	if ce, ok := err.(*CustomError); ok {
+		status := ce.Status
+		if status == 0 {
+			status = http.StatusBadRequest
+		}
+		ErrorResponse(c, status, ce.Message)
+		return true
+	}
+
 	switch err {
 	case ErrNotFound:
 		NotFound(c, "Data not found")

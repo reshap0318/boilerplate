@@ -10,7 +10,7 @@ Use this skill when:
 - Writing or modifying Go code — follow rules below, see `references/` for examples
 - Adding features to existing codebase — ensure consistency with project conventions
 - Reviewing code — check for anti-patterns and rule violations
-- Need reference for helpers, clients, or GenericRepository methods
+- Need reference for helpers, packages, or GenericRepository methods
 
 ---
 
@@ -210,16 +210,40 @@ result, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (i
 
 ```go
 helpers.ErrNotFound, helpers.ErrInvalidToken, helpers.ErrExpiredToken
-helpers.ErrInvalidCredential, helpers.ErrTokenExpired, helpers.ErrTokenUsed
-helpers.ErrTokenInvalid, helpers.ErrForbidden
+helpers.ErrInvalidCredential, helpers.ErrUserExists, helpers.ErrInvalidEmail
+helpers.ErrForbidden
 ```
 
-### FieldError — for service-level field validation errors
+### Custom Error — `CustomError`
+
+Use `helpers.CustomError` to return custom HTTP status and message from service layer:
 
 ```go
-// Return directly from service when a specific field is invalid
-return nil, &helpers.FieldError{Field: "email", Message: "user already exists"}
+// Default status 400 (Bad Request)
+return &helpers.CustomError{
+    Message: "ID tidak valid",
+}
+
+// With custom status
+return &helpers.CustomError{
+    Status:  http.StatusConflict, // 409
+    Message: "Data sudah ada",
+}
 ```
+
+Handler handles it automatically via `HandleError()`:
+
+```go
+err := s.Services.SomeAction(id)
+if helpers.HandleError(c, err, "Fallback message") {
+    return
+}
+```
+
+| Scenario | Status | Message |
+|----------|--------|---------|
+| `Status` not set | 400 | Custom message |
+| `Status` set | Custom | Custom message |
 
 ### Response Helpers
 
@@ -231,47 +255,25 @@ helpers.Unauthorized(c, "msg")          // 401
 helpers.Forbidden(c, "msg")             // 403
 helpers.NotFound(c, "msg")              // 404
 helpers.InternalServerError(c, "msg")   // 500
-helpers.ValidationResponse(c, errs)     // 422 — pre-service (validator errors)
-helpers.ValidationError(c, field, msg)  // 422 — single field error
-```
-
-### HandleError — single gate for all post-service errors
-
-```go
-// Handles: FieldError → 422, ErrNotFound → 404, ErrForbidden → 403,
-//          token/credential errors → 401, default → 500
-if helpers.HandleError(c, err, "Failed to create user") {
-    return
-}
+helpers.ValidationErrorWithMap(c, errs) // 422
+helpers.ValidationErrorWithField(c, field, msg) // 422
 ```
 
 ### Validation Pattern (Handler)
 
 ```go
-// Pre-service: validator errors
 if err := c.BindJSON(&req); err != nil {
     helpers.BadRequest(c, "Invalid JSON payload")
     return
 }
 if err := h.Validate.Struct(&req); err != nil {
-    helpers.ValidationResponse(c, h.getErrorsMap(err))
+    helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
     return
 }
 
-// Post-service: single line handles ALL error types
-dto, err := h.svcs.UserCreate(c.Request.Context(), req)
-if helpers.HandleError(c, err, "Failed to create user") {
+// ALL service errors MUST go through HandleError:
+if helpers.HandleError(c, err, "Failed to process request") {
     return
-}
-```
-
-### Service Pattern — return FieldError directly
-
-```go
-// In service, return FieldError for field-specific validation
-exists, _ := s.repo.User.Exists(nil, map[string]interface{}{"email": req.Email})
-if exists {
-    return nil, &helpers.FieldError{Field: "email", Message: "user already exists"}
 }
 ```
 
@@ -279,7 +281,7 @@ See `references/handler.go` for full examples.
 
 ---
 
-## Clients
+## Packages (`internal/pkg/`)
 
 ### Redis — `s.RedisClient`
 
@@ -361,7 +363,7 @@ See `references/route.go` for full examples.
 type Services struct {
     repo         *repositories.Repositories
     RedisClient  *database.RedisCache
-    EmailClient  *email.EmailClient
+    EmailClient  *pkgEmail.EmailClient    // internal/pkg/email
     Access       *helpers.Access
     Logger       *helpers.Logger
     // ...
@@ -385,8 +387,8 @@ type Handlers struct {
 | `FindByID(s.repo.Permission.DB, id)`            | `FindByID(nil, id)`                                   |
 | Direct DB write without transaction             | `TxManager.WithinTransaction(...)`                    |
 | `c.ShouldBindJSON(&req)`                        | `c.BindJSON(&req)` + `h.Validate.Struct(&req)`        |
-| `helpers.BadRequest(c, "msg")` for field errors | `helpers.ValidationError(c, "field", "msg")` |
-| Multiple `if err ==` blocks in handler | `helpers.HandleError(c, err, "fallback")` |
+| `helpers.BadRequest(c, "msg")` for field errors | `helpers.ValidationErrorWithField(c, "field", "msg")` |
+| Manual error check `if err == helpers.ErrX`     | `helpers.HandleError(c, err, "fallback")`            |
 
 ---
 
@@ -403,7 +405,5 @@ type Handlers struct {
 - [ ] Notification Data = identifier only (id, name, status)
 - [ ] Repository registered in `00_repository.go`
 - [ ] Handler uses `c.BindJSON()` + `h.Validate.Struct()`
-- [ ] Pre-service errors use `ValidationResponse()` (422)
-- [ ] Post-service errors use `HandleError()` (1 line)
-- [ ] Service returns `&helpers.FieldError{Field: "...", Message: "..."}` for field errors
+- [ ] ALL errors handled via `HandleError()`, NO manual error checks
 - [ ] Build: `go build ./...` | Vet: `go vet ./...`

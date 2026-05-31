@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/reshap0318/go-boilerplate/internal/services"
 	"github.com/reshap0318/go-project/internal/dtos"
 	"github.com/reshap0318/go-project/internal/helpers"
 	"github.com/reshap0318/go-project/internal/models"
+	"github.com/reshap0318/go-project/internal/pkg/email"
 	"github.com/reshap0318/go-project/internal/repositories"
-	"gorm.io/gorm"
 )
 
 // ============================================================
@@ -17,16 +16,6 @@ import (
 // ============================================================
 func (s *Services) PermissionCreate(ctx context.Context, req *dtos.PermissionRequest) (*models.Permission, error) {
 	s.Logger.LogStart("PermissionCreate", "Creating permission: %s", req.Name)
-
-	exists, err := s.repo.Permission.Exists(nil, map[string]interface{}{"name": req.Name})
-	if err != nil {
-		s.Logger.LogEndWithError("PermissionCreate", "Failed to check name: %v", err)
-		return nil, err
-	}
-	if exists {
-		s.Logger.LogEndWithError("PermissionCreate", "Permission name already exists: %s", req.Name)
-		return nil, &helpers.FieldError{Field: "name", Message: "permission name already exists"}
-	}
 
 	var result *models.Permission
 	err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
@@ -163,7 +152,7 @@ func (s *Services) PermissionDelete(ctx context.Context, id uint) error {
 	s.Logger.LogStart("PermissionDelete", "Deleting permission %d", id)
 
 	err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		permission, err := s.repo.Permission.FindByID(nil, id, "Roles")
+	permission, err := s.repo.Permission.FindByID(nil, id, "Roles")
 		if err != nil {
 			return err
 		}
