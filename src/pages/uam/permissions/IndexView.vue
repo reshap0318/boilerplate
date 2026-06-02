@@ -39,7 +39,7 @@ onMounted(() => {
           Kelola daftar akses permission dalam sistem.
         </p>
       </div>
-      <UiButton size="sm" @click="openCreate">
+      <UiButton v-permission="['permission.create']" size="sm" @click="openCreate">
         <template #icon>
           <PhPlus class="w-4 h-4" />
         </template>
@@ -69,7 +69,7 @@ onMounted(() => {
       title="Belum ada Permission"
       description="Silakan buat permission baru untuk mulai mengatur hak akses sistem."
     >
-      <UiButton size="lg" @click="openCreate">
+      <UiButton v-permission="['permission.create']" size="lg" @click="openCreate">
         <template #icon>
           <PhPlus class="w-5 h-5" />
         </template>
@@ -98,6 +98,7 @@ onMounted(() => {
             class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           >
             <button
+              v-permission="['permission.edit']"
               class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
               title="Edit"
               @click="openEdit(permission)"
@@ -105,6 +106,7 @@ onMounted(() => {
               <PhPencil class="w-5 h-5" />
             </button>
             <button
+              v-permission="['permission.delete']"
               class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
               title="Hapus"
               :disabled="permissionStore.loading.Delete"

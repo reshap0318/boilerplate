@@ -89,7 +89,7 @@ onUnmounted(() => {
         <h1 class="text-3xl font-bold text-gray-900">Users</h1>
         <p class="hidden sm:block text-sm text-gray-600 mt-1">Kelola daftar user dalam sistem.</p>
       </div>
-      <UiButton size="sm" @click="openCreate">
+      <UiButton v-permission="['user.create']" size="sm" @click="openCreate">
         <template #icon>
           <PhPlus class="w-4 h-4" />
         </template>
@@ -119,7 +119,7 @@ onUnmounted(() => {
       title="Belum ada User"
       description="Silakan buat user baru untuk mulai mengelola akses pengguna."
     >
-      <UiButton size="lg" @click="openCreate">
+      <UiButton v-permission="['user.create']" size="lg" @click="openCreate">
         <template #icon>
           <PhPlus class="w-5 h-5" />
         </template>
@@ -185,6 +185,7 @@ onUnmounted(() => {
                   @click.stop
                 >
                   <button
+                    v-permission="['user.edit']"
                     class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     @click="openEdit(user)"
                   >
@@ -192,6 +193,7 @@ onUnmounted(() => {
                     <span>Edit</span>
                   </button>
                   <button
+                    v-permission="['user.delete']"
                     class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     :disabled="userStore.loading.Delete"
                     @click="handleDelete(user.id)"

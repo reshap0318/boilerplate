@@ -1,4 +1,18 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import swal from '@/plugins/swal'
+
+const route = useRoute()
+const router = useRouter()
+
+onMounted(() => {
+  if (route.query.accessDenied === 'true') {
+    swal.warning('Access Denied', 'Anda tidak memiliki akses ke halaman tersebut.')
+    router.replace({ query: {} })
+  }
+})
+</script>
 
 <template>
   <div>

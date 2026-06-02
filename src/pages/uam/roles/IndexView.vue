@@ -59,7 +59,7 @@ onMounted(() => {
         <h1 class="text-3xl font-bold text-gray-900">Roles</h1>
         <p class="hidden sm:block text-sm text-gray-600 mt-1">Kelola daftar role dalam sistem.</p>
       </div>
-      <UiButton size="sm" @click="openCreate">
+      <UiButton v-permission="['role.create']" size="sm" @click="openCreate">
         <template #icon>
           <PhPlus class="w-4 h-4" />
         </template>
@@ -89,7 +89,7 @@ onMounted(() => {
       title="Belum ada Role"
       description="Silakan buat role baru untuk mulai mengatur hak akses sistem."
     >
-      <UiButton size="lg" @click="openCreate">
+      <UiButton v-permission="['role.create']" size="lg" @click="openCreate">
         <template #icon>
           <PhPlus class="w-5 h-5" />
         </template>
@@ -126,6 +126,7 @@ onMounted(() => {
               class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0"
             >
               <button
+                v-permission="['role.edit']"
                 class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                 title="Edit"
                 @click="openEdit(role)"
@@ -133,6 +134,7 @@ onMounted(() => {
                 <PhPencil class="w-5 h-5" />
               </button>
               <button
+                v-permission="['role.delete']"
                 class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                 title="Hapus"
                 :disabled="roleStore.loading.Delete"

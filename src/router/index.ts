@@ -1,7 +1,13 @@
-import type { RouteRecordRaw } from 'vue-router'
+import type { RouteMeta, RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
+
+interface CustomRouteMeta extends RouteMeta {
+  guest?: boolean
+  requiresAuth?: boolean
+  permissions?: string[]
+}
 
 const routes: RouteRecordRaw[] = [
   {
@@ -36,6 +42,7 @@ const routes: RouteRecordRaw[] = [
         path: 'users',
         name: 'Users',
         component: () => import('@/pages/users/IndexView.vue'),
+        meta: { requiresAuth: true, permissions: ['user.index'] },
       },
       {
         path: 'profile',
@@ -46,11 +53,13 @@ const routes: RouteRecordRaw[] = [
         path: 'uam/permissions',
         name: 'Permissions',
         component: () => import('@/pages/uam/permissions/IndexView.vue'),
+        meta: { requiresAuth: true, permissions: ['permission.index'] },
       },
       {
         path: 'uam/roles',
         name: 'Roles',
         component: () => import('@/pages/uam/roles/IndexView.vue'),
+        meta: { requiresAuth: true, permissions: ['role.index'] },
       },
     ],
   },
@@ -67,7 +76,6 @@ const router = createRouter({
   routes,
 })
 
-// Navigation guard
 router.beforeEach((to) => {
   const authStore = useAuthStore()
   const token = authStore.token
@@ -79,6 +87,17 @@ router.beforeEach((to) => {
   if (to.meta.guest && token) {
     return { name: 'Home' }
   }
+
+  const meta = to.meta as CustomRouteMeta
+  if (meta.permissions && token) {
+    const userPermissions = authStore.user?.permissions?.map((p) => p.name) || []
+    const hasAccess = meta.permissions.some((perm) => userPermissions.includes(perm))
+
+    if (!hasAccess) {
+      return { name: 'Home', query: { accessDenied: 'true' } }
+    }
+  }
+
   return true
 })
 

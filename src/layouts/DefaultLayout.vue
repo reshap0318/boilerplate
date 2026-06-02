@@ -1,27 +1,58 @@
 <script setup lang="ts">
 import SidebarMenu from '@/components/layouts/SidebarMenu.vue'
 import TopBar from '@/components/layouts/TopBar.vue'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { PhList, PhHouse, PhShieldCheck, PhUsers } from '@phosphor-icons/vue'
 import type { IMenuItem } from '@/components/layouts/SidebarMenu.vue'
+import { usePermission } from '@/composables'
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
 const appName = import.meta.env.VITE_APP_NAME || 'Admin'
 
-const menuItems: IMenuItem[] = [
-  { icon: PhHouse, label: 'Dashboard', to: '/' },
-  { isTitle: true, label: 'Management' },
-  { icon: PhUsers, label: 'Users', to: '/users' },
-  {
-    icon: PhShieldCheck,
-    label: 'UAM',
-    children: [
-      { label: 'Roles', to: '/uam/roles' },
-      { label: 'Permissions', to: '/uam/permissions' },
-    ],
-  },
-]
+const { hasAnyPermission } = usePermission()
+
+const menuItems = computed<IMenuItem[]>(() => {
+  const items: IMenuItem[] = [
+    { icon: PhHouse, label: 'Dashboard', to: '/' },
+    { isTitle: true, label: 'Management' },
+    { icon: PhUsers, label: 'Users', to: '/users', permission: ['user.index'] },
+    {
+      icon: PhShieldCheck,
+      label: 'UAM',
+      children: [
+        { label: 'Roles', to: '/uam/roles', permission: ['role.index'] },
+        { label: 'Permissions', to: '/uam/permissions', permission: ['permission.index'] },
+      ],
+    },
+  ]
+
+  return filterMenuByPermission(items)
+})
+
+function filterMenuByPermission(items: IMenuItem[]): IMenuItem[] {
+  return items
+    .filter((item) => {
+      if (item.isTitle) return true
+      if (!item.permission || item.permission.length === 0) return true
+      return hasAnyPermission(item.permission)
+    })
+    .map((item) => {
+      if (item.children) {
+        return {
+          ...item,
+          children: filterMenuByPermission(item.children),
+        }
+      }
+      return item
+    })
+    .filter((item) => {
+      if (item.children && item.children.length === 0) {
+        return false
+      }
+      return true
+    })
+}
 
 const toggleSidebar = () => {
   if (window.innerWidth >= 768) {
