@@ -168,13 +168,10 @@ function formatFileSize(bytes: number): string {
         :key="item.id"
         class="flex items-center gap-3 rounded-md border border-gray-200 bg-gray-50 p-2"
       >
-        <div v-if="item.preview" class="h-10 w-10 flex-shrink-0 overflow-hidden rounded">
+        <div v-if="item.preview" class="h-10 w-10 shrink-0 overflow-hidden rounded">
           <img :src="item.preview" class="h-full w-full object-cover" />
         </div>
-        <div
-          v-else
-          class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded bg-gray-200"
-        >
+        <div v-else class="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-gray-200">
           <PhFile :size="20" class="text-gray-500" />
         </div>
 
@@ -185,7 +182,7 @@ function formatFileSize(bytes: number): string {
 
         <button
           type="button"
-          class="flex-shrink-0 text-gray-400 hover:text-red-500 transition"
+          class="shrink-0 text-gray-400 hover:text-red-500 transition"
           @click.stop="removeFile(item.id)"
         >
           <PhX :size="20" />
