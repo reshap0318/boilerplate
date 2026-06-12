@@ -28,6 +28,14 @@ type SaveFileOptions struct {
 	CustomName  string
 }
 
+type FileMetadata struct {
+	UUID      string
+	Extension string
+	SizeBytes int64
+	SizeMB    float64
+	FullPath  string
+}
+
 func SaveUploadedFileWithOpts(c *gin.Context, fieldName string, uploadDir string, opts *SaveFileOptions) (string, error) {
 	file, header, err := c.Request.FormFile(fieldName)
 	if err != nil {
@@ -187,4 +195,35 @@ func MoveFile(fileUUID, srcDir, destDir string) (string, error) {
 
 	normalizedPath := strings.ReplaceAll(filepath.ToSlash(destPath), "\\", "/")
 	return normalizedPath, nil
+}
+
+func GetFileMetadata(fileUUID, dir string) (*FileMetadata, error) {
+	if fileUUID == "" {
+		return nil, fmt.Errorf("file UUID is empty")
+	}
+
+	files, err := filepath.Glob(filepath.Join(dir, fileUUID+".*"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to search file: %w", err)
+	}
+	if len(files) == 0 {
+		return nil, fmt.Errorf("file not found for uuid: %s", fileUUID)
+	}
+
+	srcPath := files[0]
+	info, err := os.Stat(srcPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	ext := strings.ToLower(filepath.Ext(srcPath))
+	sizeMB := float64(info.Size()) / 1024.0 / 1024.0
+
+	return &FileMetadata{
+		UUID:      fileUUID,
+		Extension: ext,
+		SizeBytes: info.Size(),
+		SizeMB:    sizeMB,
+		FullPath:  srcPath,
+	}, nil
 }
