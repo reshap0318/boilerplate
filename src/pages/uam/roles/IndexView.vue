@@ -4,9 +4,11 @@ import FormModal from './FormModal.vue'
 import { ref, onMounted } from 'vue'
 import { useRoleStore } from '@/stores/role'
 import type { IRole } from '@/stores/role'
+import { usePermission } from '@/composables'
 import { PhPlus, PhPencil, PhTrash } from '@phosphor-icons/vue'
 
 const roleStore = useRoleStore()
+const { hasAllPermissions } = usePermission()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)
 
 const avatarColors = [
@@ -59,7 +61,7 @@ onMounted(() => {
         <h1 class="text-3xl font-bold text-gray-900">Roles</h1>
         <p class="hidden sm:block text-sm text-gray-600 mt-1">Kelola daftar role dalam sistem.</p>
       </div>
-      <UiButton v-permission="['role.create']" size="sm" @click="openCreate">
+      <UiButton v-if="hasAllPermissions(['role.create'])" size="sm" @click="openCreate">
         <template #icon>
           <PhPlus class="w-4 h-4" />
         </template>
@@ -89,7 +91,7 @@ onMounted(() => {
       title="Belum ada Role"
       description="Silakan buat role baru untuk mulai mengatur hak akses sistem."
     >
-      <UiButton v-permission="['role.create']" size="lg" @click="openCreate">
+      <UiButton v-if="hasAllPermissions(['role.create'])" size="lg" @click="openCreate">
         <template #icon>
           <PhPlus class="w-5 h-5" />
         </template>
@@ -126,7 +128,7 @@ onMounted(() => {
               class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shrink-0"
             >
               <button
-                v-permission="['role.edit']"
+                v-if="hasAllPermissions(['role.edit'])"
                 class="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                 title="Edit"
                 @click="openEdit(role)"
@@ -134,7 +136,7 @@ onMounted(() => {
                 <PhPencil class="w-5 h-5" />
               </button>
               <button
-                v-permission="['role.delete']"
+                v-if="hasAllPermissions(['role.delete'])"
                 class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                 title="Hapus"
                 :disabled="roleStore.loading.Delete"

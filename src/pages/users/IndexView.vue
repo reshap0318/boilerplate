@@ -4,6 +4,7 @@ import FormModal from './FormModal.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import type { IUser } from '@/stores/user'
+import { usePermission } from '@/composables'
 import {
   PhPlus,
   PhPencil,
@@ -15,6 +16,7 @@ import {
 } from '@phosphor-icons/vue'
 
 const userStore = useUserStore()
+const { hasAllPermissions } = usePermission()
 const formModalRef = ref<InstanceType<typeof FormModal> | null>(null)
 const openMenuId = ref<number | null>(null)
 
@@ -89,7 +91,7 @@ onUnmounted(() => {
         <h1 class="text-3xl font-bold text-gray-900">Users</h1>
         <p class="hidden sm:block text-sm text-gray-600 mt-1">Kelola daftar user dalam sistem.</p>
       </div>
-      <UiButton v-permission="['user.create']" size="sm" @click="openCreate">
+      <UiButton v-if="hasAllPermissions(['user.create'])" size="sm" @click="openCreate">
         <template #icon>
           <PhPlus class="w-4 h-4" />
         </template>
@@ -119,7 +121,7 @@ onUnmounted(() => {
       title="Belum ada User"
       description="Silakan buat user baru untuk mulai mengelola akses pengguna."
     >
-      <UiButton v-permission="['user.create']" size="lg" @click="openCreate">
+      <UiButton v-if="hasAllPermissions(['user.create'])" size="lg" @click="openCreate">
         <template #icon>
           <PhPlus class="w-5 h-5" />
         </template>
@@ -185,7 +187,7 @@ onUnmounted(() => {
                   @click.stop
                 >
                   <button
-                    v-permission="['user.edit']"
+                    v-if="hasAllPermissions(['user.edit'])"
                     class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     @click="openEdit(user)"
                   >
@@ -193,7 +195,7 @@ onUnmounted(() => {
                     <span>Edit</span>
                   </button>
                   <button
-                    v-permission="['user.delete']"
+                    v-if="hasAllPermissions(['user.delete'])"
                     class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     :disabled="userStore.loading.Delete"
                     @click="handleDelete(user.id)"

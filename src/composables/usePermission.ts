@@ -4,9 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 export function usePermission() {
   const authStore = useAuthStore()
 
-  const permissions = computed(() =>
-    authStore.user?.permissions?.map((p) => p.name) || []
-  )
+  const permissions = computed(() => authStore.user?.permissions?.map((p) => p.name) || [])
 
   const hasPermission = (name: string): boolean => {
     return permissions.value.includes(name)
