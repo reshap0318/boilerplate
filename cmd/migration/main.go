@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 
@@ -100,13 +101,18 @@ func getSQLDB(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName string) (
 	cfg.Addr = fmt.Sprintf("%s:%s", dbHost, dbPort)
 	cfg.DBName = dbName
 	cfg.ParseTime = true
+	cfg.MultiStatements = true
 
 	db, err := sql.Open("mysql", cfg.FormatDSN())
 	return db, dialect, err
 }
 
 func createProvider(db *sql.DB, dialect goose.Dialect) (*goose.Provider, error) {
-	return goose.NewProvider(dialect, db, embedMigrations)
+	migrations, err := fs.Sub(embedMigrations, "migrations")
+	if err != nil {
+		return nil, err
+	}
+	return goose.NewProvider(dialect, db, migrations)
 }
 
 func runMigration(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName, command string) {
