@@ -308,6 +308,7 @@ func (s *Services) AuthResetPassword(ctx context.Context, token, newPassword str
 		return helpers.ErrTokenInvalid
 	}
 
+	var resetEmail string
 	_, err = s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
 		// Find reset record by token (hashed)
 		reset, err := s.repo.PasswordReset.FindByToken(hashedToken)
@@ -346,15 +347,7 @@ func (s *Services) AuthResetPassword(ctx context.Context, token, newPassword str
 			return nil, err
 		}
 
-		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
-			Type:    "success",
-			Title:   "Password Reset Successful",
-			Message: "Your password has been reset successfully",
-			Data: map[string]interface{}{
-				"email": reset.Email,
-			},
-		})
-
+		resetEmail = reset.Email
 		return nil, nil
 	})
 
@@ -362,6 +355,15 @@ func (s *Services) AuthResetPassword(ctx context.Context, token, newPassword str
 		s.Logger.LogEndWithError("AuthResetPassword", "Password reset failed: %v", err)
 		return err
 	}
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "success",
+		Title:   "Password Reset Successful",
+		Message: "Your password has been reset successfully",
+		Data: map[string]interface{}{
+			"email": resetEmail,
+		},
+	})
 
 	s.Logger.LogEnd("AuthResetPassword", "Password reset successful")
 	return nil

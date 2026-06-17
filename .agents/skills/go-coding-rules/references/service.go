@@ -29,22 +29,22 @@ func (s *Services) PermissionCreate(ctx context.Context, req *dtos.PermissionReq
 			return err
 		}
 
-		_ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
-			Type:    "success",
-			Title:   "Permission Created",
-			Message: fmt.Sprintf("New permission created: %s", result.Name),
-			Data: map[string]interface{}{
-				"id":   result.ID,
-				"name": result.Name,
-			},
-		})
-
 		return nil
 	})
 	if err != nil {
 		s.Logger.LogEndWithError("PermissionCreate", "Failed: %v", err)
 		return nil, err
 	}
+
+	_ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
+		Type:    "success",
+		Title:   "Permission Created",
+		Message: fmt.Sprintf("New permission created: %s", result.Name),
+		Data: map[string]interface{}{
+			"id":   result.ID,
+			"name": result.Name,
+		},
+	})
 
 	s.Logger.LogEnd("PermissionCreate", "Permission created: %s (ID: %d)", req.Name, result.ID)
 	return result, nil
@@ -124,22 +124,22 @@ func (s *Services) PermissionUpdate(ctx context.Context, id uint, req *dtos.Perm
 			return err
 		}
 
-		_ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
-			Type:    "info",
-			Title:   "Permission Updated",
-			Message: fmt.Sprintf("Permission updated: %s", result.Name),
-			Data: map[string]interface{}{
-				"id":   result.ID,
-				"name": result.Name,
-			},
-		})
-
 		return nil
 	})
 	if err != nil {
 		s.Logger.LogEndWithError("PermissionUpdate", "Failed: %v", err)
 		return nil, err
 	}
+
+	_ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
+		Type:    "info",
+		Title:   "Permission Updated",
+		Message: fmt.Sprintf("Permission updated: %s", result.Name),
+		Data: map[string]interface{}{
+			"id":   result.ID,
+			"name": result.Name,
+		},
+	})
 
 	s.Logger.LogEnd("PermissionUpdate", "Permission %d updated", id)
 	return result, nil
@@ -151,8 +151,10 @@ func (s *Services) PermissionUpdate(ctx context.Context, id uint, req *dtos.Perm
 func (s *Services) PermissionDelete(ctx context.Context, id uint) error {
 	s.Logger.LogStart("PermissionDelete", "Deleting permission %d", id)
 
+	var permission *models.Permission
 	err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-	permission, err := s.repo.Permission.FindByID(nil, id, "Roles")
+		var err error
+		permission, err = s.repo.Permission.FindByID(nil, id, "Roles")
 		if err != nil {
 			return err
 		}
@@ -162,22 +164,22 @@ func (s *Services) PermissionDelete(ctx context.Context, id uint) error {
 			return err
 		}
 
-		_ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
-			Type:    "warning",
-			Title:   "Permission Deleted",
-			Message: fmt.Sprintf("Permission deleted: %s", permission.Name),
-			Data: map[string]interface{}{
-				"id":   permission.ID,
-				"name": permission.Name,
-			},
-		})
-
 		return nil
 	})
 	if err != nil {
 		s.Logger.LogEndWithError("PermissionDelete", "Failed: %v", err)
 		return err
 	}
+
+	_ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
+		Type:    "warning",
+		Title:   "Permission Deleted",
+		Message: fmt.Sprintf("Permission deleted: %s", permission.Name),
+		Data: map[string]interface{}{
+			"id":   permission.ID,
+			"name": permission.Name,
+		},
+	})
 
 	s.Logger.LogEnd("PermissionDelete", "Permission %d deleted", id)
 	return nil

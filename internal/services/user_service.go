@@ -63,16 +63,6 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (
 			s.Logger.LogStep("UserCreate", "Failed to assign roles: %v", err)
 		}
 
-		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
-			Type:    "success",
-			Title:   "User Created",
-			Message: fmt.Sprintf("New user created: %s", req.Email),
-			Data: map[string]interface{}{
-				"id":    result.ID,
-				"email": result.Email,
-			},
-		})
-
 		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
 		if err != nil {
 			return nil, err
@@ -87,6 +77,17 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (
 
 	result := res.(*models.User)
 	dto := dtos.ToUserDTO(result)
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "success",
+		Title:   "User Created",
+		Message: fmt.Sprintf("New user created: %s", req.Email),
+		Data: map[string]interface{}{
+			"id":    result.ID,
+			"email": result.Email,
+		},
+	})
+
 	s.Logger.LogEnd("UserCreate", "User created: %s (ID: %d)", dto.Email, dto.ID)
 	return &dto, nil
 }
@@ -198,15 +199,6 @@ func (s *Services) ProfileUpdate(ctx context.Context, userID uint, req dtos.Prof
 			return nil, err
 		}
 
-		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
-			Type:    "info",
-			Title:   "Profile Updated",
-			Message: "User profile has been updated",
-			Data: map[string]interface{}{
-				"id": result.ID,
-			},
-		})
-
 		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
 		if err != nil {
 			return nil, err
@@ -225,6 +217,15 @@ func (s *Services) ProfileUpdate(ctx context.Context, userID uint, req dtos.Prof
 
 	result := res.(*models.User)
 	dto := dtos.ToUserDTO(result)
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "info",
+		Title:   "Profile Updated",
+		Message: "User profile has been updated",
+		Data: map[string]interface{}{
+			"id": result.ID,
+		},
+	})
 
 	s.Access.Invalidate(userID)
 
@@ -296,16 +297,6 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateR
 			s.Logger.LogStep("UserUpdate", "Failed to assign roles: %v", err)
 		}
 
-		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
-			Type:    "info",
-			Title:   "User Updated",
-			Message: fmt.Sprintf("User updated: %s", req.Email),
-			Data: map[string]interface{}{
-				"id":    result.ID,
-				"email": result.Email,
-			},
-		})
-
 		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
 		if err != nil {
 			return nil, err
@@ -324,6 +315,16 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateR
 
 	result := res.(*models.User)
 	dto := dtos.ToUserDTO(result)
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "info",
+		Title:   "User Updated",
+		Message: fmt.Sprintf("User updated: %s", req.Email),
+		Data: map[string]interface{}{
+			"id":    result.ID,
+			"email": result.Email,
+		},
+	})
 
 	// Invalidate cached session so next request gets updated permissions
 	s.Access.Invalidate(id)
