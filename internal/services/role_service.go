@@ -38,16 +38,6 @@ func (s *Services) RoleCreate(ctx context.Context, req dtos.RoleRequest) (*dtos.
 			s.Logger.LogStep("RoleCreate", "Failed to assign permissions: %v", err)
 		}
 
-		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
-			Type:    "success",
-			Title:   "Role Created",
-			Message: fmt.Sprintf("New role created: %s", req.Name),
-			Data: map[string]interface{}{
-				"id":   result.ID,
-				"name": result.Name,
-			},
-		})
-
 		// Reload role with permissions
 		reloaded, err := s.repo.Role.FindByID(tx, result.ID, "Permissions")
 		if err != nil {
@@ -64,6 +54,17 @@ func (s *Services) RoleCreate(ctx context.Context, req dtos.RoleRequest) (*dtos.
 	result = res.(*models.Role)
 
 	dto := dtos.ToRoleDTO(result)
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "success",
+		Title:   "Role Created",
+		Message: fmt.Sprintf("New role created: %s", req.Name),
+		Data: map[string]interface{}{
+			"id":   result.ID,
+			"name": result.Name,
+		},
+	})
+
 	s.Logger.LogEnd("RoleCreate", "Role created: %s (ID: %d)", dto.Name, dto.ID)
 	return &dto, nil
 }
@@ -151,16 +152,6 @@ func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest
 			s.Logger.LogStep("RoleUpdate", "Failed to assign permissions: %v", err)
 		}
 
-		_ = s.NotificationCreate(ctx, &NotificationCreateParams{
-			Type:    "info",
-			Title:   "Role Updated",
-			Message: fmt.Sprintf("Role updated: %s", result.Name),
-			Data: map[string]interface{}{
-				"id":   result.ID,
-				"name": result.Name,
-			},
-		})
-
 		// Reload role with permissions
 		reloaded, err := s.repo.Role.FindByID(tx, result.ID, "Permissions")
 		if err != nil {
@@ -177,6 +168,17 @@ func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest
 	result = res.(*models.Role)
 
 	dto := dtos.ToRoleDTO(result)
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "info",
+		Title:   "Role Updated",
+		Message: fmt.Sprintf("Role updated: %s", result.Name),
+		Data: map[string]interface{}{
+			"id":   result.ID,
+			"name": result.Name,
+		},
+	})
+
 	s.Logger.LogEnd("RoleUpdate", "Role updated: %s (ID: %d)", dto.Name, dto.ID)
 	return &dto, nil
 }
