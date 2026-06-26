@@ -25,12 +25,17 @@ function groupKey(item: IMenuItem, depth: number): string {
   return `${depth}::${item.label}`
 }
 
+function isActive(to: string): boolean {
+  if (to === '/') return route.path === '/'
+  return route.path === to || route.path.startsWith(to + '/')
+}
+
 /**
  * Recursively check if any descendant route is currently active.
  */
 function isGroupActive(item: IMenuItem): boolean {
   if (!item.children) return false
-  return item.children.some((child) => route.path === child.to || isGroupActive(child))
+  return item.children.some((child) => (child.to ? isActive(child.to) : false) || isGroupActive(child))
 }
 
 function isGroupExpanded(item: IMenuItem, depth: number): boolean {
@@ -61,10 +66,12 @@ function isGroupExpanded(item: IMenuItem, depth: number): boolean {
           ? 'px-4 py-2.5 rounded-xl gap-3'
           : 'justify-center py-2.5 rounded-xl'
         : 'px-4 py-2 rounded-lg gap-3',
+      isActive(item.to!)
+        ? depth === 0
+          ? '!text-white !bg-white/5 sidebar-item-active'
+          : '!text-white !bg-blue-500/10'
+        : '',
     ]"
-    :exact-active-class="
-      depth === 0 ? '!text-white !bg-white/5 sidebar-item-active' : '!text-white !bg-blue-500/10'
-    "
     @click="emit('itemClick')"
   >
     <!-- Icon only on root level -->
@@ -74,7 +81,7 @@ function isGroupExpanded(item: IMenuItem, depth: number): boolean {
       v-if="depth > 0"
       class="w-1.5 h-1.5 rounded-full bg-current shrink-0 transition-all duration-200"
       :class="
-        route.path === item.to
+        isActive(item.to!)
           ? 'opacity-100 text-white shadow-[0_0_8px_rgba(255,255,255,0.3)]'
           : 'opacity-50'
       "
