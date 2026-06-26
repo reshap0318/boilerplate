@@ -141,10 +141,14 @@ func NewContainer() (*Container, error) {
 
 	// Initialize JWKS Manager
 	jwksManager := &services.JWKSManager{}
+	passphrase, err := helpers.LoadPassphrase(helpers.GetEnv("JWT_PASSPHRASE_PATH", "storage/keys/passphrase"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load JWT passphrase: %w", err)
+	}
 	if err := jwksManager.Initialize(
 		helpers.GetEnv("JWT_PRIVATE_KEY_PATH", "storage/keys/private.pem"),
 		helpers.GetEnv("JWT_PUBLIC_KEY_PATH", "storage/keys/public.pem"),
-		helpers.GetEnv("JWT_PASSPHRASE", ""),
+		passphrase,
 	); err != nil {
 		return nil, fmt.Errorf("failed to initialize JWKS Manager: %w", err)
 	}
