@@ -23,6 +23,7 @@ func SeedPermissions(db *gorm.DB) map[string]uint {
 		{"user.delete", "Delete user"},
 		// Role
 		{"role.index", "View roles list"},
+		{"role.index-su", "View super admin role (ID 1)"},
 		{"role.create", "Create new role"},
 		{"role.edit", "Update role"},
 		{"role.delete", "Delete role"},

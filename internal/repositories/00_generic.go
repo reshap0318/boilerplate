@@ -11,13 +11,15 @@ import (
 
 // QueryOptions holds options for querying records.
 type QueryOptions struct {
-	Page         int      // Page number (default: 1)
-	PageSize     int      // Items per page (default: 10, 0 = no pagination)
-	SortBy       string   // Field to sort by
-	Order        string   // "ASC" or "DESC" (default: "ASC")
-	Search       string   // Search keyword
-	SearchFields []string // Fields to search
-	Preloads     []string // Relations to preload
+	Page          int             // Page number (default: 1)
+	PageSize      int             // Items per page (default: 10, 0 = no pagination)
+	SortBy        string          // Field to sort by
+	Order         string          // "ASC" or "DESC" (default: "ASC")
+	Search        string          // Search keyword
+	SearchFields  []string        // Fields to search
+	Preloads      []string        // Relations to preload
+	RawWhere      string          // Raw WHERE clause (e.g. "id != ?")
+	RawWhereArgs  []interface{}   // Args for RawWhere
 }
 
 // PagedResult holds paginated query results.
@@ -84,6 +86,11 @@ func (r *GenericRepository[T]) applyOptions(db *gorm.DB, opts *QueryOptions) *go
 			order = "DESC"
 		}
 		db = db.Order(opts.SortBy + " " + order)
+	}
+
+	// Raw WHERE clause
+	if opts.RawWhere != "" {
+		db = db.Where(opts.RawWhere, opts.RawWhereArgs...)
 	}
 
 	// Search
