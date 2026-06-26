@@ -136,9 +136,7 @@ func (s *Services) NotificationMarkAsRead(ctx context.Context, id uint) error {
 		return helpers.ErrInvalidToken
 	}
 
-	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		return s.repo.Notification.MarkAsRead(id, userID)
-	}); err != nil {
+	if err := s.repo.Notification.MarkAsRead(id, userID); err != nil {
 		s.Logger.LogEndWithError("NotificationMarkAsRead", "Failed to mark notification as read: %v", err)
 		return err
 	}
@@ -155,9 +153,7 @@ func (s *Services) NotificationMarkAllAsRead(ctx context.Context) error {
 		return helpers.ErrInvalidToken
 	}
 
-	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		return s.repo.Notification.MarkAllAsRead(userID)
-	}); err != nil {
+	if err := s.repo.Notification.MarkAllAsRead(userID); err != nil {
 		s.Logger.LogEndWithError("NotificationMarkAllAsRead", "Failed to mark all notifications as read: %v", err)
 		return err
 	}
