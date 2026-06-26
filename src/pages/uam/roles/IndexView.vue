@@ -72,7 +72,7 @@ onMounted(() => {
     <!-- Loading State -->
     <div
       v-if="roleStore.loading.Index"
-      class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+      class="grid gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
     >
       <UiSkeleton
         v-for="i in roleStore.indexData.pagination.page_size"
@@ -101,7 +101,7 @@ onMounted(() => {
 
     <!-- Data List -->
     <template v-else>
-      <div class="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-3 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <UiCard
           v-for="(role, index) in roleStore.indexData.items"
           :key="role.id"

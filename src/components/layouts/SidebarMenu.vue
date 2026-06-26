@@ -105,7 +105,7 @@ const handleMouseLeave = () => {
 
     <!-- Menu -->
     <nav
-      class="space-y-1 mt-2 overflow-y-auto overflow-x-hidden transition-all duration-300"
+      class="sidebar-nav space-y-1 mt-2 overflow-y-auto overflow-x-hidden transition-all duration-300"
       :class="isExpanded ? 'p-3' : 'p-2'"
       style="max-height: calc(100vh - 3.5rem)"
     >
@@ -126,5 +126,36 @@ const handleMouseLeave = () => {
 <style scoped>
 .sidebar-item-active {
   box-shadow: inset 3px 0 0 #3b82f6;
+}
+
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.sidebar-nav:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.sidebar-nav:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-nav:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
 }
 </style>

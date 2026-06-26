@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue'
 import { get, put, type IApiResponse } from '@/plugins/axios'
 import { required, email, minLength, helpers } from '@vuelidate/validators'
 import { uploadFile } from '@/helpers/upload'
+import storage from '@/helpers/storage'
 import swal from '@/plugins/swal'
 import { useAuthStore } from './auth'
 import type { IRole } from './role'
@@ -92,8 +93,14 @@ export const useProfileStore = defineStore('profile', () => {
       profile.value = data.data || null
 
       const authStore = useAuthStore()
-      if (profile.value) {
-        authStore.user = profile.value
+      if (profile.value && authStore.user) {
+        authStore.user = {
+          ...authStore.user,
+          name: profile.value.name,
+          email: profile.value.email,
+          avatar: profile.value.avatar,
+        }
+        storage.setItem('user', authStore.user)
       }
 
       form.password = ''

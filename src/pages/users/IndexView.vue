@@ -102,7 +102,7 @@ onUnmounted(() => {
     <!-- Loading State -->
     <div
       v-if="userStore.loading.Index"
-      class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+      class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     >
       <UiSkeleton
         v-for="i in userStore.indexData.pagination.page_size"
