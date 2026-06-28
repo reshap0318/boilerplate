@@ -15,6 +15,15 @@ type JWTConfig struct {
 	RefreshExp time.Duration
 }
 
+// ServicesConfig holds all dependencies for Services.
+// Add new dependencies here without changing NewServices signature.
+type ServicesConfig struct {
+	Repo        *repositories.Repositories
+	Redis       *database.RedisCache
+	Email       *email.EmailClient
+	Logger      *helpers.Logger
+}
+
 // Services holds all service dependencies.
 type Services struct {
 	repo         *repositories.Repositories
@@ -27,12 +36,12 @@ type Services struct {
 }
 
 // NewServices creates and initializes all services.
-func NewServices(repo *repositories.Repositories, redisClient *database.RedisCache, emailClient *email.EmailClient, logger *helpers.Logger) *Services {
+func NewServices(cfg *ServicesConfig) *Services {
 	return &Services{
-		repo:        repo,
-		RedisClient: redisClient,
-		EmailClient: emailClient,
-		Logger:      logger,
+		repo:        cfg.Repo,
+		RedisClient: cfg.Redis,
+		EmailClient: cfg.Email,
+		Logger:      cfg.Logger,
 		cfg: &JWTConfig{
 			Expiration: time.Duration(helpers.GetEnvInt("JWT_EXPIRATION", 24)) * time.Hour,
 			RefreshExp: time.Duration(helpers.GetEnvInt("JWT_REFRESH_EXPIRATION", 168)) * time.Hour,

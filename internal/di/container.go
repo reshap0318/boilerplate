@@ -137,7 +137,12 @@ func NewContainer() (*Container, error) {
 	container.Repositories = repos
 
 	// Always initialize services (Redis can be nil)
-	container.Services = services.NewServices(container.Repositories, container.Redis, container.EmailClient, container.Logger)
+	container.Services = services.NewServices(&services.ServicesConfig{
+		Repo:   container.Repositories,
+		Redis:  container.Redis,
+		Email:  container.EmailClient,
+		Logger: container.Logger,
+	})
 
 	// Initialize JWKS Manager
 	jwksManager := &services.JWKSManager{}

@@ -54,7 +54,7 @@ Every new CRUD feature MUST follow this order:
 | 6 | Service | `internal/services/{feature}_service.go` | Business logic + logging + notification |
 | 7 | Handler | `internal/handlers/{feature}_handler.go` | HTTP handler + validation |
 | 8 | Routes | `internal/routes/{feature}_route.go` | Route registration + middleware |
-| 9 | Register Routes | `cmd/api/main.go` | Wire routes into app |
+| 9 | Register Routes | `internal/routes/00_route.go` | Add call inside RegisterAll() |
 
 > For coding rules (naming, transactions, logging, notification, helpers), see `go-coding-rules` skill.
 
@@ -126,9 +126,9 @@ Register routes with permission middleware via `middleware.RequirePermission(acc
 
 ### Step 9: Register Routes
 
-**File:** `cmd/api/main.go`
+**File:** `internal/routes/00_route.go`
 
-Add route registration function call to the `protected` group (after JWT middleware). See `go-coding-rules` for the registration pattern.
+Add the new route registration call inside `RegisterAll()`. `cmd/api/main.go` never needs to be changed for new features.
 
 ---
 
@@ -144,6 +144,6 @@ Add route registration function call to the `protected` group (after JWT middlew
 - [ ] Logging on Create/Update/Delete
 - [ ] Notification created **after** transaction completes for Create/Update/Delete
 - [ ] Repository registered in `00_repository.go`
-- [ ] Routes registered in `cmd/api/main.go`
+- [ ] Routes registered in `internal/routes/00_route.go`
 - [ ] Build success (`go build ./...`)
 - [ ] Vet clean (`go vet ./...`)

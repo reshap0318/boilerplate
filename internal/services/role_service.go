@@ -103,8 +103,12 @@ func (s *Services) RoleGetAllPaginated(ctx context.Context, opts *repositories.Q
 	opts.Preloads = []string{"Permissions"}
 
 	if !s.Access.HasPermission(ctx, "role.index-su") {
-		opts.RawWhere = "id != ?"
-		opts.RawWhereArgs = []interface{}{1}
+		opts.ConditionGroups = append(opts.ConditionGroups, repositories.ConditionGroup{
+			Logic: "AND",
+			Conditions: []repositories.QueryCondition{
+				{Column: "id", Operator: "!=", Value: 1},
+			},
+		})
 	}
 
 	result, err := s.repo.Role.FindAllWithOpts(nil, opts)

@@ -45,21 +45,10 @@ func main() {
 	r.Static("/storage", "./storage")
 
 	apiGroup := r.Group("/api")
-	{
-		routes.RegisterSystemRoutes(r, container.Handlers)
-		routes.RegisterAuthRoutes(apiGroup, container.Handlers)
-	}
-
 	protected := apiGroup.Group("")
 	protected.Use(middleware.JWTAuth(container.Services))
-	{
-		routes.RegisterAuthProtectedRoutes(protected, container.Handlers)
-		routes.RegisterPermissionRoutes(protected, container.Handlers, container.Access)
-		routes.RegisterRoleRoutes(protected, container.Handlers, container.Access)
-		routes.RegisterUserRoutes(protected, container.Handlers, container.Access)
-		routes.RegisterNotificationRoutes(protected, container.Handlers)
-		routes.RegisterSystemProtectedRoutes(protected, container.Handlers)
-	}
+
+	routes.RegisterAll(r, apiGroup, protected, container.Handlers, container.Access)
 
 	addr := host + ":" + port
 	log.Printf("Server starting on %s", addr)
