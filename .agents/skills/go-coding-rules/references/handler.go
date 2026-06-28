@@ -1,9 +1,12 @@
 package references
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"github.com/reshap0318/go-project/internal/dtos"
 	"github.com/reshap0318/go-project/internal/helpers"
+	"github.com/reshap0318/go-project/internal/repositories"
 )
 
 // NOTE: ALL service errors MUST be handled via helpers.HandleError().
@@ -21,7 +24,7 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
 		return
 	}
 	if err := h.Validate.Struct(&req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
@@ -34,37 +37,64 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
 }
 
 // ============================================================
-// GET ALL
+// GET ALL — no pagination vs paginated based on query param
 // ============================================================
 func (h *Handlers) PermissionGetAll(c *gin.Context) {
-	opts := &helpers.QueryOptions{
-		Page:         helpers.ParseInt(c.Query("page"), 1),
-		PageSize:     helpers.ParseInt(c.Query("per_page"), 10),
-		SortBy:       c.DefaultQuery("sort", "id"),
-		Order:        c.DefaultQuery("order", "ASC"),
-		Search:       c.Query("search"),
-		SearchFields: []string{"name", "description"},
+	pageStr := c.Query("page")
+
+	if pageStr == "" {
+		// No pagination — return all
+		permissions, err := h.svcs.PermissionGetAll(c.Request.Context())
+		if helpers.HandleError(c, err, "Failed to fetch permissions") {
+			return
+		}
+		helpers.OK(c, "Permissions retrieved successfully", permissions)
+		return
 	}
 
-	result, err := h.svcs.PermissionGetAll(c.Request.Context(), opts)
+	// Pagination requested
+	page, _ := strconv.Atoi(pageStr)
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("per_page", "10"))
+
+	opts := &repositories.QueryOptions{
+		Page:     page,
+		PageSize: pageSize,
+		SortBy:   c.DefaultQuery("sort", "id"),
+		Order:    c.DefaultQuery("order", "ASC"),
+	}
+
+	// Optional: keyword search across multiple fields using ConditionGroups
+	if search := c.Query("search"); search != "" {
+		opts.ConditionGroups = []repositories.ConditionGroup{
+			{
+				Logic: "OR",
+				Conditions: []repositories.QueryCondition{
+					{Column: "name", Operator: "LIKE", Value: "%" + search + "%"},
+					{Column: "description", Operator: "LIKE", Value: "%" + search + "%"},
+				},
+			},
+		}
+	}
+
+	result, err := h.svcs.PermissionGetAllPaginated(c.Request.Context(), opts)
 	if helpers.HandleError(c, err, "Failed to fetch permissions") {
 		return
 	}
 
-	helpers.OK(c, "Permissions retrieved successfully", result)
+	helpers.OKWithMetadata(c, "Permissions retrieved successfully", result)
 }
 
 // ============================================================
 // GET BY ID
 // ============================================================
 func (h *Handlers) PermissionGetByID(c *gin.Context) {
-	id := helpers.ParseUint(c.Param("id"))
-	if id == 0 {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
 		helpers.BadRequest(c, "Invalid permission ID")
 		return
 	}
 
-	result, err := h.svcs.PermissionGetByID(c.Request.Context(), id)
+	result, err := h.svcs.PermissionGetByID(c.Request.Context(), uint(id))
 	if helpers.HandleError(c, err, "Failed to fetch permission") {
 		return
 	}
@@ -76,8 +106,8 @@ func (h *Handlers) PermissionGetByID(c *gin.Context) {
 // UPDATE
 // ============================================================
 func (h *Handlers) PermissionUpdate(c *gin.Context) {
-	id := helpers.ParseUint(c.Param("id"))
-	if id == 0 {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
 		helpers.BadRequest(c, "Invalid permission ID")
 		return
 	}
@@ -88,11 +118,11 @@ func (h *Handlers) PermissionUpdate(c *gin.Context) {
 		return
 	}
 	if err := h.Validate.Struct(&req); err != nil {
-		helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
-	result, err := h.svcs.PermissionUpdate(c.Request.Context(), id, &req)
+	result, err := h.svcs.PermissionUpdate(c.Request.Context(), uint(id), &req)
 	if helpers.HandleError(c, err, "Failed to update permission") {
 		return
 	}
@@ -104,13 +134,13 @@ func (h *Handlers) PermissionUpdate(c *gin.Context) {
 // DELETE
 // ============================================================
 func (h *Handlers) PermissionDelete(c *gin.Context) {
-	id := helpers.ParseUint(c.Param("id"))
-	if id == 0 {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
 		helpers.BadRequest(c, "Invalid permission ID")
 		return
 	}
 
-	err := h.svcs.PermissionDelete(c.Request.Context(), id)
+	err = h.svcs.PermissionDelete(c.Request.Context(), uint(id))
 	if helpers.HandleError(c, err, "Failed to delete permission") {
 		return
 	}

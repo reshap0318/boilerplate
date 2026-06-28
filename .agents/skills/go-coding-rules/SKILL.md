@@ -190,7 +190,7 @@ _ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
 **Rules:**
 
 - Errors MUST NOT fail the transaction → use `_ = s.NotificationCreate(...)`
-- Created INSIDE transaction → rolls back if main operation fails
+- Created **AFTER** transaction completes — NOT inside transaction
 - Data = identifier data only (id, name, status, etc) — NOT full object
 
 See `references/service.go` for full examples.
@@ -201,21 +201,61 @@ See `references/service.go` for full examples.
 
 All repos extend `GenericRepository[T]`. Do NOT re-implement:
 
-| Method                | Signature                                                          |
-| --------------------- | ------------------------------------------------------------------ |
-| `FindByID`            | `(tx *gorm.DB, id uint, preloads ...string)`                       |
-| `Create`              | `(tx *gorm.DB, request *T) (*T, error)`                            |
-| `CreateMany`          | `(tx *gorm.DB, request []T) error`                                 |
-| `Update`              | `(tx *gorm.DB, filter *T, update *T) (*T, error)`                  |
-| `UpdateMap`           | `(tx *gorm.DB, filter *T, update map[string]interface{})`          |
-| `Delete`              | `(tx *gorm.DB, id uint) (*T, error)`                               |
-| `FindAll`             | `(tx *gorm.DB, preloads ...string)`                                |
-| `FindAllWithOpts`     | `(tx *gorm.DB, opts *QueryOptions) (*PagedResult[T], error)`       |
-| `FindByField`         | `(tx *gorm.DB, filter *T, preloads ...string)`                     |
-| `FindByFieldWithOpts` | `(tx *gorm.DB, filter *T, opts *QueryOptions)`                     |
-| `FindByFieldMap`      | `(tx *gorm.DB, filter map[string]interface{}, preloads ...string)` |
-| `Count`               | `(tx *gorm.DB) (int64, error)`                                     |
-| `Exists`              | `(tx *gorm.DB, filter map[string]interface{}) (bool, error)`       |
+| Method                   | Signature                                                                        |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| `FindByID`               | `(tx *gorm.DB, id uint, preloads ...string)`                                     |
+| `FindByIDWithOpts`       | `(tx *gorm.DB, id uint, opts *QueryOptions) (*T, error)`                         |
+| `Create`                 | `(tx *gorm.DB, request *T) (*T, error)`                                          |
+| `CreateMany`             | `(tx *gorm.DB, request []T) error`                                               |
+| `Update`                 | `(tx *gorm.DB, filter *T, update *T) (*T, error)`                                |
+| `UpdateMap`              | `(tx *gorm.DB, filter *T, update map[string]interface{})`                        |
+| `Delete`                 | `(tx *gorm.DB, id uint) (*T, error)`                                             |
+| `FindAll`                | `(tx *gorm.DB, preloads ...string)`                                               |
+| `FindAllWithOpts`        | `(tx *gorm.DB, opts *QueryOptions) (*PagedResult[T], error)`                     |
+| `FindByField`            | `(tx *gorm.DB, filter *T, preloads ...string)`                                   |
+| `FindByFieldWithOpts`    | `(tx *gorm.DB, filter *T, opts *QueryOptions) (*PagedResult[T], error)`          |
+| `FindByFieldMap`         | `(tx *gorm.DB, filter map[string]interface{}, preloads ...string)`               |
+| `FindByFieldMapWithOpts` | `(tx *gorm.DB, filter map[string]interface{}, opts *QueryOptions) (*PagedResult[T], error)` |
+| `Count`                  | `(tx *gorm.DB) (int64, error)`                                                   |
+| `Exists`                 | `(tx *gorm.DB, filter map[string]interface{}) (bool, error)`                     |
+| `ExistsByField`          | `(tx *gorm.DB, filter *T) (bool, error)`                                         |
+
+### QueryOptions Fields
+
+```go
+type QueryOptions struct {
+    Page            int              // Page number (default: 1)
+    PageSize        int              // Items per page (default: 10)
+    SortBy          string           // Field to sort by
+    Order           string           // "ASC" | "DESC" (default: "ASC")
+    Preloads        []string         // Relations to preload
+    Omits           []string         // Columns to omit from SELECT
+    ConditionGroups []ConditionGroup // WHERE groups, AND-ed together
+}
+```
+
+`ConditionGroups` — groups joined by AND; conditions within each group use group `Logic`:
+
+```go
+// Example: (name LIKE '%john%' OR email LIKE '%john%') AND (status = 1)
+opts := &repositories.QueryOptions{
+    ConditionGroups: []repositories.ConditionGroup{
+        {
+            Logic: "OR",
+            Conditions: []repositories.QueryCondition{
+                {Column: "name", Operator: "LIKE", Value: "%john%"},
+                {Column: "email", Operator: "LIKE", Value: "%john%"},
+            },
+        },
+        {
+            Logic: "AND",
+            Conditions: []repositories.QueryCondition{
+                {Column: "status", Operator: "=", Value: 1},
+            },
+        },
+    },
+}
+```
 
 ### Priority: Use Generic Methods First
 
@@ -286,15 +326,16 @@ if helpers.HandleError(c, err, "Fallback message") {
 ### Response Helpers
 
 ```go
-helpers.OK(c, "msg", data)              // 200
-helpers.Created(c, "msg", data)         // 201
-helpers.BadRequest(c, "msg")            // 400
-helpers.Unauthorized(c, "msg")          // 401
-helpers.Forbidden(c, "msg")             // 403
-helpers.NotFound(c, "msg")              // 404
-helpers.InternalServerError(c, "msg")   // 500
-helpers.ValidationErrorWithMap(c, errs) // 422
-helpers.ValidationErrorWithField(c, field, msg) // 422
+helpers.OK(c, "msg", data)               // 200
+helpers.OKWithMetadata(c, "msg", result) // 200 — for paginated PagedResult
+helpers.Created(c, "msg", data)          // 201
+helpers.BadRequest(c, "msg")             // 400
+helpers.Unauthorized(c, "msg")           // 401
+helpers.Forbidden(c, "msg")              // 403
+helpers.NotFound(c, "msg")               // 404
+helpers.InternalServerError(c, "msg")    // 500
+helpers.ValidationResponse(c, errs)      // 422
+helpers.ValidationError(c, field, msg)   // 422
 ```
 
 ### Validation Pattern (Handler)
@@ -305,7 +346,7 @@ if err := c.BindJSON(&req); err != nil {
     return
 }
 if err := h.Validate.Struct(&req); err != nil {
-    helpers.ValidationErrorWithMap(c, h.getErrorsMap(err))
+    helpers.ValidationResponse(c, h.getErrorsMap(err))
     return
 }
 
@@ -425,7 +466,7 @@ type Handlers struct {
 | `FindByID(s.repo.Permission.DB, id)`            | `FindByID(nil, id)`                                   |
 | Direct DB write without transaction             | `TxManager.WithinTransaction(...)`                    |
 | `c.ShouldBindJSON(&req)`                        | `c.BindJSON(&req)` + `h.Validate.Struct(&req)`        |
-| `helpers.BadRequest(c, "msg")` for field errors | `helpers.ValidationErrorWithField(c, "field", "msg")` |
+| `helpers.BadRequest(c, "msg")` for field errors | `helpers.ValidationError(c, "field", "msg")` |
 | Manual error check `if err == helpers.ErrX`     | `helpers.HandleError(c, err, "fallback")`            |
 
 ---

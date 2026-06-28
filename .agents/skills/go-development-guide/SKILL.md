@@ -47,13 +47,14 @@ Every new CRUD feature MUST follow this order:
 | Step | Layer | File Path | Purpose |
 |------|-------|-----------|---------|
 | 1 | Model | `internal/models/{feature}.go` | GORM model + TableName() |
-| 2 | DTO | `internal/dtos/{feature}_dto.go` | Request/Response structs + converter |
-| 3 | Repository | `internal/repositories/{feature}_repository.go` | Extend GenericRepository |
-| 4 | Register Repo | `internal/repositories/00_repository.go` | Add to Repositories struct |
-| 5 | Service | `internal/services/{feature}_service.go` | Business logic + logging + notification |
-| 6 | Handler | `internal/handlers/{feature}_handler.go` | HTTP handler + validation |
-| 7 | Routes | `internal/routes/{feature}_route.go` | Route registration + middleware |
-| 8 | Register Routes | `cmd/api/main.go` | Wire routes into app |
+| 2 | Migration | `database/migrations/{timestamp}_{feature}.sql` | CREATE TABLE SQL |
+| 3 | DTO | `internal/dtos/{feature}_dto.go` | Request/Response structs + converter |
+| 4 | Repository | `internal/repositories/{feature}_repository.go` | Extend GenericRepository |
+| 5 | Register Repo | `internal/repositories/00_repository.go` | Add to Repositories struct |
+| 6 | Service | `internal/services/{feature}_service.go` | Business logic + logging + notification |
+| 7 | Handler | `internal/handlers/{feature}_handler.go` | HTTP handler + validation |
+| 8 | Routes | `internal/routes/{feature}_route.go` | Route registration + middleware |
+| 9 | Register Routes | `cmd/api/main.go` | Wire routes into app |
 
 > For coding rules (naming, transactions, logging, notification, helpers), see `go-coding-rules` skill.
 
@@ -67,7 +68,15 @@ Define GORM model with struct tags. See `go-coding-rules` for conventions.
 
 ---
 
-### Step 2: DTOs
+### Step 2: Migration
+
+**File:** `database/migrations/{timestamp}_{feature}.sql`
+
+Create the SQL migration file for the new table. Timestamp format: `YYYYMMDDHHMMSS`. See `go-coding-rules` for migration conventions.
+
+---
+
+### Step 3: DTOs
 
 **File:** `internal/dtos/{feature}_dto.go`
 
@@ -75,7 +84,7 @@ Create Request struct, Response DTO, and converter functions (`To{Feature}DTO`, 
 
 ---
 
-### Step 3: Repository
+### Step 4: Repository
 
 **File:** `internal/repositories/{feature}_repository.go`
 
@@ -83,7 +92,7 @@ Extend `GenericRepository[Model]`. Only add custom methods for complex queries. 
 
 ---
 
-### Step 4: Register Repository
+### Step 5: Register Repository
 
 **File:** `internal/repositories/00_repository.go`
 
@@ -91,15 +100,15 @@ Add repository field to `Repositories` struct and initialize in `NewRepositories
 
 ---
 
-### Step 5: Service
+### Step 6: Service
 
 **File:** `internal/services/{feature}_service.go`
 
-Implement CRUD methods on `(s *Services)`. Write ops use transaction + notification. Read ops return DTOs. See `go-coding-rules` for full patterns.
+Implement CRUD methods on `(s *Services)`. Write ops use transaction. Notification created **after** transaction completes. Read ops return DTOs. See `go-coding-rules` for full patterns.
 
 ---
 
-### Step 6: Handler
+### Step 7: Handler
 
 **File:** `internal/handlers/{feature}_handler.go`
 
@@ -107,7 +116,7 @@ Implement HTTP handlers on `(h *Handlers)`. Bind JSON, validate, call service, r
 
 ---
 
-### Step 7: Routes
+### Step 8: Routes
 
 **File:** `internal/routes/{feature}_route.go`
 
@@ -115,16 +124,17 @@ Register routes with permission middleware via `middleware.RequirePermission(acc
 
 ---
 
-### Step 8: Register Routes
+### Step 9: Register Routes
 
 **File:** `cmd/api/main.go`
 
-Add route registration function call to the `protected` group (after JWT middleware).
+Add route registration function call to the `protected` group (after JWT middleware). See `go-coding-rules` for the registration pattern.
 
 ---
 
 ## ✅ Pre-Push Checklist
 - [ ] Model has `TableName()` method
+- [ ] Migration file created in `database/migrations/`
 - [ ] DTO variables use feature prefix
 - [ ] Request DTO: merged for simple features OR separate (`{Feature}CreateRequest` + `{Feature}UpdateRequest`) for complex features
 - [ ] Service functions use feature prefix (`{Feature}{Action}`)
@@ -132,7 +142,7 @@ Add route registration function call to the `protected` group (after JWT middlew
 - [ ] Write operations use `TxManager.WithinTransaction()` or `WithinTransactionWithResult()`
 - [ ] Read operations use `nil` (NOT `.DB`)
 - [ ] Logging on Create/Update/Delete
-- [ ] Notification created inside transaction for Create/Update/Delete
+- [ ] Notification created **after** transaction completes for Create/Update/Delete
 - [ ] Repository registered in `00_repository.go`
 - [ ] Routes registered in `cmd/api/main.go`
 - [ ] Build success (`go build ./...`)

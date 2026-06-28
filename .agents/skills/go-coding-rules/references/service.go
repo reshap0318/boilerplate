@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
+	"gorm.io/gorm"
+
 	"github.com/reshap0318/go-project/internal/dtos"
-	"github.com/reshap0318/go-project/internal/helpers"
 	"github.com/reshap0318/go-project/internal/models"
-	"github.com/reshap0318/go-project/internal/pkg/email"
 	"github.com/reshap0318/go-project/internal/repositories"
 )
 
 // ============================================================
 // CREATE — with logging + notification + transaction
 // ============================================================
-func (s *Services) PermissionCreate(ctx context.Context, req *dtos.PermissionRequest) (*models.Permission, error) {
+func (s *Services) PermissionCreate(ctx context.Context, req *dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
 	s.Logger.LogStart("PermissionCreate", "Creating permission: %s", req.Name)
 
 	var result *models.Permission
@@ -36,7 +36,7 @@ func (s *Services) PermissionCreate(ctx context.Context, req *dtos.PermissionReq
 		return nil, err
 	}
 
-	_ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
 		Type:    "success",
 		Title:   "Permission Created",
 		Message: fmt.Sprintf("New permission created: %s", result.Name),
@@ -47,7 +47,8 @@ func (s *Services) PermissionCreate(ctx context.Context, req *dtos.PermissionReq
 	})
 
 	s.Logger.LogEnd("PermissionCreate", "Permission created: %s (ID: %d)", req.Name, result.ID)
-	return result, nil
+	dto := dtos.ToPermissionDTO(result)
+	return &dto, nil
 }
 
 // ============================================================
@@ -110,7 +111,7 @@ func (s *Services) PermissionGetByID(ctx context.Context, id uint) (*dtos.Permis
 // ============================================================
 // UPDATE — with logging + notification + transaction
 // ============================================================
-func (s *Services) PermissionUpdate(ctx context.Context, id uint, req *dtos.PermissionRequest) (*models.Permission, error) {
+func (s *Services) PermissionUpdate(ctx context.Context, id uint, req *dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
 	s.Logger.LogStart("PermissionUpdate", "Updating permission %d", id)
 
 	var result *models.Permission
@@ -131,7 +132,7 @@ func (s *Services) PermissionUpdate(ctx context.Context, id uint, req *dtos.Perm
 		return nil, err
 	}
 
-	_ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
 		Type:    "info",
 		Title:   "Permission Updated",
 		Message: fmt.Sprintf("Permission updated: %s", result.Name),
@@ -142,7 +143,8 @@ func (s *Services) PermissionUpdate(ctx context.Context, id uint, req *dtos.Perm
 	})
 
 	s.Logger.LogEnd("PermissionUpdate", "Permission %d updated", id)
-	return result, nil
+	dto := dtos.ToPermissionDTO(result)
+	return &dto, nil
 }
 
 // ============================================================
@@ -154,7 +156,7 @@ func (s *Services) PermissionDelete(ctx context.Context, id uint) error {
 	var permission *models.Permission
 	err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
 		var err error
-		permission, err = s.repo.Permission.FindByID(nil, id, "Roles")
+		permission, err = s.repo.Permission.FindByID(tx, id, "Roles")
 		if err != nil {
 			return err
 		}
@@ -171,7 +173,7 @@ func (s *Services) PermissionDelete(ctx context.Context, id uint) error {
 		return err
 	}
 
-	_ = s.NotificationCreate(ctx, &services.NotificationCreateParams{
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
 		Type:    "warning",
 		Title:   "Permission Deleted",
 		Message: fmt.Sprintf("Permission deleted: %s", permission.Name),

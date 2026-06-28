@@ -51,7 +51,7 @@ Use this skill when:
 ### Step 6: Update Module & Imports
 
 - Edit `go.mod` to use the new module name.
-- Recursively find and replace all import paths in `.go` files from the old boilerplate module name to the new one.
+- Recursively find and replace all import paths in `.go` files from `github.com/reshap0318/go-boilerplate` to the new module name.
 
 ### Step 7: Setup Environment
 
@@ -60,4 +60,5 @@ Use this skill when:
 ### Step 8: Verify & Report
 
 - Run `go mod tidy` to ensure dependencies are correct.
-- Inform the user that the project is ready and provide the next steps based on the project plan.
+- Inform the user that the project is ready.
+- Direct them to use skill `@go-development-guide` to start implementing features based on the project plan.

@@ -1,6 +1,10 @@
 package references
 
-import "github.com/reshap0318/go-project/internal/models"
+import (
+	"gorm.io/gorm"
+
+	"github.com/reshap0318/go-project/internal/models"
+)
 
 // ============================================================
 // Repository registration — add to 00_repository.go
@@ -27,7 +31,7 @@ type PermissionRepository struct {
 
 func NewPermissionRepository(db *gorm.DB) *PermissionRepository {
 	return &PermissionRepository{
-		GenericRepository: NewGenericRepository[models.Permission](db),
+		GenericRepository: NewGenericRepository(db, &models.Permission{}),
 	}
 }
 
