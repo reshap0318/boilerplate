@@ -191,7 +191,9 @@ func MoveFile(fileUUID, srcDir, destDir string) (string, error) {
 		return "", fmt.Errorf("failed to copy file: %w", err)
 	}
 
-	DeleteFile(srcPath)
+	if err := DeleteFile(srcPath); err != nil {
+		return "", fmt.Errorf("failed to delete source file: %w", err)
+	}
 
 	normalizedPath := strings.ReplaceAll(filepath.ToSlash(destPath), "\\", "/")
 	return normalizedPath, nil

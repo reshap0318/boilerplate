@@ -60,7 +60,7 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (
 			roles = append(roles, models.Role{ID: roleID})
 		}
 		if err := tx.Model(&result).Association("Roles").Append(roles); err != nil {
-			s.Logger.LogStep("UserCreate", "Failed to assign roles: %v", err)
+			return nil, fmt.Errorf("failed to assign roles: %w", err)
 		}
 
 		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")
@@ -294,7 +294,7 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateR
 			roles = append(roles, models.Role{ID: roleID})
 		}
 		if err := tx.Model(&result).Association("Roles").Append(roles); err != nil {
-			s.Logger.LogStep("UserUpdate", "Failed to assign roles: %v", err)
+			return nil, fmt.Errorf("failed to assign roles: %w", err)
 		}
 
 		reloaded, err := s.repo.User.FindByID(tx, result.ID, "Roles")

@@ -36,7 +36,7 @@ func (r *NotificationRepository) FindByUserIDWithOpts(userID uint, opts *QueryOp
 		}
 	}
 
-	return r.FindAllWithOpts(query, opts)
+	return r.FindByUserIDWithOptsCustom(query, opts)
 }
 
 func (r *NotificationRepository) FindByUserIDAndFilters(userID uint, opts *QueryOptions, isRead *bool, notifType string) (*PagedResult[models.Notification], error) {

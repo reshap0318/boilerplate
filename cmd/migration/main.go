@@ -200,7 +200,7 @@ func runStatus(dbConnection, dbHost, dbPort, dbUser, dbPassword, dbName string) 
 }
 
 func runSeed(db *gorm.DB) {
-	fmt.Println("\nSeeding default data...\n")
+	fmt.Println("\nSeeding default data...")
 
 	permIDs := seeders.SeedPermissions(db)
 	roleIDs := seeders.SeedRoles(db)

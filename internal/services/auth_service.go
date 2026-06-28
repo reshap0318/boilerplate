@@ -50,7 +50,7 @@ func (s *Services) AuthValidateToken(tokenString string) (*helpers.JWTClaims, er
 func (s *Services) AuthLogin(ctx context.Context, email, password string) (*dtos.LoginResponse, error) {
 	s.Logger.LogStart("AuthLogin", "User login attempt: %s", email)
 
-	user, err := s.repo.User.FindByEmail(email)
+	user, err := s.repo.User.FindByEmail(nil, email)
 	if err != nil {
 		s.Logger.LogStep("AuthLogin", "User not found: %s", email)
 		s.Logger.LogEndWithError("AuthLogin", "Login failed - user not found")
@@ -222,7 +222,7 @@ func (s *Services) generateRefreshTokenWithClaims(user *models.User) (string, er
 func (s *Services) AuthForgetPassword(ctx context.Context, email string) error {
 	s.Logger.LogStart("AuthForgetPassword", "Reset password request for: %s", email)
 
-	user, err := s.repo.User.FindByEmail(email)
+	user, err := s.repo.User.FindByEmail(nil, email)
 	if err != nil {
 		s.Logger.LogStep("AuthForgetPassword", "User not found: %s", email)
 		s.Logger.LogEndWithError("AuthForgetPassword", "Reset password failed - user not found")
@@ -311,7 +311,7 @@ func (s *Services) AuthResetPassword(ctx context.Context, token, newPassword str
 	var resetEmail string
 	_, err = s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (interface{}, error) {
 		// Find reset record by token (hashed)
-		reset, err := s.repo.PasswordReset.FindByToken(hashedToken)
+		reset, err := s.repo.PasswordReset.FindByToken(tx, hashedToken)
 		if err != nil {
 			return nil, helpers.ErrTokenInvalid
 		}
@@ -327,7 +327,7 @@ func (s *Services) AuthResetPassword(ctx context.Context, token, newPassword str
 		}
 
 		// Find user by email
-		if _, err := s.repo.User.FindByEmail(reset.Email); err != nil {
+		if _, err := s.repo.User.FindByEmail(tx, reset.Email); err != nil {
 			return nil, helpers.ErrNotFound
 		}
 

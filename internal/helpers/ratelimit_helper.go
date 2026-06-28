@@ -49,14 +49,11 @@ func (rl *RateLimiter) Allow(ip string) *RateLimitInfo {
 	resetTime := now.Add(time.Duration(rl.windowSecs) * time.Second).Unix()
 
 	// Get or create bucket for this IP
-	val, loaded := rl.buckets.Load(ip)
+	actual, loaded := rl.buckets.LoadOrStore(ip, &bucket{
+		tokens:     rl.limit - 1,
+		lastRefill: now,
+	})
 	if !loaded {
-		// New client, create bucket with full tokens
-		newBucket := &bucket{
-			tokens:     rl.limit - 1,
-			lastRefill: now,
-		}
-		rl.buckets.Store(ip, newBucket)
 		return &RateLimitInfo{
 			Limit:     rl.limit,
 			Remaining: rl.limit - 1,
@@ -65,7 +62,7 @@ func (rl *RateLimiter) Allow(ip string) *RateLimitInfo {
 		}
 	}
 
-	b := val.(*bucket)
+	b := actual.(*bucket)
 
 	// Lock for thread-safe access
 	b.mu.Lock()

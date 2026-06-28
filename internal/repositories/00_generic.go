@@ -9,15 +9,29 @@ import (
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 )
 
+// QueryCondition represents a single WHERE condition.
+type QueryCondition struct {
+	Column   string      // Column name, e.g. "entry_time"
+	Operator string      // SQL operator, e.g. "=", ">=", "<=", "LIKE", "IN"
+	Value    interface{} // Condition value
+}
+
+// ConditionGroup represents a group of conditions joined by a logic operator.
+// Groups are always AND-ed together.
+type ConditionGroup struct {
+	Logic      string           // "AND" | "OR" — logic between conditions within this group
+	Conditions []QueryCondition // Conditions in this group
+}
+
 // QueryOptions holds options for querying records.
 type QueryOptions struct {
-	Page         int      // Page number (default: 1)
-	PageSize     int      // Items per page (default: 10, 0 = no pagination)
-	SortBy       string   // Field to sort by
-	Order        string   // "ASC" or "DESC" (default: "ASC")
-	Search       string   // Search keyword
-	SearchFields []string // Fields to search
-	Preloads     []string // Relations to preload
+	Page            int              // Page number (default: 1)
+	PageSize        int              // Items per page (default: 10, 0 = no pagination)
+	SortBy          string           // Field to sort by
+	Order           string           // "ASC" or "DESC" (default: "ASC")
+	Preloads        []string         // Relations to preload
+	Omits           []string         // Columns to omit from SELECT
+	ConditionGroups []ConditionGroup // WHERE condition groups, AND-ed together; each group joins its conditions by group Logic
 }
 
 // PagedResult holds paginated query results.
@@ -86,19 +100,27 @@ func (r *GenericRepository[T]) applyOptions(db *gorm.DB, opts *QueryOptions) *go
 		db = db.Order(opts.SortBy + " " + order)
 	}
 
-	// Search
-	if opts.Search != "" && len(opts.SearchFields) > 0 {
-		searchPattern := "%" + opts.Search + "%"
-		var conditions []string
-		for _, field := range opts.SearchFields {
-			conditions = append(conditions, field+" LIKE ?")
+	// Condition groups — each group is AND-ed; conditions within a group use group Logic
+	for _, group := range opts.ConditionGroups {
+		if len(group.Conditions) == 0 {
+			continue
 		}
-		searchCondition := strings.Join(conditions, " OR ")
-		args := make([]interface{}, len(opts.SearchFields))
-		for i := range args {
-			args[i] = searchPattern
+		logic := "AND"
+		if strings.ToUpper(group.Logic) == "OR" {
+			logic = "OR"
 		}
-		db = db.Where(searchCondition, args...)
+		var clauses []string
+		args := make([]interface{}, 0, len(group.Conditions))
+		for _, cond := range group.Conditions {
+			clauses = append(clauses, cond.Column+" "+cond.Operator+" ?")
+			args = append(args, cond.Value)
+		}
+		db = db.Where(strings.Join(clauses, " "+logic+" "), args...)
+	}
+
+	// Omit columns
+	if len(opts.Omits) > 0 {
+		db = db.Omit(opts.Omits...)
 	}
 
 	return db
