@@ -1,5 +1,5 @@
 ---
-name: vue-coding-rule
+name: vue-coding-rules
 description: Vue Project coding rules and conventions — see references/ for code examples
 ---
 
