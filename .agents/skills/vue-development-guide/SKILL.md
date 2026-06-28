@@ -6,7 +6,7 @@ description: Step-by-step development workflow and CRUD implementation guide for
 ## When to use me
 
 Use this skill when:
-- Implementing a new CRUD feature from scratch (Store → View → Form → Route)
+- Implementing a new CRUD feature from scratch (Store → View → Form → Route → Sidebar)
 - Following the mandatory development workflow
 - You need a pre-push checklist before committing code
 
@@ -24,10 +24,11 @@ Every new CRUD feature MUST follow this order:
 | Step | Layer | File Path | Purpose |
 |------|-------|-----------|---------|
 | 1 | Store | `src/stores/{feature}.ts` | Pinia store with `useCrud` + `withFile` |
-| 2 | View | `src/pages/{feature}/IndexView.vue` | List page with table/grid + pagination |
+| 2 | View | `src/pages/{feature}/IndexView.vue` | List page with table/grid + pagination + permission-guarded action buttons |
 | 3 | Form/Modal | `src/pages/{feature}/FormModal.vue` | Create/Edit form with validation |
-| 4 | Route | `src/router/index.ts` | Register route with auth guard |
-| 5 | Barrel Exports | `src/stores/index.ts` | Export store + types |
+| 4 | Route | `src/router/index.ts` | Register route with auth + permission guard |
+| 5 | Sidebar | `src/layouts/DefaultLayout.vue` | Add menu item to sidebar |
+| 6 | Barrel Exports | `src/stores/index.ts` | Export store + types |
 
 > For coding rules (naming, component structure, validation, styling), see `vue-coding-rule` skill.
 
@@ -45,7 +46,7 @@ Create Pinia store with `useCrud` composable. Add `withFile` HOF if file upload 
 
 **File:** `src/pages/{feature}/IndexView.vue`
 
-Create list page with data table/grid, pagination, search, and action buttons (Create, Edit, Delete). Call store's `fetchAll()` on mount.
+Create list page with data table/grid, pagination, search, and action buttons (Create, Edit, Delete). Call store's `fetchAll()` on mount. Protect action buttons with `usePermission` if required — see `vue-coding-rule` for the pattern.
 
 ---
 
@@ -53,7 +54,9 @@ Create list page with data table/grid, pagination, search, and action buttons (C
 
 **File:** `src/pages/{feature}/FormModal.vue`
 
-Create modal form for Create/Edit. Use Vuelidate for validation. Call store's `create()` or `update()` on submit. Reset form on close.
+Create modal form for Create/Edit. Use Vuelidate for validation. Two patterns are mandatory — see `vue-coding-rule` for the full code:
+- Call `formError.clear()` inside `show()` every time the modal opens
+- Call `close()` only on success inside `handleSubmit`, never in `finally`
 
 ---
 
@@ -61,11 +64,19 @@ Create modal form for Create/Edit. Use Vuelidate for validation. Call store's `c
 
 **File:** `src/router/index.ts`
 
-Register route with lazy loading and auth guard (`requiresAuth: true`). Use plural kebab-case URL (e.g., `/users`, `/uam/roles`).
+Register route under the authenticated layout with lazy loading. Use plural kebab-case URL (e.g., `/users`, `/uam/roles`). Add `requiresAuth: true` and `permissions: ['feature.index']` meta — see `vue-coding-rule` for the full pattern.
 
 ---
 
-### Step 5: Barrel Exports
+### Step 5: Sidebar
+
+**File:** `src/layouts/DefaultLayout.vue`
+
+Add a new item to the `menuItems` computed array. Set `permission` to match the route's `permissions` meta value — items are filtered automatically. See `vue-coding-rule` for flat vs grouped item patterns.
+
+---
+
+### Step 6: Barrel Exports
 
 **File:** `src/stores/index.ts`
 
@@ -79,8 +90,12 @@ Export the new store and its types from the barrel file for clean imports.
 - [ ] View uses `<script setup lang="ts">`
 - [ ] Props/Emits use TypeScript syntax
 - [ ] Form uses Vuelidate with `await v$.value.$validate()` before submit
+- [ ] `formError.clear()` called in modal `show()` method
+- [ ] `handleSubmit` calls `close()` only on success, not in `finally`
+- [ ] Route registered with `requiresAuth: true` and `permissions: [...]`
+- [ ] Action buttons (Create/Edit/Delete) protected with `usePermission` if required — see `vue-coding-rule`
+- [ ] Sidebar menu item added to `DefaultLayout.vue` with matching `permission`
 - [ ] Barrel exports updated for new store
-- [ ] Route registered with auth guard
 - [ ] Responsive: `sm` and `md` breakpoints implemented
 - [ ] Lint clean: `yarn lint`
 - [ ] Format clean: `yarn format`

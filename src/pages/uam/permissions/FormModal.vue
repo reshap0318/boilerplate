@@ -2,10 +2,11 @@
 import { UiModal, FormInput, UiButton } from '@/components/utils'
 import { computed, ref } from 'vue'
 import useVuelidate from '@vuelidate/core'
-
 import { usePermissionStore } from '@/stores/permission'
+import { useFormError } from '@/composables/useFormError'
 
 const permissionStore = usePermissionStore()
+const formError = useFormError()
 const v$ = useVuelidate(permissionStore.formRules, permissionStore.form)
 
 const isVisible = ref(false)
@@ -20,6 +21,7 @@ function show(data?: { id?: number; name: string; description: string }) {
     permissionStore.resetForm()
   }
   v$.value.$reset()
+  formError.clear()
   isVisible.value = true
 }
 
@@ -37,9 +39,8 @@ async function handleSubmit() {
     } else {
       await permissionStore.create()
     }
-  } finally {
     close()
-  }
+  } catch {}
 }
 
 defineExpose({ show, close })

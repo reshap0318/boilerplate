@@ -12,10 +12,12 @@ import useVuelidate from '@vuelidate/core'
 import { useUserStore } from '@/stores/user'
 import { useRoleStore } from '@/stores/role'
 import type { IRole } from '@/stores/role'
-import { required, email, minLength, helpers } from '@vuelidate/validators'
+import { minLength } from '@vuelidate/validators'
+import { useFormError } from '@/composables/useFormError'
 
 const userStore = useUserStore()
 const roleStore = useRoleStore()
+const formError = useFormError()
 const isVisible = ref(false)
 const isEdit = computed(() => !!userStore.form.id)
 const allRoles = ref<IRole[]>([])
@@ -23,32 +25,13 @@ const rolesLoading = ref(false)
 const currentAvatar = ref<string | null>(null)
 
 const dynamicRules = computed(() => {
-  const sameAsPassword = helpers.withMessage(
-    'Password tidak cocok',
-    (value: string) => value === userStore.form.password,
-  )
-
-  const baseRules = {
-    name: { required, minLength: minLength(2) },
-    email: { required, email },
-    roles: {
-      required: helpers.withMessage('Role wajib dipilih', (value: number[]) => value.length > 0),
-    },
-  }
-
   if (isEdit.value) {
     return {
-      ...baseRules,
+      ...userStore.formRules,
       password: { minLength: minLength(6) },
-      password_confirmation: { sameAsPassword },
     }
   }
-
-  return {
-    ...baseRules,
-    password: { required, minLength: minLength(6) },
-    password_confirmation: { required, sameAsPassword },
-  }
+  return userStore.formRules
 })
 
 const v$ = useVuelidate(dynamicRules, userStore.form)
@@ -97,6 +80,7 @@ async function show(data?: {
     currentAvatar.value = null
   }
   v$.value.$reset()
+  formError.clear()
   isVisible.value = true
 }
 
@@ -114,9 +98,8 @@ async function handleSubmit() {
     } else {
       await userStore.create()
     }
-  } finally {
     close()
-  }
+  } catch {}
 }
 
 onMounted(() => {

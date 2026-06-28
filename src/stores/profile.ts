@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
 import { get, put, type IApiResponse } from '@/plugins/axios'
-import { required, email, minLength, helpers } from '@vuelidate/validators'
+import { required, email, minLength, helpers, requiredIf } from '@vuelidate/validators'
 import { uploadFile } from '@/helpers/upload'
 import storage from '@/helpers/storage'
 import swal from '@/plugins/swal'
@@ -47,6 +47,7 @@ export const useProfileStore = defineStore('profile', () => {
     email: { required, email },
     password: { minLength: minLength(6) },
     password_confirmation: {
+      requiredIf: requiredIf(() => !!form.password),
       sameAsPassword: helpers.withMessage(
         'Konfirmasi password tidak cocok',
         (value: string) => !form.password || value === form.password,

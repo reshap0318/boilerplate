@@ -5,9 +5,11 @@ import useVuelidate from '@vuelidate/core'
 import { useRoleStore } from '@/stores/role'
 import { usePermissionStore } from '@/stores/permission'
 import type { IPermission } from '@/stores/permission'
+import { useFormError } from '@/composables/useFormError'
 
 const roleStore = useRoleStore()
 const permissionStore = usePermissionStore()
+const formError = useFormError()
 const v$ = useVuelidate(roleStore.formRules, roleStore.form)
 
 const isVisible = ref(false)
@@ -50,6 +52,7 @@ async function show(data?: {
     roleStore.resetForm()
   }
   v$.value.$reset()
+  formError.clear()
   isVisible.value = true
 }
 
@@ -67,9 +70,8 @@ async function handleSubmit() {
     } else {
       await roleStore.create()
     }
-  } finally {
     close()
-  }
+  } catch {}
 }
 
 function togglePermission(id: number) {

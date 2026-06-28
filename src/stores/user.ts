@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { required, email, minLength, sameAs } from '@vuelidate/validators'
+import { required, email, minLength, helpers, requiredIf } from '@vuelidate/validators'
 import { IRole } from './role'
 import { IPermission } from './permission'
 import { useCrud, withFile } from '@/composables'
@@ -40,12 +40,26 @@ export const useUserStore = defineStore('user', () => {
       name: { required, minLength: minLength(2) },
       email: { required, email },
       password: { required, minLength: minLength(6) },
-      password_confirmation: { required, sameAsPassword: sameAs('password') },
+      password_confirmation: {},
     },
     pageSize: 12,
   })
 
   const userCrud = withFile<IUser, IUserPayload>(crud, ['avatar'])
+
+  const formRules = {
+    ...crud.formRules,
+    password_confirmation: {
+      requiredIf: requiredIf(() => !!crud.form.password),
+      sameAsPassword: helpers.withMessage(
+        'Password tidak cocok',
+        (value: string) => value === crud.form.password,
+      ),
+    },
+    roles: {
+      required: helpers.withMessage('Role wajib dipilih', (value: number[]) => value.length > 0),
+    },
+  }
 
   async function create() {
     try {
@@ -71,6 +85,7 @@ export const useUserStore = defineStore('user', () => {
 
   return {
     ...userCrud,
+    formRules,
     create,
     update,
   }

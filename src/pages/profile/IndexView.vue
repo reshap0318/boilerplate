@@ -73,6 +73,7 @@ async function handleChangePassword() {
   profileStore.form.password = passwordForm.value.password
   profileStore.form.password_confirmation = passwordForm.value.password_confirmation
   profileStore.form.name = profileStore.profile?.name ?? ''
+  profileStore.form.email = profileStore.profile?.email ?? ''
   profileStore.form.avatar = null
 
   try {
@@ -159,12 +160,8 @@ function getInitials(name: string): string {
               </div>
 
               <!-- Edit Button -->
-              <UiButton
-                variant="primary"
-                size="sm"
-                :leading-icon="PhPencilSimple"
-                @click="openEditModal"
-              >
+              <UiButton variant="primary" size="sm" @click="openEditModal">
+                <template #icon><PhPencilSimple :size="16" weight="regular" /></template>
                 Edit Profile
               </UiButton>
             </div>
@@ -276,12 +273,8 @@ function getInitials(name: string): string {
 
       <template #footer>
         <UiButton variant="secondary" @click="showEditModal = false"> Batal </UiButton>
-        <UiButton
-          variant="primary"
-          :loading="profileStore.loading.Update"
-          :leading-icon="PhUploadSimple"
-          @click="handleUpdateProfile"
-        >
+        <UiButton variant="primary" :loading="profileStore.loading.Update" @click="handleUpdateProfile">
+          <template #icon><PhUploadSimple :size="16" weight="regular" /></template>
           Simpan
         </UiButton>
       </template>
@@ -309,12 +302,8 @@ function getInitials(name: string): string {
 
       <template #footer>
         <UiButton variant="secondary" @click="showPasswordModal = false"> Batal </UiButton>
-        <UiButton
-          variant="primary"
-          :loading="profileStore.loading.Update"
-          :leading-icon="PhLock"
-          @click="handleChangePassword"
-        >
+        <UiButton variant="primary" :loading="profileStore.loading.Update" @click="handleChangePassword">
+          <template #icon><PhLock :size="16" weight="regular" /></template>
           Ubah Password
         </UiButton>
       </template>

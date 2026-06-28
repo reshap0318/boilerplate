@@ -187,6 +187,17 @@ interface IApiResponse<TData> {
 
 ### 3. Error Handling
 
+The axios interceptor handles all standard HTTP errors (400, 401, 403, 404, 409, 422, 500, etc.) automatically via `swal`. Do **not** duplicate error handling for these cases.
+
+**Default — let interceptor handle it (component `handleSubmit`):**
+```typescript
+try {
+  await store.create()
+  close()
+} catch {} // interceptor already showed the error
+```
+
+**Custom — only when you need a specific message or action beyond what the interceptor does:**
 ```typescript
 catch (error: any) {
   const message = error?.response?.data?.message || 'Default error message.'
@@ -194,6 +205,7 @@ catch (error: any) {
   throw error
 }
 ```
+Use custom catch in store methods for non-CRUD API calls, or when the default interceptor message is not descriptive enough for the context.
 
 ---
 
@@ -203,6 +215,41 @@ catch (error: any) {
 - Group by layout using `children`
 - Route meta: `requiresAuth: true` or `guest: true`
 - URLs: kebab-case, plural resources (`/users`, `/uam/roles`)
+- Add `permissions` meta for restricted routes — string format: `{resource}.{action}`
+
+```typescript
+{
+  path: 'feature',
+  name: 'Feature',
+  component: () => import('@/pages/feature/IndexView.vue'),
+  meta: { requiresAuth: true, permissions: ['feature.index'] },
+},
+```
+
+---
+
+## Sidebar Menu
+
+Menu items are defined in `src/layouts/DefaultLayout.vue` inside the `menuItems` computed block. Items are filtered automatically by permission.
+
+**Flat item:**
+```typescript
+{ icon: PhIconName, label: 'Feature', to: '/feature', permission: ['feature.index'] },
+```
+
+**Grouped item (parent with children):**
+```typescript
+{
+  icon: PhIconName,
+  label: 'Group',
+  children: [
+    { label: 'Feature', to: '/feature', permission: ['feature.index'] },
+  ],
+},
+```
+
+- Import icon from `@phosphor-icons/vue`
+- `permission` must match the route's `permissions` meta value
 
 ---
 
@@ -265,7 +312,123 @@ await v$.value.$validate() // before submission
 v$.value.$reset() // on form open
 ```
 
-Dynamic rules for create vs edit: use `computed(() => { ... })`
+**Create vs edit rules:** use `computed()` to override rules based on `isEdit`. Common case — password not required on edit:
+
+```typescript
+const dynamicRules = computed(() => {
+  if (isEdit.value) {
+    return { ...store.formRules, password: { minLength: minLength(6) } }
+  }
+  return store.formRules
+})
+```
+
+**Custom Validation Rules**
+
+Use `helpers.withMessage` for any validation logic beyond built-in validators. Custom rules belong in the **store**, defined after `useCrud` (or after `form`) so they can reference form state. The validator function is called lazily during validation — it always reads the current reactive value.
+
+**Pattern 1 — Store with `useCrud`:** define extended `formRules` after `useCrud`, referencing `crud.form`:
+
+```typescript
+import { helpers, required, requiredIf } from '@vuelidate/validators'
+
+const crud = useCrud<IUser, IUserPayload>({
+  ...,
+  formRules: {
+    password: { required, minLength: minLength(6) },
+    password_confirmation: {},
+  },
+})
+
+// Extended formRules — defined after useCrud so crud.form is accessible
+const formRules = {
+  ...crud.formRules,
+
+  // Field equality + conditional required (required only when password is filled)
+  password_confirmation: {
+    requiredIf: requiredIf(() => !!crud.form.password),
+    sameAsPassword: helpers.withMessage(
+      'Password tidak cocok',
+      (value: string) => !crud.form.password || value === crud.form.password,
+    ),
+  },
+
+  // Array minimum items
+  roles: {
+    minItems: helpers.withMessage(
+      'Minimal pilih 1 role',
+      (value: number[]) => value.length > 0,
+    ),
+  },
+}
+
+// Expose formRules (overrides the one from crud spread)
+return { ...crud, formRules }
+```
+
+**Pattern 2 — Store without `useCrud`:** define `form` first, then `formRules` referencing it:
+
+```typescript
+import { helpers, required, requiredIf } from '@vuelidate/validators'
+
+const form = reactive({ password: '', password_confirmation: '', contact_method: '', phone: '' })
+
+const formRules = {
+  // Field equality + conditional required
+  password_confirmation: {
+    requiredIf: requiredIf(() => !!form.password),
+    sameAsPassword: helpers.withMessage(
+      'Password tidak cocok',
+      (value: string) => !form.password || value === form.password,
+    ),
+  },
+
+  // Conditional required
+  phone: {
+    conditionalRequired: helpers.withMessage(
+      'Nomor telepon wajib diisi jika metode kontak adalah telepon',
+      (value: string) => form.contact_method !== 'phone' || !!value,
+    ),
+  },
+
+  // Custom format (e.g. permission name: resource.action)
+  name: {
+    format: helpers.withMessage(
+      'Format harus resource.action (contoh: user.index)',
+      (value: string) => /^[a-z]+\.[a-z]+$/.test(value),
+    ),
+  },
+}
+```
+
+---
+
+**Modal open — always clear server errors before showing:**
+```typescript
+import { useFormError } from '@/composables/useFormError'
+const formError = useFormError()
+
+function show(data?: ...) {
+  // populate form...
+  v$.value.$reset()
+  formError.clear()
+  isVisible.value = true
+}
+```
+
+**`handleSubmit` — call `close()` only on success, never in `finally`:**
+```typescript
+async function handleSubmit() {
+  const isValid = await v$.value.$validate()
+  if (!isValid) return
+
+  try {
+    if (isEdit.value) await store.update(store.form.id)
+    else await store.create()
+    close() // only reached on success
+  } catch {} // error already handled by axios interceptor
+}
+```
 
 ---
 

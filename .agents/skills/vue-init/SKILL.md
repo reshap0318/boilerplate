@@ -22,7 +22,7 @@ Use this skill when:
   - `02_FSD.md`
   - `03_Role_Matrix.md`
   - `04_TDD.md`
-- **If ANY are missing:** You MUST invoke `@project-plan` to generate them. Do not proceed to Step 2 until all 4 documents exist.
+- **If ANY are missing:** Invoke the `project-plan` skill to generate them. Do not proceed to Step 2 until all 4 documents exist.
 
 ### Step 2: Confirm Target Path
 - Ask the user where to place the project:
@@ -31,18 +31,28 @@ Use this skill when:
 - Wait for user confirmation.
 
 ### Step 3: Clone Boilerplate
-- Clone `https://github.com/reshap0318/boilerplate.git` branch `vue` into the target path.
+- Clone the boilerplate into the target path using the `vue` branch:
+  ```bash
+  git clone --branch vue https://github.com/reshap0318/boilerplate.git <target-path>
+  ```
 - If cloning into a subfolder, ensure the directory exists first.
 
 ### Step 4: Remove Existing Git
 - Remove `.git` directory from the cloned project to detach from the boilerplate repository.
 - Run `Remove-Item -Recurse -Force -LiteralPath ".git"` on Windows, or `rm -rf .git` on Linux/macOS.
 
-### Step 5: Update Config
-- Update any hardcoded project references if needed (e.g., `vite.config.ts`, `index.html` title).
+### Step 5: Update Project Config
+Update the following files to match the new project:
+- **`index.html`** — change the `<title>` tag to the project name
+- **`package.json`** — change the `"name"` field to the project name (lowercase, kebab-case)
 
 ### Step 6: Setup Environment
-- Copy `.env.example` to `.env`.
+- Copy `.env.example` to `.env`:
+  - **Linux/macOS:** `cp .env.example .env`
+  - **Windows:** `Copy-Item .env.example .env`
+- Open `.env` and fill in the required values:
+  - `VITE_API_BASE_URL` — base URL of the backend API (e.g., `http://localhost:8080/api`)
+  - `VITE_APP_NAME` — display name of the application
 
 ### Step 7: Install Dependencies & Verify
 - Run `yarn install` to install all dependencies.

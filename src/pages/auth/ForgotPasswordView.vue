@@ -4,7 +4,6 @@ import { ref } from 'vue'
 import { required, email } from '@vuelidate/validators'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-import { PhEnvelope } from '@phosphor-icons/vue'
 import useVuelidate from '@vuelidate/core'
 import swal from '@/plugins/swal'
 
@@ -57,7 +56,6 @@ async function handleForgotPassword() {
           class="mb-6"
           placeholder="admin@example.com"
           :validation="v$.email"
-          :leading-icon="PhEnvelope"
         />
 
         <UiButton type="submit" full-width :loading="isLoading" class="mb-4">

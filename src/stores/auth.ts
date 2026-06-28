@@ -58,10 +58,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(): Promise<void> {
     isLoading.value = true
     try {
-      const response = await post<IApiResponse<ILoginResponse>>('/auth/login', {
-        email: form.email,
-        password: form.password,
-      })
+      const response = await post<IApiResponse<ILoginResponse>>(
+        '/auth/login',
+        { email: form.email, password: form.password },
+        { hideError: true },
+      )
       const { token: newToken, refresh_token: newRefreshToken, user: userData } = response.data.data
 
       token.value = newToken
@@ -91,7 +92,7 @@ export const useAuthStore = defineStore('auth', () => {
       storage.setItem('refresh_token', newRefreshToken)
     } catch (error) {
       console.error('Failed to refresh token', error)
-      logout()
+      await logout()
     }
   }
 

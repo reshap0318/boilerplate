@@ -12,7 +12,6 @@ import { ref, computed, onMounted } from 'vue'
 
 // 3. Other imports (stores, composables, helpers, plugins, etc)
 import { useUserStore } from '@/stores/user'
-import { useCrud, withFile } from '@/composables'
 import swal from '@/plugins/swal'
 
 // 4. Props & Emits
