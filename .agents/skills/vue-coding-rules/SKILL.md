@@ -447,6 +447,7 @@ async function handleSubmit() {
 - Mobile-first responsive design
 - **Always implement at minimum `sm` and `md` breakpoints**
 - Always use `scoped` in `<style>` tags
+- Design style: **Modern Clean UI (SaaS Admin Minimalism)** with **Card-Based Layout** — neutral base, semantic colors only, no gradients, no heavy shadows
 
 ---
 
