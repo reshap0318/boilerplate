@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -112,6 +113,15 @@ func GenerateRefreshToken(userID uint, email string, privateKey *rsa.PrivateKey,
 	}
 
 	return tokenString, nil
+}
+
+// LoadPassphrase reads the JWT passphrase from a file.
+func LoadPassphrase(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("failed to read passphrase file: %w", err)
+	}
+	return strings.TrimSpace(string(data)), nil
 }
 
 // ValidateToken validates and parses a JWT token, returns claims

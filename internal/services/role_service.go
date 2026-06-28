@@ -76,6 +76,16 @@ func (s *Services) RoleGetAllUnpaginated(ctx context.Context) ([]dtos.RoleDTO, e
 		return nil, err
 	}
 
+	if !s.Access.HasPermission(ctx, "role.index-su") {
+		filtered := roles[:0]
+		for _, r := range roles {
+			if r.ID != 1 {
+				filtered = append(filtered, r)
+			}
+		}
+		roles = filtered
+	}
+
 	return dtos.ToRoleDTOList(roles), nil
 }
 
@@ -91,6 +101,11 @@ func (s *Services) RoleGetAllPaginated(ctx context.Context, opts *repositories.Q
 		opts.Order = "ASC"
 	}
 	opts.Preloads = []string{"Permissions"}
+
+	if !s.Access.HasPermission(ctx, "role.index-su") {
+		opts.RawWhere = "id != ?"
+		opts.RawWhereArgs = []interface{}{1}
+	}
 
 	result, err := s.repo.Role.FindAllWithOpts(nil, opts)
 	if err != nil {
@@ -110,6 +125,10 @@ func (s *Services) RoleGetAllPaginated(ctx context.Context, opts *repositories.Q
 
 // RoleGetByID returns a role by ID with permissions.
 func (s *Services) RoleGetByID(ctx context.Context, id uint) (*dtos.RoleDTO, error) {
+	if id == 1 && !s.Access.HasPermission(ctx, "role.index-su") {
+		return nil, helpers.ErrForbidden
+	}
+
 	role, err := s.repo.Role.FindByID(nil, id, "Permissions")
 	if err != nil {
 		return nil, helpers.ErrNotFound

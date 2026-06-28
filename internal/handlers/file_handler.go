@@ -39,11 +39,10 @@ func (h *Handlers) FileUpload(c *gin.Context) {
 	}
 
 	fileUUID := uuid.New().String()
-	fileName := fmt.Sprintf("%s%s", fileUUID, ext)
 	uploadDir := "storage/tmp"
 
 	filePath, err := helpers.SaveUploadedFileWithOpts(c, "file", uploadDir, &helpers.SaveFileOptions{
-		CustomName: fileName,
+		CustomName: fileUUID,
 	})
 	if err != nil {
 		helpers.InternalServerError(c, fmt.Sprintf("Failed to upload file: %v", err))

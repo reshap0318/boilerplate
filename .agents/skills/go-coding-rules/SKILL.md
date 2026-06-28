@@ -132,6 +132,28 @@ func (s *Services) PermissionGetAllPaginated(ctx context.Context, opts *reposito
 | Handler    | `{feature}_handler.go`    | `permission_handler.go`    |
 | Route      | `{feature}_route.go`      | `permission_route.go`      |
 
+### 10. DTO Field Naming — Request vs Response
+
+**Request DTO** — use entity name without `_id` suffix:
+
+```go
+type RoleRequest struct {
+    Permissions []uint `json:"permissions"` // NOT "permission_ids"
+}
+
+type UserRequest struct {
+    Roles []uint `json:"roles"` // NOT "role_ids"
+}
+```
+
+**Response DTO** — use `_id` suffix for foreign keys:
+
+```go
+type NotificationDTO struct {
+    UserID uint `json:"user_id"` // keep _id in response
+}
+```
+
 ---
 
 ## Logging
@@ -194,6 +216,22 @@ All repos extend `GenericRepository[T]`. Do NOT re-implement:
 | `FindByFieldMap`      | `(tx *gorm.DB, filter map[string]interface{}, preloads ...string)` |
 | `Count`               | `(tx *gorm.DB) (int64, error)`                                     |
 | `Exists`              | `(tx *gorm.DB, filter map[string]interface{}) (bool, error)`       |
+
+### Priority: Use Generic Methods First
+
+**Prefer** using existing `GenericRepository` methods over creating custom repository methods.
+
+**Guidelines:**
+
+1. Check if generic method can solve the problem first (see table above)
+2. Create custom method when generic methods cannot handle the requirement
+3. Common scenarios that may need custom methods:
+   - Complex JOIN queries
+   - Aggregate functions (SUM, COUNT with GROUP BY)
+   - Subqueries or nested conditions
+   - Database-specific features not covered by generic methods
+
+See `references/repository.go` for examples.
 
 ### Transaction Manager
 
@@ -396,6 +434,7 @@ type Handlers struct {
 
 - [ ] Model has `TableName()`
 - [ ] DTO variables use feature prefix
+- [ ] Request DTO: no `_id` suffix (e.g. `roles`), Response DTO: keep `_id` (e.g. `user_id`)
 - [ ] Service/Handler: `{Feature}{Action}` on single struct
 - [ ] Write ops use `TxManager.WithinTransaction()`
 - [ ] Read ops use `nil` parameter
@@ -404,6 +443,7 @@ type Handlers struct {
 - [ ] CREATE/UPDATE/DELETE have logging + notification
 - [ ] Notification Data = identifier only (id, name, status)
 - [ ] Repository registered in `00_repository.go`
+- [ ] Custom repo method: prefer generic methods if they can handle the requirement
 - [ ] Handler uses `c.BindJSON()` + `h.Validate.Struct()`
 - [ ] ALL errors handled via `HandleError()`, NO manual error checks
 - [ ] Build: `go build ./...` | Vet: `go vet ./...`
