@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
@@ -73,14 +75,24 @@ func (h *Handlers) AuthRefreshToken(c *gin.Context) {
 
 // AuthLogout handles user logout.
 // @Summary User logout
-// @Description Logout user (client should clear token)
+// @Description Blacklists the current token so it cannot be reused
 // @Tags auth
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} map[string]string
 // @Router /api/auth/logout [post]
 func (h *Handlers) AuthLogout(c *gin.Context) {
-	helpers.OK(c, "Logout successful. Please clear your token on the client side.", nil)
+	authHeader := c.GetHeader("Authorization")
+	parts := strings.SplitN(authHeader, " ", 2)
+	tokenString := parts[1]
+
+	if err := h.svcs.AuthLogout(c.Request.Context(), tokenString); err != nil {
+		if helpers.HandleError(c, err, "Logout failed") {
+			return
+		}
+	}
+
+	helpers.OK(c, "Logout successful", nil)
 }
 
 // AuthForgetPassword handles forget password request.

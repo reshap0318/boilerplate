@@ -23,15 +23,21 @@ func (s *Services) AuthValidateToken(tokenString string) (*helpers.JWTClaims, er
 		return nil, helpers.ErrExpiredToken
 	}
 
+	// Check token blacklist — reject if jti has been revoked (logout)
+	if s.RedisClient.IsCacheAvailable() {
+		blacklistKey := fmt.Sprintf("blacklist:jti:%s", claims.ID)
+		if blacklisted, err := s.RedisClient.Exists(blacklistKey); err == nil && blacklisted {
+			return nil, helpers.ErrInvalidToken
+		}
+	}
+
 	// Try to get cached session from Redis with fallback to DB
 	if s.RedisClient.IsCacheAvailable() {
 		sessionKey := fmt.Sprintf("session:%d", claims.UserID)
 		var cachedUserDTO dtos.UserDTO
 		if err := s.RedisClient.GetJSON(sessionKey, &cachedUserDTO); err == nil {
-			// Cache hit - user data is valid, return claims
 			return claims, nil
 		} else {
-			// Cache miss or error, fallback to DB validation
 			s.Logger.LogWarn("AuthValidateToken", "Cache miss/error for session:%d, falling back to DB: %v", claims.UserID, err)
 		}
 	}
@@ -151,9 +157,35 @@ func (s *Services) AuthRefreshToken(ctx context.Context, refreshToken string) (*
 	}, nil
 }
 
-// AuthLogout handles user logout (client-side token clear).
-func (s *Services) AuthLogout(ctx context.Context) error {
-	// For stateless JWT, logout is handled client-side
+// AuthLogout blacklists the token's jti in Redis so it cannot be reused.
+func (s *Services) AuthLogout(ctx context.Context, tokenString string) error {
+	s.Logger.LogStart("AuthLogout", "Logout request")
+
+	claims, err := helpers.ValidateToken(tokenString, s.JWKSManager.GetPublicKey())
+	if err != nil {
+		s.Logger.LogEndWithError("AuthLogout", "Invalid token: %v", err)
+		return helpers.ErrInvalidToken
+	}
+
+	ttl := time.Until(claims.ExpiresAt.Time)
+	if ttl <= 0 {
+		// Token already expired — nothing to blacklist
+		s.Logger.LogEnd("AuthLogout", "Token already expired, skipping blacklist")
+		return nil
+	}
+
+	if s.RedisClient.IsCacheAvailable() {
+		blacklistKey := fmt.Sprintf("blacklist:jti:%s", claims.ID)
+		if err := s.RedisClient.Set(blacklistKey, "1", ttl); err != nil {
+			s.Logger.LogWarn("AuthLogout", "Failed to blacklist jti %s: %v", claims.ID, err)
+		} else {
+			s.Logger.LogStep("AuthLogout", "jti blacklisted: %s (TTL: %s)", claims.ID, ttl)
+		}
+	} else {
+		s.Logger.LogWarn("AuthLogout", "Redis unavailable — token not blacklisted")
+	}
+
+	s.Logger.LogEnd("AuthLogout", "Logout successful for user: %d", claims.UserID)
 	return nil
 }
 
