@@ -457,6 +457,55 @@ type Handlers struct {
 
 ---
 
+## Background Jobs (Asynq)
+
+Worker runs as a separate binary: `cmd/worker/main.go`. Uses Redis via `internal/pkg/asynq/client.go`.
+
+See `references/job.go` for full code examples.
+
+### Architecture
+
+```
+Scheduler (cron) → Redis Queue → Server (worker) → Jobs.HandleXxx()
+```
+
+### File Structure
+
+| File | Purpose |
+| ---- | ------- |
+| `internal/jobs/00_jobs.go` | `Jobs` struct, type constants, `Register()` |
+| `internal/jobs/{feature}_job.go` | Handler for one job |
+| `internal/pkg/asynq/client.go` | `RedisOpt()` — shared Redis config |
+| `cmd/worker/main.go` | Entry point: server + scheduler |
+
+### Adding a New Job — 3 Steps
+
+1. Add type constant + `mux.HandleFunc` in `00_jobs.go`
+2. Create `internal/jobs/{feature}_job.go` with `func (j *Jobs) Handle{Feature}(...)`
+3. Register cron in `cmd/worker/main.go` with `scheduler.Register(...)`
+
+All 3 steps MUST be done together.
+
+### CRITICAL RULES
+
+- Type constant defined in `00_jobs.go` — NEVER inline the string
+- Handler MUST be registered in `Register()` — missing handler causes runtime error
+- Scheduler cron and mux handler MUST be added together — one without the other causes silent failures
+- Jobs have full access to `j.svcs` (Services) — use it for DB, Redis, logging, etc.
+- Job errors: log with `LogEndWithError`, return wrapped error with `fmt.Errorf`
+- File naming: `{feature}_job.go`, handler: `Handle{Feature}`
+
+### Anti-Patterns
+
+| WRONG | CORRECT |
+| ----- | ------- |
+| `mux.HandleFunc("myjob", ...)` | `mux.HandleFunc(jobs.TypeMyJob, ...)` |
+| Schedule without registering handler | Always add both in same step |
+| Register handler without schedule | Always add both in same step |
+| `type MyJobService struct` | Method on `(j *Jobs)` |
+
+---
+
 ## Anti-Patterns
 
 | WRONG                                           | CORRECT                                               |
@@ -488,3 +537,12 @@ type Handlers struct {
 - [ ] Handler uses `c.BindJSON()` + `h.Validate.Struct()`
 - [ ] ALL errors handled via `HandleError()`, NO manual error checks
 - [ ] Build: `go build ./...` | Vet: `go vet ./...`
+
+### Adding a Job (extra checks)
+
+- [ ] Type constant added in `00_jobs.go`
+- [ ] Handler registered in `Register()` in `00_jobs.go`
+- [ ] Cron schedule added in `cmd/worker/main.go`
+- [ ] Handler file named `{feature}_job.go`
+- [ ] Handler uses `j.svcs.Logger` for start/end logging
+- [ ] All 3 steps done together (constant + handler + schedule)
