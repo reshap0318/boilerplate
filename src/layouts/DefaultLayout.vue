@@ -31,7 +31,7 @@ const menuItems = computed<IMenuItem[]>(() => {
 })
 
 function filterMenuByPermission(items: IMenuItem[]): IMenuItem[] {
-  return items
+  const filtered = items
     .filter((item) => {
       if (item.isTitle) return true
       if (!item.permission || item.permission.length === 0) return true
@@ -39,19 +39,18 @@ function filterMenuByPermission(items: IMenuItem[]): IMenuItem[] {
     })
     .map((item) => {
       if (item.children) {
-        return {
-          ...item,
-          children: filterMenuByPermission(item.children),
-        }
+        return { ...item, children: filterMenuByPermission(item.children) }
       }
       return item
     })
-    .filter((item) => {
-      if (item.children && item.children.length === 0) {
-        return false
-      }
-      return true
-    })
+    .filter((item) => !(item.children && item.children.length === 0))
+
+  // Remove title items that have no visible non-title items following them
+  return filtered.filter((item, index) => {
+    if (!item.isTitle) return true
+    const next = filtered[index + 1]
+    return next !== undefined && !next.isTitle
+  })
 }
 
 const toggleSidebar = () => {
