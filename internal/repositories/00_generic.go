@@ -270,9 +270,7 @@ func (r *GenericRepository[T]) FindAllWithOpts(tx *gorm.DB, opts *QueryOptions) 
 		if opts.Page > 0 {
 			page = opts.Page
 		}
-		if opts.PageSize > 0 {
-			pageSize = opts.PageSize
-		}
+		pageSize = opts.PageSize
 	}
 
 	if pageSize > 0 {
@@ -285,9 +283,12 @@ func (r *GenericRepository[T]) FindAllWithOpts(tx *gorm.DB, opts *QueryOptions) 
 		return nil, err
 	}
 
-	totalPages := int(total) / pageSize
-	if int(total)%pageSize != 0 {
-		totalPages++
+	totalPages := 1
+	if pageSize > 0 {
+		totalPages = int(total) / pageSize
+		if int(total)%pageSize != 0 {
+			totalPages++
+		}
 	}
 
 	return &PagedResult[T]{
@@ -337,9 +338,7 @@ func (r *GenericRepository[T]) FindByFieldWithOpts(tx *gorm.DB, filter *T, opts 
 		if opts.Page > 0 {
 			page = opts.Page
 		}
-		if opts.PageSize > 0 {
-			pageSize = opts.PageSize
-		}
+		pageSize = opts.PageSize
 	}
 
 	if pageSize > 0 {
@@ -352,9 +351,12 @@ func (r *GenericRepository[T]) FindByFieldWithOpts(tx *gorm.DB, filter *T, opts 
 		return nil, err
 	}
 
-	totalPages := int(total) / pageSize
-	if int(total)%pageSize != 0 {
-		totalPages++
+	totalPages := 1
+	if pageSize > 0 {
+		totalPages = int(total) / pageSize
+		if int(total)%pageSize != 0 {
+			totalPages++
+		}
 	}
 
 	return &PagedResult[T]{
@@ -404,9 +406,7 @@ func (r *GenericRepository[T]) FindByFieldMapWithOpts(tx *gorm.DB, filter map[st
 		if opts.Page > 0 {
 			page = opts.Page
 		}
-		if opts.PageSize > 0 {
-			pageSize = opts.PageSize
-		}
+		pageSize = opts.PageSize
 	}
 
 	if pageSize > 0 {
@@ -419,9 +419,12 @@ func (r *GenericRepository[T]) FindByFieldMapWithOpts(tx *gorm.DB, filter map[st
 		return nil, err
 	}
 
-	totalPages := int(total) / pageSize
-	if int(total)%pageSize != 0 {
-		totalPages++
+	totalPages := 1
+	if pageSize > 0 {
+		totalPages = int(total) / pageSize
+		if int(total)%pageSize != 0 {
+			totalPages++
+		}
 	}
 
 	return &PagedResult[T]{
