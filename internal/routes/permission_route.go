@@ -9,13 +9,13 @@ import (
 )
 
 // RegisterPermissionRoutes registers protected permission routes.
-func RegisterPermissionRoutes(r *gin.RouterGroup, handlers *handlers.Handlers, acc *helpers.Access) {
+func RegisterPermissionRoutes(r *gin.RouterGroup, h *handlers.Handlers, acc *helpers.Access) {
 	permissions := r.Group("/permissions")
 	{
-		permissions.POST("", middleware.RequirePermission(acc, "permission.create"), handlers.PermissionCreate)
-		permissions.GET("", middleware.RequirePermission(acc, "permission.index"), handlers.PermissionGetAll)
-		permissions.GET("/:id", middleware.RequirePermission(acc, "permission.index"), handlers.PermissionGetByID)
-		permissions.PUT("/:id", middleware.RequirePermission(acc, "permission.edit"), handlers.PermissionUpdate)
-		permissions.DELETE("/:id", middleware.RequirePermission(acc, "permission.delete"), handlers.PermissionDelete)
+		permissions.POST("", middleware.RequirePermission(acc, "permission.create"), h.PermissionCreate)
+		permissions.GET("", middleware.RequirePermission(acc, "permission.index"), h.PermissionGetAll)
+		permissions.GET("/:id", middleware.RequirePermission(acc, "permission.index"), h.PermissionGetByID)
+		permissions.PUT("/:id", middleware.RequirePermission(acc, "permission.edit"), h.PermissionUpdate)
+		permissions.DELETE("/:id", middleware.RequirePermission(acc, "permission.delete"), h.PermissionDelete)
 	}
 }

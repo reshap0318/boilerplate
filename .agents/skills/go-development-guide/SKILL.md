@@ -47,7 +47,7 @@ Every new CRUD feature MUST follow this order:
 | Step | Layer | File Path | Purpose |
 |------|-------|-----------|---------|
 | 1 | Model | `internal/models/{feature}.go` | GORM model + TableName() |
-| 2 | Migration | `database/migrations/{timestamp}_{feature}.sql` | CREATE TABLE SQL |
+| 2 | Migration | `cmd/migration/migrations/{timestamp}_{feature}.sql` | CREATE TABLE SQL |
 | 3 | DTO | `internal/dtos/{feature}_dto.go` | Request/Response structs + converter |
 | 4 | Repository | `internal/repositories/{feature}_repository.go` | Extend GenericRepository |
 | 5 | Register Repo | `internal/repositories/00_repository.go` | Add to Repositories struct |
@@ -70,9 +70,9 @@ Define GORM model with struct tags. See `go-coding-rules` for conventions.
 
 ### Step 2: Migration
 
-**File:** `database/migrations/{timestamp}_{feature}.sql`
+**File:** `cmd/migration/migrations/{timestamp}_{feature}.sql`
 
-Create the SQL migration file for the new table. Timestamp format: `YYYYMMDDHHMMSS`. See `go-coding-rules` for migration conventions.
+Create the SQL migration file for the new table. Timestamp format: `YYYYMMDDHHMMSS` (goose parses the numeric prefix as the version — must be unique and greater than existing migrations). Files are loaded via `//go:embed migrations/*.sql` in `cmd/migration/main.go`, so they MUST live in that exact folder. See `go-coding-rules` for migration conventions.
 
 ---
 
@@ -134,7 +134,7 @@ Add the new route registration call inside `RegisterAll()`. `cmd/api/main.go` ne
 
 ## ✅ Pre-Push Checklist
 - [ ] Model has `TableName()` method
-- [ ] Migration file created in `database/migrations/`
+- [ ] Migration file created in `cmd/migration/migrations/` (timestamp prefix `YYYYMMDDHHMMSS`)
 - [ ] DTO variables use feature prefix
 - [ ] Request DTO: merged for simple features OR separate (`{Feature}CreateRequest` + `{Feature}UpdateRequest`) for complex features
 - [ ] Service functions use feature prefix (`{Feature}{Action}`)

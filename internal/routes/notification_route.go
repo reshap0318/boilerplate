@@ -6,14 +6,14 @@ import (
 	"github.com/reshap0318/go-boilerplate/internal/handlers"
 )
 
-func RegisterNotificationRoutes(r *gin.RouterGroup, handlers *handlers.Handlers) {
+func RegisterNotificationRoutes(r *gin.RouterGroup, h *handlers.Handlers) {
 	notifications := r.Group("/notifications")
 	{
-		notifications.GET("", handlers.NotificationGetAll)
-		notifications.GET("/unread-count", handlers.NotificationCountUnread)
-		notifications.GET("/:id", handlers.NotificationGetByID)
-		notifications.PATCH("/:id/read", handlers.NotificationMarkAsRead)
-		notifications.PATCH("/mark-all-read", handlers.NotificationMarkAllAsRead)
-		notifications.DELETE("/:id", handlers.NotificationDelete)
+		notifications.GET("", h.NotificationGetAll)
+		notifications.GET("/unread-count", h.NotificationCountUnread)
+		notifications.GET("/:id", h.NotificationGetByID)
+		notifications.PATCH("/:id/read", h.NotificationMarkAsRead)
+		notifications.PATCH("/mark-all-read", h.NotificationMarkAllAsRead)
+		notifications.DELETE("/:id", h.NotificationDelete)
 	}
 }

@@ -2,9 +2,9 @@ package references
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/reshap0318/go-project/internal/handlers"
-	"github.com/reshap0318/go-project/internal/helpers"
-	"github.com/reshap0318/go-project/internal/middleware"
+	"github.com/reshap0318/go-boilerplate/internal/handlers"
+	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/middleware"
 )
 
 // ============================================================

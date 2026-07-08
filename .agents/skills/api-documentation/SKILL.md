@@ -25,11 +25,11 @@ Default output is Markdown with this structure:
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/api/v1/permissions` | JWT | Create permission |
-| GET | `/api/v1/permissions` | JWT | List all permissions |
-| GET | `/api/v1/permissions/:id` | JWT | Get permission by ID |
-| PUT | `/api/v1/permissions/:id` | JWT | Update permission |
-| DELETE | `/api/v1/permissions/:id` | JWT | Delete permission |
+| POST | `/api/permissions` | JWT | Create permission |
+| GET | `/api/permissions` | JWT | List all permissions |
+| GET | `/api/permissions/:id` | JWT | Get permission by ID |
+| PUT | `/api/permissions/:id` | JWT | Update permission |
+| DELETE | `/api/permissions/:id` | JWT | Delete permission |
 
 ### Request/Response Examples
 
@@ -39,6 +39,7 @@ Include JSON examples for:
 - Error responses (400, 401, 404, 422, 500)
 
 ## Rules
+- No API versioning — base path is `/api` (NOT `/api/v1`), per `cmd/api/main.go` (`r.Group("/api")`)
 - Always check `cmd/api/main.go` for route registration and middleware groups
 - Identify which routes are in the `protected` group (JWT required) vs public
 - Use DTO field tags (`json`, `binding`) to document required/optional fields

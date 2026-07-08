@@ -22,7 +22,7 @@ Use this skill when:
 
 | Item        | Value                              |
 | ----------- | ---------------------------------- |
-| Module      | `github.com/reshap0318/go-project` |
+| Module      | `github.com/reshap0318/go-boilerplate` |
 | Go Version  | 1.25.0+                            |
 | Framework   | Gin, GORM, JWT, Redis, bcrypt      |
 | Database    | MySQL (default) / PostgreSQL       |
@@ -58,11 +58,13 @@ All examples are in `references/` folder:
 - `internal/repositories/00_generic.go`
 - `internal/repositories/00_transaction.go`
 
-### 2. Models MUST have `TableName()`
+### 2. Models MUST have `TableName()` and `DeletedAt` (soft delete)
 
 ```go
 func (Permission) TableName() string { return "permissions" }
 ```
+
+Every model MUST include `DeletedAt gorm.DeletedAt \`gorm:"index" json:"-"\`` — `GenericRepository.Delete()` relies on this field for soft delete via GORM. Without it, `Delete()` performs a hard delete instead.
 
 ### 3. Single Struct Pattern
 
@@ -225,7 +227,7 @@ All repos extend `GenericRepository[T]`. Do NOT re-implement:
 ```go
 type QueryOptions struct {
     Page            int              // Page number (default: 1)
-    PageSize        int              // Items per page (default: 10)
+    PageSize        int              // Items per page (default: 10, 0 = no pagination — returns all rows)
     SortBy          string           // Field to sort by
     Order           string           // "ASC" | "DESC" (default: "ASC")
     Preloads        []string         // Relations to preload
@@ -286,11 +288,7 @@ result, err := s.repo.TxManager.WithinTransactionWithResult(func(tx *gorm.DB) (i
 
 ### Error Sentinels
 
-```go
-helpers.ErrNotFound, helpers.ErrInvalidToken, helpers.ErrExpiredToken
-helpers.ErrInvalidCredential, helpers.ErrUserExists, helpers.ErrInvalidEmail
-helpers.ErrForbidden
-```
+See `internal/helpers/error_helper.go` for the authoritative, up-to-date list of sentinel errors — do not hardcode a copy here, it will go stale. Reuse an existing sentinel before adding a new one.
 
 ### Custom Error — `CustomError`
 

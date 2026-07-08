@@ -3,7 +3,7 @@ package references
 import (
 	"gorm.io/gorm"
 
-	"github.com/reshap0318/go-project/internal/models"
+	"github.com/reshap0318/go-boilerplate/internal/models"
 )
 
 // ============================================================

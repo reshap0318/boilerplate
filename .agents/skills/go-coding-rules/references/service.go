@@ -6,15 +6,15 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/reshap0318/go-project/internal/dtos"
-	"github.com/reshap0318/go-project/internal/models"
-	"github.com/reshap0318/go-project/internal/repositories"
+	"github.com/reshap0318/go-boilerplate/internal/dtos"
+	"github.com/reshap0318/go-boilerplate/internal/models"
+	"github.com/reshap0318/go-boilerplate/internal/repositories"
 )
 
 // ============================================================
 // CREATE — with logging + notification + transaction
 // ============================================================
-func (s *Services) PermissionCreate(ctx context.Context, req *dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
+func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
 	s.Logger.LogStart("PermissionCreate", "Creating permission: %s", req.Name)
 
 	var result *models.Permission
@@ -111,7 +111,7 @@ func (s *Services) PermissionGetByID(ctx context.Context, id uint) (*dtos.Permis
 // ============================================================
 // UPDATE — with logging + notification + transaction
 // ============================================================
-func (s *Services) PermissionUpdate(ctx context.Context, id uint, req *dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
+func (s *Services) PermissionUpdate(ctx context.Context, id uint, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
 	s.Logger.LogStart("PermissionUpdate", "Updating permission %d", id)
 
 	var result *models.Permission

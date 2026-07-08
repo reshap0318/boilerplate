@@ -9,8 +9,8 @@ import (
 
 	"github.com/hibiken/asynq"
 
-	"github.com/reshap0318/go-project/internal/helpers"
-	"github.com/reshap0318/go-project/internal/services"
+	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/services"
 )
 
 // ============================================================

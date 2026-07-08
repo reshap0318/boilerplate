@@ -4,9 +4,9 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/reshap0318/go-project/internal/dtos"
-	"github.com/reshap0318/go-project/internal/helpers"
-	"github.com/reshap0318/go-project/internal/repositories"
+	"github.com/reshap0318/go-boilerplate/internal/dtos"
+	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/repositories"
 )
 
 // NOTE: ALL service errors MUST be handled via helpers.HandleError().
@@ -23,12 +23,12 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
 		helpers.BadRequest(c, "Invalid JSON payload")
 		return
 	}
-	if err := h.Validate.Struct(&req); err != nil {
+	if err := h.Validate.Struct(req); err != nil {
 		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
-	result, err := h.svcs.PermissionCreate(c.Request.Context(), &req)
+	result, err := h.svcs.PermissionCreate(c.Request.Context(), req)
 	if helpers.HandleError(c, err, "Failed to create permission") {
 		return
 	}
@@ -117,12 +117,12 @@ func (h *Handlers) PermissionUpdate(c *gin.Context) {
 		helpers.BadRequest(c, "Invalid JSON payload")
 		return
 	}
-	if err := h.Validate.Struct(&req); err != nil {
+	if err := h.Validate.Struct(req); err != nil {
 		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
-	result, err := h.svcs.PermissionUpdate(c.Request.Context(), uint(id), &req)
+	result, err := h.svcs.PermissionUpdate(c.Request.Context(), uint(id), req)
 	if helpers.HandleError(c, err, "Failed to update permission") {
 		return
 	}
