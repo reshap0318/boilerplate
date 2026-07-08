@@ -56,6 +56,8 @@ All examples are in `references/` folder:
 - `references/barrel.ts` — Barrel export patterns
 - `references/permission.ts` — Permission composable usage
 
+**Before creating a new UI component, always list `src/components/utils/` first.** The examples in `references/types.ts` are illustrative only, not the full catalog — check the real folder (and its `index.ts` barrel) to see what's already available (buttons, cards, modals, form inputs, badges, tables, etc.) and reuse an existing one instead of duplicating it.
+
 ---
 
 ## File Naming
@@ -155,7 +157,11 @@ DO NOT redefine same function across stores. Import and reuse from original stor
 
 ### 6. Non-CRUD Stores
 
-For stores that don't fit CRUD pattern (e.g., Profile), write manually but keep same structure.
+Not every feature is list+create+update+delete of one resource — singleton resources, feeds/streams, or features with custom actions beyond CRUD don't fit `useCrud`.
+
+**Before writing a non-CRUD store, list `src/stores/` and skim any existing store with a similar shape** (e.g. a singleton resource, a paginated feed) — reuse its structure instead of inventing a new one from scratch.
+
+Even without `useCrud`, still follow the shared conventions: TypeScript interfaces for state/payload, the `loading: Record<TLoadingKey, boolean>` pattern (name keys for the store's actual operations, not necessarily `Index`/`Form`/`Delete`), try-catch-finally with `swal`/interceptor error handling, and barrel export.
 
 ---
 
@@ -247,6 +253,13 @@ Menu items are defined in `src/layouts/DefaultLayout.vue` inside the `menuItems`
   ],
 },
 ```
+
+**Section title (separator, no link):**
+```typescript
+{ isTitle: true, label: 'Management' },
+```
+- Use to group related items visually (e.g. before a run of admin/management items)
+- `filterMenuByPermission` auto-hides a title if every item that would follow it gets filtered out — don't add manual visibility logic for this
 
 - Import icon from `@phosphor-icons/vue`
 - `permission` must match the route's `permissions` meta value
@@ -476,21 +489,26 @@ await swal.warning('Title', 'Message') // confirmation
 
 ---
 
+## Helpers
+
+Reusable utility functions live in `src/helpers/` (date formatting, file upload, Vuelidate error translation, storage access, etc.).
+
+**Before writing a new utility function, always list the contents of `src/helpers/` and skim any file that looks related to what you need.** Do not reinvent a helper that already exists there — import and reuse it instead. If no existing helper fits, add the new function to the most relevant existing file, or create a new file in `src/helpers/` following the same naming (camelCase filename) and export style as its neighbors.
+
+---
+
 ## Barrel Exports
 
-Use `index.ts` files for cleaner imports. See `references/barrel.ts`.
+Use `index.ts` files for cleaner imports. `references/barrel.ts` shows the **pattern only** — it is not an exhaustive or current list.
 
-```typescript
-// stores/index.ts — export stores + types
-// composables/index.ts — export composables
-// components/utils/index.ts — export UI components + types
-```
+**Before adding a new export, always open the real barrel file first** (`src/stores/index.ts`, `src/composables/index.ts`, `src/components/utils/index.ts`) to see what's currently exported. Every new store, composable, or UI component MUST be added to its barrel — a component/store that exists on disk but is missing from its barrel is a bug (unreachable via the clean-import path), not just a doc gap.
 
 **Rules:**
 
 - Export both module and types in barrel
 - Use explicit named exports, avoid `export * from`
 - Keep alphabetically sorted when possible
+- After creating a new file in `stores/`, `composables/`, or `components/utils/`, verify it was actually added to that folder's `index.ts` before considering the task done
 
 ---
 

@@ -1,4 +1,11 @@
 // ============================================================
+// Barrel Exports — PATTERN EXAMPLE ONLY, not an exhaustive list.
+// The real barrels (src/stores/index.ts, src/composables/index.ts,
+// src/components/utils/index.ts) will have more entries than shown
+// here — always read the real file before adding a new export.
+// ============================================================
+
+// ============================================================
 // Barrel Exports — stores/index.ts
 // ============================================================
 export { useAuthStore } from './auth'
