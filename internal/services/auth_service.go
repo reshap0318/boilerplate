@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
@@ -398,5 +400,101 @@ func (s *Services) AuthResetPassword(ctx context.Context, token, newPassword str
 	})
 
 	s.Logger.LogEnd("AuthResetPassword", "Password reset successful")
+	return nil
+}
+
+// sendVerificationEmail generates a verification token, stores it in Redis, and emails it to the user.
+func (s *Services) sendVerificationEmail(userID uint, email string) {
+	if !s.RedisClient.IsCacheAvailable() {
+		s.Logger.LogWarn("sendVerificationEmail", "Redis not available, skipping verification email")
+		return
+	}
+
+	token, err := helpers.GenerateRandomString(32)
+	if err != nil {
+		s.Logger.LogError("sendVerificationEmail", "Failed to generate token: %v", err)
+		return
+	}
+
+	key := fmt.Sprintf("verify_email:%s", token)
+	userIDStr := strconv.FormatUint(uint64(userID), 10)
+	if err := s.RedisClient.Set(key, userIDStr, 24*time.Hour); err != nil {
+		s.Logger.LogError("sendVerificationEmail", "Failed to store token in Redis: %v", err)
+		return
+	}
+
+	frontendURL := helpers.GetEnv("APP_FE_URL", "http://localhost:5173")
+	verifyURL := frontendURL + "/verify-email?token=" + token
+
+	if err := s.EmailClient.SendVerificationEmail(email, verifyURL); err != nil {
+		s.Logger.LogError("sendVerificationEmail", "Failed to send verification email to %s: %v", email, err)
+		s.Logger.LogWarn("sendVerificationEmail", "[DEV] Verify URL for %s: %s", email, verifyURL)
+	} else {
+		s.Logger.LogStep("sendVerificationEmail", "Verification email sent to %s", email)
+	}
+}
+
+// AuthResendVerification sends (or resends) a verification email to the given address.
+func (s *Services) AuthResendVerification(ctx context.Context, email string) error {
+	s.Logger.LogStart("AuthResendVerification", "Resend verification request for: %s", email)
+
+	user, err := s.repo.User.FindByEmail(nil, email)
+	if err != nil {
+		s.Logger.LogEndWithError("AuthResendVerification", "User not found: %s", email)
+		return helpers.ErrNotFound
+	}
+
+	if user.EmailVerifiedAt != nil {
+		s.Logger.LogEndWithError("AuthResendVerification", "Email already verified: %s", email)
+		return &helpers.CustomError{Status: http.StatusBadRequest, Message: "email already verified"}
+	}
+
+	go s.sendVerificationEmail(user.ID, user.Email)
+
+	s.Logger.LogEnd("AuthResendVerification", "Verification email queued for: %s", email)
+	return nil
+}
+
+// AuthVerifyEmail validates an email verification token and marks the email as verified.
+func (s *Services) AuthVerifyEmail(ctx context.Context, token string) error {
+	s.Logger.LogStart("AuthVerifyEmail", "Email verification attempt")
+
+	if !s.RedisClient.IsCacheAvailable() {
+		return helpers.ErrTokenInvalid
+	}
+
+	key := fmt.Sprintf("verify_email:%s", token)
+	userIDStr, err := s.RedisClient.Get(key)
+	if err != nil {
+		s.Logger.LogEndWithError("AuthVerifyEmail", "Token not found or expired")
+		return helpers.ErrTokenInvalid
+	}
+
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		s.Logger.LogEndWithError("AuthVerifyEmail", "Invalid userID stored in Redis")
+		return helpers.ErrTokenInvalid
+	}
+
+	user, err := s.repo.User.FindByID(nil, uint(userID))
+	if err != nil {
+		return helpers.ErrNotFound
+	}
+	if user.EmailVerifiedAt != nil {
+		return &helpers.CustomError{Status: http.StatusBadRequest, Message: "email already verified"}
+	}
+
+	now := time.Now()
+	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
+		_, err := s.repo.User.Update(tx, &models.User{ID: uint(userID)}, &models.User{EmailVerifiedAt: &now})
+		return err
+	}); err != nil {
+		s.Logger.LogEndWithError("AuthVerifyEmail", "Failed to set email_verified_at: %v", err)
+		return err
+	}
+
+	_ = s.RedisClient.Delete(key)
+
+	s.Logger.LogEnd("AuthVerifyEmail", "Email verified for userID: %d", userID)
 	return nil
 }

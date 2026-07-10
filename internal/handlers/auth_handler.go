@@ -160,3 +160,68 @@ func (h *Handlers) AuthResetPassword(c *gin.Context) {
 
 	helpers.OK(c, "Password has been reset successfully", nil)
 }
+
+// AuthResendVerification handles resend verification email request.
+// @Summary Resend verification email
+// @Description Resend the email verification link
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body dtos.ResendVerificationRequest true "Email"
+// @Success 200 {object} dtos.MessageResponse
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /api/auth/resend-verification [post]
+func (h *Handlers) AuthResendVerification(c *gin.Context) {
+	var req dtos.ResendVerificationRequest
+
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
+		return
+	}
+
+	if err := h.svcs.AuthResendVerification(c.Request.Context(), req.Email); err != nil {
+		if helpers.HandleError(c, err, err.Error()) {
+			return
+		}
+	}
+
+	helpers.OK(c, "Verification email sent", nil)
+}
+
+// AuthVerifyEmail handles email verification request.
+// @Summary Verify email
+// @Description Verify user email using the token sent via email
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body dtos.VerifyEmailRequest true "Verification token"
+// @Success 200 {object} dtos.MessageResponse
+// @Failure 400 {object} map[string]string
+// @Router /api/auth/verify-email [post]
+func (h *Handlers) AuthVerifyEmail(c *gin.Context) {
+	var req dtos.VerifyEmailRequest
+
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
+		return
+	}
+
+	if err := h.svcs.AuthVerifyEmail(c.Request.Context(), req.Token); err != nil {
+		if helpers.HandleError(c, err, err.Error()) {
+			return
+		}
+	}
+
+	helpers.OK(c, "Email verified successfully", nil)
+}

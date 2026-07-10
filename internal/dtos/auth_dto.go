@@ -49,6 +49,16 @@ type ResetPasswordRequest struct {
 	NewPassword string `json:"new_password" validate:"required,min=6"`
 }
 
+// ResendVerificationRequest represents the resend verification email request payload.
+type ResendVerificationRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+// VerifyEmailRequest represents the verify email request payload.
+type VerifyEmailRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
 // MessageResponse represents a simple message response.
 type MessageResponse struct {
 	Message string `json:"message"`
