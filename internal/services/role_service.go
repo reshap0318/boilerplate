@@ -126,6 +126,11 @@ func (s *Services) RoleGetByID(ctx context.Context, id uint) (*dtos.RoleDTO, err
 func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest) (*dtos.RoleDTO, error) {
 	s.Logger.LogStart("RoleUpdate", "Updating role ID: %d", id)
 
+	if id == 1 && !s.Access.HasPermission(ctx, "role.index-su") {
+		s.Logger.LogEndWithError("RoleUpdate", "Forbidden access to role ID: %d", id)
+		return nil, helpers.ErrForbidden
+	}
+
 	role := &models.Role{ID: id}
 	if req.Name != "" {
 		role.Name = req.Name
@@ -189,6 +194,11 @@ func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest
 // RoleDelete soft deletes a role.
 func (s *Services) RoleDelete(ctx context.Context, id uint) error {
 	s.Logger.LogStart("RoleDelete", "Deleting role ID: %d", id)
+
+	if id == 1 && !s.Access.HasPermission(ctx, "role.index-su") {
+		s.Logger.LogEndWithError("RoleDelete", "Forbidden access to role ID: %d", id)
+		return helpers.ErrForbidden
+	}
 
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
 		role := models.Role{ID: id}

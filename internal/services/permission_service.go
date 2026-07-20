@@ -63,6 +63,15 @@ func (s *Services) PermissionGetAll(ctx context.Context, opts *repositories.Quer
 		opts.Order = "ASC"
 	}
 
+	if !s.Access.HasPermission(ctx, "role.index-su") {
+		opts.ConditionGroups = append(opts.ConditionGroups, repositories.ConditionGroup{
+			Logic: "AND",
+			Conditions: []repositories.QueryCondition{
+				{Column: "id", Operator: ">", Value: 23},
+			},
+		})
+	}
+
 	result, err := s.repo.Permission.FindAllWithOpts(nil, opts)
 	if err != nil {
 		return nil, err
@@ -93,6 +102,11 @@ func (s *Services) PermissionGetByID(ctx context.Context, id uint) (*dtos.Permis
 // PermissionUpdate updates an existing permission.
 func (s *Services) PermissionUpdate(ctx context.Context, id uint, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
 	s.Logger.LogStart("PermissionUpdate", "Updating permission ID: %d", id)
+
+	if id <= 23 && !s.Access.HasPermission(ctx, "role.index-su") {
+		s.Logger.LogEndWithError("PermissionUpdate", "Forbidden access to permission ID: %d", id)
+		return nil, helpers.ErrForbidden
+	}
 
 	permission := &models.Permission{
 		ID: id,
@@ -137,6 +151,11 @@ func (s *Services) PermissionUpdate(ctx context.Context, id uint, req dtos.Permi
 // PermissionDelete soft deletes a permission.
 func (s *Services) PermissionDelete(ctx context.Context, id uint) error {
 	s.Logger.LogStart("PermissionDelete", "Deleting permission ID: %d", id)
+
+	if id <= 23 && !s.Access.HasPermission(ctx, "role.index-su") {
+		s.Logger.LogEndWithError("PermissionDelete", "Forbidden access to permission ID: %d", id)
+		return helpers.ErrForbidden
+	}
 
 	var permission *models.Permission
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
