@@ -111,7 +111,7 @@ func (User) TableName() string {
 ```go
 // ✅ CORRECT — Service with feature prefix (FeatureName + Action)
 func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) { ... }
-func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, error) { ... }
+func (s *Services) PermissionGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.PermissionDTO], error) { ... }
 
 // ✅ CORRECT — Handler with feature prefix
 func (h *Handlers) PermissionCreate(c *gin.Context) { ... }
@@ -705,7 +705,7 @@ func (s *Services) YourFeatureGetAllPaginated(ctx context.Context, opts *reposit
 ```
 
 `QueryOptions` fields:
-- `Page`, `PageSize` — pagination
+- `Page`, `PageSize` — pagination (`PageSize` 0/unset = default 10, negative = no pagination/all records)
 - `SortBy`, `Order` — sorting (`"ASC"` or `"DESC"`)
 - `Search`, `SearchFields` — LIKE search across multiple fields
 - `Preloads` — relations to preload (e.g., `[]string{"Roles", "Roles.Permissions"}`)

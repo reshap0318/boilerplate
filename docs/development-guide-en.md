@@ -253,17 +253,11 @@ func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequ
 
 **Read Operations (Get/Find) — MANDATORY use `nil`**
 
+> "Get all" is covered by the paginated variant below (see **Advanced: Pagination with FindAllWithOpts**) — do NOT add a separate non-paginated `GetAll` service/handler alongside it.
+
 ```go
 // ⚠️ MANDATORY: Feature name FIRST ({Feature}{Action})
 // ⚠️ MANDATORY: Use nil for read operations (NOT s.repo.Permission.DB)
-func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, error) {
-    permissions, err := s.repo.Permission.FindAll(nil)  // ← nil, NOT .DB
-    if err != nil {
-        return nil, err
-    }
-    return dtos.ToPermissionDTOList(permissions), nil
-}
-
 // ⚠️ Simple GET does NOT need logging
 func (s *Services) PermissionGetByID(ctx context.Context, id uint) (*dtos.PermissionDTO, error) {
     permission, err := s.repo.Permission.FindByID(nil, id)  // ← nil, NOT .DB
@@ -379,12 +373,12 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (
 }
 ```
 
-**Advanced: Pagination with FindAllWithOpts**
+**Pagination with FindAllWithOpts**
 
-Use `FindAllWithOpts` for paginated, sorted, and searchable queries:
+Use `FindAllWithOpts` as the single "get all" method — `opts.PageSize` negative returns all records, `0`/unset defaults to page size 10, `> 0` paginates with that size:
 
 ```go
-func (s *Services) PermissionGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.Permission], error) {
+func (s *Services) PermissionGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.Permission], error) {
     if opts == nil {
         opts = &repositories.QueryOptions{}
     }
@@ -400,9 +394,9 @@ func (s *Services) PermissionGetAllPaginated(ctx context.Context, opts *reposito
 ```
 
 QueryOptions fields:
-- `Page`, `PageSize` — pagination
+- `Page`, `PageSize` — pagination (`PageSize` 0/unset = default 10, negative = no pagination/all records)
 - `SortBy`, `Order` — sorting (`"ASC"` or `"DESC"`)
-- `Search`, `SearchFields` — LIKE search across multiple fields
+- `ConditionGroups` — WHERE conditions (AND/OR groups), also used for equality/LIKE filters that would otherwise need a separate filter param
 - `Preloads` — relations to preload (e.g., `[]string{"Roles", "Roles.Permissions"}`)
 
 ---
@@ -421,6 +415,7 @@ import (
 
     "github.com/reshap0318/go-boilerplate/internal/dtos"
     "github.com/reshap0318/go-boilerplate/internal/helpers"
+    "github.com/reshap0318/go-boilerplate/internal/repositories"
 )
 
 // ⚠️ MANDATORY: Feature name FIRST — {Feature}{Action}
@@ -445,14 +440,27 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
     helpers.Created(c, "Permission created successfully", dto)
 }
 
+// page_size omitted or -1 returns all records; page_size>0 paginates
 func (h *Handlers) PermissionGetAll(c *gin.Context) {
-    dtos, err := h.svcs.PermissionGetAll(c.Request.Context())
+    page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+    pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "-1"))
+
+    if pageSize < 0 {
+        page = 1
+    }
+
+    opts := &repositories.QueryOptions{
+        Page:     page,
+        PageSize: pageSize,
+    }
+
+    result, err := h.svcs.PermissionGetAll(c.Request.Context(), opts)
     if err != nil {
         helpers.InternalServerError(c, "Failed to fetch permissions")
         return
     }
 
-    helpers.OK(c, "Permissions fetched successfully", dtos)
+    helpers.OKWithMetadata(c, "Permissions fetched successfully", result)
 }
 
 func (h *Handlers) PermissionGetByID(c *gin.Context) {

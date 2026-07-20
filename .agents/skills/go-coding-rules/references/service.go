@@ -52,9 +52,10 @@ func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequ
 }
 
 // ============================================================
-// GET ALL PAGINATED — with DTO conversion, preloads, nil opts handling
+// GET ALL — with DTO conversion, preloads, nil opts handling.
+// opts.PageSize < 0 returns all records; 0/unset defaults to 10; > 0 paginates with that size.
 // ============================================================
-func (s *Services) PermissionGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.PermissionDTO], error) {
+func (s *Services) PermissionGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.PermissionDTO], error) {
 	if opts == nil {
 		opts = &repositories.QueryOptions{}
 	}
@@ -78,22 +79,6 @@ func (s *Services) PermissionGetAllPaginated(ctx context.Context, opts *reposito
 		PageSize:   result.PageSize,
 		TotalPages: result.TotalPages,
 	}, nil
-}
-
-// ============================================================
-// GET ALL — returns all with DTO conversion (no pagination)
-// ============================================================
-func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, error) {
-	permissions, err := s.repo.Permission.FindAll(nil, "Roles")
-	if err != nil {
-		return nil, err
-	}
-
-	permissionDTOs := make([]dtos.PermissionDTO, len(permissions))
-	for i, p := range permissions {
-		permissionDTOs[i] = dtos.ToPermissionDTO(&p)
-	}
-	return permissionDTOs, nil
 }
 
 // ============================================================

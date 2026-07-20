@@ -37,24 +37,15 @@ func (h *Handlers) PermissionCreate(c *gin.Context) {
 }
 
 // ============================================================
-// GET ALL — no pagination vs paginated based on query param
+// GET ALL — page_size omitted or -1 returns all records; page_size>0 paginates
 // ============================================================
 func (h *Handlers) PermissionGetAll(c *gin.Context) {
-	pageStr := c.Query("page")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "-1"))
 
-	if pageStr == "" {
-		// No pagination — return all
-		permissions, err := h.svcs.PermissionGetAll(c.Request.Context())
-		if helpers.HandleError(c, err, "Failed to fetch permissions") {
-			return
-		}
-		helpers.OK(c, "Permissions retrieved successfully", permissions)
-		return
+	if pageSize < 0 {
+		page = 1
 	}
-
-	// Pagination requested
-	page, _ := strconv.Atoi(pageStr)
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("per_page", "10"))
 
 	opts := &repositories.QueryOptions{
 		Page:     page,
@@ -76,7 +67,7 @@ func (h *Handlers) PermissionGetAll(c *gin.Context) {
 		}
 	}
 
-	result, err := h.svcs.PermissionGetAllPaginated(c.Request.Context(), opts)
+	result, err := h.svcs.PermissionGetAll(c.Request.Context(), opts)
 	if helpers.HandleError(c, err, "Failed to fetch permissions") {
 		return
 	}

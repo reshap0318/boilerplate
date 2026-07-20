@@ -32,28 +32,21 @@ func (h *Handlers) RoleCreate(c *gin.Context) {
 }
 
 // RoleGetAll handles GET /api/roles with optional pagination
+// (page_size omitted or -1 returns all records)
 func (h *Handlers) RoleGetAll(c *gin.Context) {
-	pageStr := c.Query("page")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "-1"))
 
-	if pageStr == "" {
-		roles, err := h.svcs.RoleGetAllUnpaginated(c.Request.Context())
-		if helpers.HandleError(c, err, "Failed to fetch roles") {
-			return
-		}
-
-		helpers.OK(c, "Roles fetched successfully", roles)
-		return
+	if pageSize < 0 {
+		page = 1
 	}
-
-	page, _ := strconv.Atoi(pageStr)
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 
 	opts := &repositories.QueryOptions{
 		Page:     page,
 		PageSize: pageSize,
 	}
 
-	result, err := h.svcs.RoleGetAllPaginated(c.Request.Context(), opts)
+	result, err := h.svcs.RoleGetAll(c.Request.Context(), opts)
 	if helpers.HandleError(c, err, "Failed to fetch roles") {
 		return
 	}

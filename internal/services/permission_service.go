@@ -51,18 +51,8 @@ func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequ
 	return &dto, nil
 }
 
-// PermissionGetAll returns all permissions.
-func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, error) {
-	permissions, err := s.repo.Permission.FindAll(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return dtos.ToPermissionDTOList(permissions), nil
-}
-
-// PermissionGetAllPaginated returns paginated permissions.
-func (s *Services) PermissionGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.PermissionDTO], error) {
+// PermissionGetAll returns permissions, paginated when opts.PageSize > 0, otherwise all records.
+func (s *Services) PermissionGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.PermissionDTO], error) {
 	if opts == nil {
 		opts = &repositories.QueryOptions{}
 	}

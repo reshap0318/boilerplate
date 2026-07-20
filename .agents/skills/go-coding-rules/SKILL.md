@@ -115,7 +115,7 @@ func (s *Services) PermissionGetByID(ctx context.Context, id uint) (*dtos.Permis
 ### 8. Paginated Read → Handle nil opts
 
 ```go
-func (s *Services) PermissionGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.PermissionDTO], error) {
+func (s *Services) PermissionGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.PermissionDTO], error) {
     if opts == nil {
         opts = &repositories.QueryOptions{}
     }
@@ -215,19 +215,17 @@ All repos extend `GenericRepository[T]`. Do NOT re-implement:
 | `FindAll`                | `(tx *gorm.DB, preloads ...string)`                                               |
 | `FindAllWithOpts`        | `(tx *gorm.DB, opts *QueryOptions) (*PagedResult[T], error)`                     |
 | `FindByField`            | `(tx *gorm.DB, filter *T, preloads ...string)`                                   |
-| `FindByFieldWithOpts`    | `(tx *gorm.DB, filter *T, opts *QueryOptions) (*PagedResult[T], error)`          |
 | `FindByFieldMap`         | `(tx *gorm.DB, filter map[string]interface{}, preloads ...string)`               |
-| `FindByFieldMapWithOpts` | `(tx *gorm.DB, filter map[string]interface{}, opts *QueryOptions) (*PagedResult[T], error)` |
 | `Count`                  | `(tx *gorm.DB) (int64, error)`                                                   |
-| `Exists`                 | `(tx *gorm.DB, filter map[string]interface{}) (bool, error)`                     |
-| `ExistsByField`          | `(tx *gorm.DB, filter *T) (bool, error)`                                         |
+| `Exists`                 | `(tx *gorm.DB, filter *T) (bool, error)`                                         |
+| `ExistsWithMap`          | `(tx *gorm.DB, filter map[string]interface{}) (bool, error)`                     |
 
 ### QueryOptions Fields
 
 ```go
 type QueryOptions struct {
     Page            int              // Page number (default: 1)
-    PageSize        int              // Items per page (default: 10, 0 = no pagination — returns all rows)
+    PageSize        int              // Items per page (0/unset = default 10; negative = no pagination, returns all rows)
     SortBy          string           // Field to sort by
     Order           string           // "ASC" | "DESC" (default: "ASC")
     Preloads        []string         // Relations to preload

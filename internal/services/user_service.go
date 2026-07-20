@@ -17,7 +17,7 @@ import (
 func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (*dtos.UserDTO, error) {
 	s.Logger.LogStart("UserCreate", "Creating user: %s", req.Email)
 
-	exists, err := s.repo.User.Exists(nil, map[string]interface{}{"email": req.Email})
+	exists, err := s.repo.User.ExistsWithMap(nil, map[string]interface{}{"email": req.Email})
 	if err != nil {
 		s.Logger.LogEndWithError("UserCreate", "Failed to check email: %v", err)
 		return nil, err
@@ -92,22 +92,8 @@ func (s *Services) UserCreate(ctx context.Context, req dtos.UserCreateRequest) (
 	return &dto, nil
 }
 
-// UserGetAll returns all users with roles (no pagination).
-func (s *Services) UserGetAll(ctx context.Context) ([]dtos.UserDTO, error) {
-	users, err := s.repo.User.FindAll(nil, "Roles")
-	if err != nil {
-		return nil, err
-	}
-
-	userDTOs := make([]dtos.UserDTO, len(users))
-	for i, u := range users {
-		userDTOs[i] = dtos.ToUserDTO(&u)
-	}
-	return userDTOs, nil
-}
-
-// UserGetAllPaginated returns paginated users with roles.
-func (s *Services) UserGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.UserDTO], error) {
+// UserGetAll returns users with roles, paginated when opts.PageSize > 0, otherwise all records.
+func (s *Services) UserGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.UserDTO], error) {
 	if opts == nil {
 		opts = &repositories.QueryOptions{}
 	}
@@ -244,7 +230,7 @@ func (s *Services) UserUpdate(ctx context.Context, id uint, req dtos.UserUpdateR
 	}
 
 	if existing.Email != req.Email {
-		exists, err := s.repo.User.Exists(nil, map[string]interface{}{"email": req.Email})
+		exists, err := s.repo.User.ExistsWithMap(nil, map[string]interface{}{"email": req.Email})
 		if err != nil {
 			s.Logger.LogEndWithError("UserUpdate", "Failed to check email: %v", err)
 			return nil, err
