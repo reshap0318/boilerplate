@@ -44,6 +44,10 @@ func main() {
 
 	r.Static("/storage", "./storage")
 
+	r.NoRoute(func(c *gin.Context) {
+		helpers.NotFound(c, "Endpoint not found")
+	})
+
 	apiGroup := r.Group("/api")
 	protected := apiGroup.Group("")
 	protected.Use(middleware.JWTAuth(container.Services))
