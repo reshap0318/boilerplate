@@ -408,17 +408,38 @@ users.GET("", middleware.RequirePermission(acc, "user.index", "user.index-satker
 **Service Usage (Data Filtering):**
 
 ```go
-func (s *Services) UserGetAll(ctx context.Context) ([]dtos.UserDTO, error) {
-    // Scoped access — filter by caller's satker
+func (s *Services) UserGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.UserDTO], error) {
+    if opts == nil {
+        opts = &repositories.QueryOptions{}
+    }
+
+    // Scoped access — filter by caller's satker. Route already requires user.index OR user.index-satker,
+    // so reaching here without the satker permission means the caller has full access (user.index).
     if s.Access.HasPermission(ctx, "user.index-satker") {
         callerID := helpers.GetCallerID(ctx)
-        caller, _ := s.repo.User.FindByID(nil, callerID, "Satker")
-        return s.repo.User.FindByFieldMap(nil, map[string]interface{}{
-            "satker_id": caller.SatkerID,
-        }, "Roles")
+        caller, err := s.repo.User.FindByID(nil, callerID, "Satker")
+        if err != nil {
+            return nil, helpers.ErrForbidden
+        }
+        opts.ConditionGroups = append(opts.ConditionGroups, repositories.ConditionGroup{
+            Logic:      "AND",
+            Conditions: []repositories.QueryCondition{{Column: "satker_id", Operator: "=", Value: caller.SatkerID}},
+        })
     }
-    // Default: return all (full access or no restriction)
-    return s.repo.User.FindAll(nil, "Roles")
+
+    result, err := s.repo.User.FindAllWithOpts(nil, opts)
+    if err != nil {
+        return nil, err
+    }
+
+    userDTOs := make([]dtos.UserDTO, len(result.Data))
+    for i, u := range result.Data {
+        userDTOs[i] = dtos.ToUserDTO(&u)
+    }
+
+    return &repositories.PagedResult[dtos.UserDTO]{
+        Data: userDTOs, Total: result.Total, Page: result.Page, PageSize: result.PageSize, TotalPages: result.TotalPages,
+    }, nil
 }
 ```
 

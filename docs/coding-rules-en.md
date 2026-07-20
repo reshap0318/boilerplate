@@ -686,10 +686,10 @@ func (s *Services) YourFeatureGetAll(ctx context.Context) ([]dtos.YourFeatureDTO
 
 #### Pagination — Use `FindAllWithOpts`
 
-Use `FindAllWithOpts` for paginated, sorted, and searchable queries:
+Use `FindAllWithOpts` as the single "get all" method — do NOT split into a separate non-paginated `GetAll` — `opts.PageSize` negative returns all records, `0`/unset defaults to page size 10, `> 0` paginates:
 
 ```go
-func (s *Services) YourFeatureGetAllPaginated(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.YourModel], error) {
+func (s *Services) YourFeatureGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.YourModel], error) {
     if opts == nil {
         opts = &repositories.QueryOptions{}
     }
@@ -707,7 +707,7 @@ func (s *Services) YourFeatureGetAllPaginated(ctx context.Context, opts *reposit
 `QueryOptions` fields:
 - `Page`, `PageSize` — pagination (`PageSize` 0/unset = default 10, negative = no pagination/all records)
 - `SortBy`, `Order` — sorting (`"ASC"` or `"DESC"`)
-- `Search`, `SearchFields` — LIKE search across multiple fields
+- `ConditionGroups` — WHERE conditions (AND/OR groups); use `Operator: "LIKE"` for search across fields
 - `Preloads` — relations to preload (e.g., `[]string{"Roles", "Roles.Permissions"}`)
 
 ### 6. Add Handler Method

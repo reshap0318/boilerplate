@@ -614,38 +614,38 @@ func RegisterUserRoutes(r *gin.RouterGroup, handlers *handlers.Handlers, acc *he
 The Service checks permissions and applies the satker filter if necessary.
 
 ```go
-func (s *Services) UserGetAll(ctx context.Context) ([]dtos.UserDTO, error) {
-    // 1. Check if user has full access
-    if s.Access.HasPermission(ctx, "user.index") {
-        users, err := s.repo.User.FindAll(nil, "Roles")
-        if err != nil {
-            return nil, err
-        }
-        return dtos.ToUserDTOList(users), nil
+func (s *Services) UserGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.UserDTO], error) {
+    if opts == nil {
+        opts = &repositories.QueryOptions{}
     }
 
-    // 2. Check if user has satker-scoped access
+    // Scoped access — filter by caller's satker. Route already requires user.index OR user.index-satker,
+    // so reaching here without the satker permission means the caller has full access (user.index).
     if s.Access.HasPermission(ctx, "user.index-satker") {
         callerID := helpers.GetCallerID(ctx)
-        
-        // Get caller's satker ID (from DB or cached context)
         caller, err := s.repo.User.FindByID(nil, callerID, "Satker")
         if err != nil {
             return nil, helpers.ErrForbidden
         }
-
-        // Filter by satker ID using custom repository method or generic FindByFieldMap
-        users, err := s.repo.User.FindByFieldMap(nil, map[string]interface{}{
-            "satker_id": caller.SatkerID,
-        }, "Roles")
-        if err != nil {
-            return nil, err
-        }
-        return dtos.ToUserDTOList(users), nil
+        opts.ConditionGroups = append(opts.ConditionGroups, repositories.ConditionGroup{
+            Logic:      "AND",
+            Conditions: []repositories.QueryCondition{{Column: "satker_id", Operator: "=", Value: caller.SatkerID}},
+        })
     }
 
-    // 3. No permission
-    return nil, helpers.ErrForbidden
+    result, err := s.repo.User.FindAllWithOpts(nil, opts)
+    if err != nil {
+        return nil, err
+    }
+
+    userDTOs := make([]dtos.UserDTO, len(result.Data))
+    for i, u := range result.Data {
+        userDTOs[i] = dtos.ToUserDTO(&u)
+    }
+
+    return &repositories.PagedResult[dtos.UserDTO]{
+        Data: userDTOs, Total: result.Total, Page: result.Page, PageSize: result.PageSize, TotalPages: result.TotalPages,
+    }, nil
 }
 ```
 
