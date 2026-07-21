@@ -9,25 +9,53 @@ import (
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 )
 
+// QueryCondition represents a single WHERE condition.
+type QueryCondition struct {
+	Column   string      // Column name, e.g. "entry_time"
+	Operator string      // SQL operator, e.g. "=", ">=", "<=", "LIKE", "IN"
+	Value    interface{} // Condition value
+}
+
+// ConditionGroup represents a group of conditions joined by a logic operator.
+// Groups are always AND-ed together.
+type ConditionGroup struct {
+	Logic      string           // "AND" | "OR" — logic between conditions within this group
+	Conditions []QueryCondition // Conditions in this group
+}
+
 // QueryOptions holds options for querying records.
 type QueryOptions struct {
-	Page           int      // Page number (default: 1)
-	PageSize       int      // Items per page (default: 10, 0 = no pagination)
-	SortBy         string   // Field to sort by
-	Order          string   // "ASC" or "DESC" (default: "ASC")
-	Search         string   // Search keyword
-	SearchFields   []string // Fields to search
-	Preloads       []string // Relations to preload
-	IncludeDeleted bool     // Include soft-deleted records
+	Page            int              // Page number (default: 1)
+	PageSize        int              // Items per page (0/unset = default 10, negative = no pagination, returns all)
+	SortBy          string           // Field to sort by
+	Order           string           // "ASC" or "DESC" (default: "ASC")
+	Preloads        []string         // Relations to preload
+	Omits           []string         // Columns to omit from SELECT
+	ConditionGroups []ConditionGroup // WHERE condition groups, AND-ed together; each group joins its conditions by group Logic
 }
 
 // PagedResult holds paginated query results.
 type PagedResult[T any] struct {
-	Data       []T   // Data records
-	Total      int64 // Total records
-	Page       int   // Current page
-	PageSize   int   // Items per page
-	TotalPages int   // Total pages
+	Data       []T   `json:"data"`        // Data records
+	Total      int64 `json:"total"`       // Total records
+	Page       int   `json:"page"`        // Current page
+	PageSize   int   `json:"page_size"`   // Items per page
+	TotalPages int   `json:"total_pages"` // Total pages
+}
+
+// GetData returns the data slice.
+func (p *PagedResult[T]) GetData() interface{} {
+	return p.Data
+}
+
+// GetMetadata returns the pagination metadata.
+func (p *PagedResult[T]) GetMetadata() helpers.PaginationMeta {
+	return helpers.PaginationMeta{
+		Total:      p.Total,
+		Page:       p.Page,
+		PageSize:   p.PageSize,
+		TotalPages: p.TotalPages,
+	}
 }
 
 // GenericRepository provides generic CRUD operations for any model
@@ -58,11 +86,6 @@ func (r *GenericRepository[T]) applyOptions(db *gorm.DB, opts *QueryOptions) *go
 		return db
 	}
 
-	// Handle soft delete
-	if !opts.IncludeDeleted {
-		db = db.Where("deleted_at IS NULL OR deleted_at IS NULL")
-	}
-
 	// Preload relations
 	for _, preload := range opts.Preloads {
 		db = db.Preload(preload)
@@ -77,19 +100,27 @@ func (r *GenericRepository[T]) applyOptions(db *gorm.DB, opts *QueryOptions) *go
 		db = db.Order(opts.SortBy + " " + order)
 	}
 
-	// Search
-	if opts.Search != "" && len(opts.SearchFields) > 0 {
-		searchPattern := "%" + opts.Search + "%"
-		var conditions []string
-		for _, field := range opts.SearchFields {
-			conditions = append(conditions, field+" LIKE ?")
+	// Condition groups — each group is AND-ed; conditions within a group use group Logic
+	for _, group := range opts.ConditionGroups {
+		if len(group.Conditions) == 0 {
+			continue
 		}
-		searchCondition := strings.Join(conditions, " OR ")
-		args := make([]interface{}, len(opts.SearchFields))
-		for i := range args {
-			args[i] = searchPattern
+		logic := "AND"
+		if strings.ToUpper(group.Logic) == "OR" {
+			logic = "OR"
 		}
-		db = db.Where(searchCondition, args...)
+		var clauses []string
+		args := make([]interface{}, 0, len(group.Conditions))
+		for _, cond := range group.Conditions {
+			clauses = append(clauses, cond.Column+" "+cond.Operator+" ?")
+			args = append(args, cond.Value)
+		}
+		db = db.Where(strings.Join(clauses, " "+logic+" "), args...)
+	}
+
+	// Omit columns
+	if len(opts.Omits) > 0 {
+		db = db.Omit(opts.Omits...)
 	}
 
 	return db
@@ -220,7 +251,8 @@ func (r *GenericRepository[T]) FindAll(tx *gorm.DB, preloads ...string) ([]T, er
 	return datas, nil
 }
 
-// FindAllWithOpts finds all records with query options (supports pagination, sorting, preloads, search)
+// FindAllWithOpts finds all records with query options (supports pagination, sorting, preloads, search).
+// opts.PageSize < 0 returns all records without pagination.
 func (r *GenericRepository[T]) FindAllWithOpts(tx *gorm.DB, opts *QueryOptions) (*PagedResult[T], error) {
 	db := r.getDB(tx)
 	var instance *T
@@ -232,14 +264,18 @@ func (r *GenericRepository[T]) FindAllWithOpts(tx *gorm.DB, opts *QueryOptions) 
 		return nil, err
 	}
 
-	// Apply pagination
+	// Apply pagination.
+	// PageSize == 0 (unset) -> default page size; PageSize < 0 -> no limit (all records); PageSize > 0 -> that size.
 	page := 1
 	pageSize := 10
 	if opts != nil {
 		if opts.Page > 0 {
 			page = opts.Page
 		}
-		if opts.PageSize > 0 {
+		switch {
+		case opts.PageSize < 0:
+			pageSize = 0
+		case opts.PageSize > 0:
 			pageSize = opts.PageSize
 		}
 	}
@@ -254,9 +290,12 @@ func (r *GenericRepository[T]) FindAllWithOpts(tx *gorm.DB, opts *QueryOptions) 
 		return nil, err
 	}
 
-	totalPages := int(total) / pageSize
-	if int(total)%pageSize != 0 {
-		totalPages++
+	totalPages := 1
+	if pageSize > 0 {
+		totalPages = int(total) / pageSize
+		if int(total)%pageSize != 0 {
+			totalPages++
+		}
 	}
 
 	return &PagedResult[T]{
@@ -287,54 +326,6 @@ func (r *GenericRepository[T]) FindByField(tx *gorm.DB, filter *T, preloads ...s
 	return datas, nil
 }
 
-// FindByFieldWithOpts finds records by filter with query options (supports pagination, sorting, preloads)
-func (r *GenericRepository[T]) FindByFieldWithOpts(tx *gorm.DB, filter *T, opts *QueryOptions) (*PagedResult[T], error) {
-	db := r.getDB(tx)
-	var instance *T
-	query := r.applyOptions(db, opts).Where(filter)
-
-	// Get total count
-	var total int64
-	if err := query.Model(&instance).Count(&total).Error; err != nil {
-		return nil, err
-	}
-
-	// Apply pagination
-	page := 1
-	pageSize := 10
-	if opts != nil {
-		if opts.Page > 0 {
-			page = opts.Page
-		}
-		if opts.PageSize > 0 {
-			pageSize = opts.PageSize
-		}
-	}
-
-	if pageSize > 0 {
-		offset := (page - 1) * pageSize
-		query = query.Limit(pageSize).Offset(offset)
-	}
-
-	datas := []T{}
-	if err := query.Find(&datas).Error; err != nil {
-		return nil, err
-	}
-
-	totalPages := int(total) / pageSize
-	if int(total)%pageSize != 0 {
-		totalPages++
-	}
-
-	return &PagedResult[T]{
-		Data:       datas,
-		Total:      total,
-		Page:       page,
-		PageSize:   pageSize,
-		TotalPages: totalPages,
-	}, nil
-}
-
 // FindByFieldMap finds records by filter map (supports zero values like 0, false, "")
 func (r *GenericRepository[T]) FindByFieldMap(tx *gorm.DB, filter map[string]interface{}, preloads ...string) ([]T, error) {
 	db := r.getDB(tx)
@@ -354,54 +345,6 @@ func (r *GenericRepository[T]) FindByFieldMap(tx *gorm.DB, filter map[string]int
 	return datas, nil
 }
 
-// FindByFieldMapWithOpts finds records by filter map with query options
-func (r *GenericRepository[T]) FindByFieldMapWithOpts(tx *gorm.DB, filter map[string]interface{}, opts *QueryOptions) (*PagedResult[T], error) {
-	db := r.getDB(tx)
-	var instance *T
-	query := r.applyOptions(db, opts).Where(filter)
-
-	// Get total count
-	var total int64
-	if err := query.Model(&instance).Count(&total).Error; err != nil {
-		return nil, err
-	}
-
-	// Apply pagination
-	page := 1
-	pageSize := 10
-	if opts != nil {
-		if opts.Page > 0 {
-			page = opts.Page
-		}
-		if opts.PageSize > 0 {
-			pageSize = opts.PageSize
-		}
-	}
-
-	if pageSize > 0 {
-		offset := (page - 1) * pageSize
-		query = query.Limit(pageSize).Offset(offset)
-	}
-
-	datas := []T{}
-	if err := query.Find(&datas).Error; err != nil {
-		return nil, err
-	}
-
-	totalPages := int(total) / pageSize
-	if int(total)%pageSize != 0 {
-		totalPages++
-	}
-
-	return &PagedResult[T]{
-		Data:       datas,
-		Total:      total,
-		Page:       page,
-		PageSize:   pageSize,
-		TotalPages: totalPages,
-	}, nil
-}
-
 // Count counts all records
 func (r *GenericRepository[T]) Count(tx *gorm.DB) (int64, error) {
 	db := r.getDB(tx)
@@ -413,8 +356,8 @@ func (r *GenericRepository[T]) Count(tx *gorm.DB) (int64, error) {
 	return count, nil
 }
 
-// Exists checks if a record exists by filter map (supports zero values like 0, false, "")
-func (r *GenericRepository[T]) Exists(tx *gorm.DB, filter map[string]interface{}) (bool, error) {
+// ExistsWithMap checks if a record exists by filter map (supports zero values like 0, false, "")
+func (r *GenericRepository[T]) ExistsWithMap(tx *gorm.DB, filter map[string]interface{}) (bool, error) {
 	db := r.getDB(tx)
 	var instance *T
 	var count int64
@@ -426,8 +369,8 @@ func (r *GenericRepository[T]) Exists(tx *gorm.DB, filter map[string]interface{}
 	return count > 0, nil
 }
 
-// ExistsByField checks if a record exists by struct filter (note: ignores zero values)
-func (r *GenericRepository[T]) ExistsByField(tx *gorm.DB, filter *T) (bool, error) {
+// Exists checks if a record exists by struct filter (note: ignores zero values)
+func (r *GenericRepository[T]) Exists(tx *gorm.DB, filter *T) (bool, error) {
 	db := r.getDB(tx)
 	var instance *T
 	var count int64
@@ -438,4 +381,3 @@ func (r *GenericRepository[T]) ExistsByField(tx *gorm.DB, filter *T) (bool, erro
 
 	return count > 0, nil
 }
-

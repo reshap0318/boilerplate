@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
 
@@ -53,12 +54,23 @@ func (s *Services) RoleCreate(ctx context.Context, req dtos.RoleRequest) (*dtos.
 	result = res.(*models.Role)
 
 	dto := dtos.ToRoleDTO(result)
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "success",
+		Title:   "Role Created",
+		Message: fmt.Sprintf("New role created: %s", req.Name),
+		Data: map[string]interface{}{
+			"id":   result.ID,
+			"name": result.Name,
+		},
+	})
+
 	s.Logger.LogEnd("RoleCreate", "Role created: %s (ID: %d)", dto.Name, dto.ID)
 	return &dto, nil
 }
 
-// RoleGetAll returns paginated roles with permissions.
-func (s *Services) RoleGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[models.Role], error) {
+// RoleGetAll returns roles with permissions, paginated when opts.PageSize > 0, otherwise all records.
+func (s *Services) RoleGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.RoleDTO], error) {
 	if opts == nil {
 		opts = &repositories.QueryOptions{}
 	}
@@ -70,11 +82,37 @@ func (s *Services) RoleGetAll(ctx context.Context, opts *repositories.QueryOptio
 	}
 	opts.Preloads = []string{"Permissions"}
 
-	return s.repo.Role.FindAllWithOpts(nil, opts)
+	if !s.Access.HasPermission(ctx, "role.index-su") {
+		opts.ConditionGroups = append(opts.ConditionGroups, repositories.ConditionGroup{
+			Logic: "AND",
+			Conditions: []repositories.QueryCondition{
+				{Column: "id", Operator: "!=", Value: 1},
+			},
+		})
+	}
+
+	result, err := s.repo.Role.FindAllWithOpts(nil, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	dtoList := dtos.ToRoleDTOList(result.Data)
+
+	return &repositories.PagedResult[dtos.RoleDTO]{
+		Data:       dtoList,
+		Total:      result.Total,
+		Page:       result.Page,
+		PageSize:   result.PageSize,
+		TotalPages: result.TotalPages,
+	}, nil
 }
 
 // RoleGetByID returns a role by ID with permissions.
 func (s *Services) RoleGetByID(ctx context.Context, id uint) (*dtos.RoleDTO, error) {
+	if id == 1 && !s.Access.HasPermission(ctx, "role.index-su") {
+		return nil, helpers.ErrForbidden
+	}
+
 	role, err := s.repo.Role.FindByID(nil, id, "Permissions")
 	if err != nil {
 		return nil, helpers.ErrNotFound
@@ -87,6 +125,11 @@ func (s *Services) RoleGetByID(ctx context.Context, id uint) (*dtos.RoleDTO, err
 // RoleUpdate updates an existing role with permissions.
 func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest) (*dtos.RoleDTO, error) {
 	s.Logger.LogStart("RoleUpdate", "Updating role ID: %d", id)
+
+	if id == 1 && !s.Access.HasPermission(ctx, "role.index-su") {
+		s.Logger.LogEndWithError("RoleUpdate", "Forbidden access to role ID: %d", id)
+		return nil, helpers.ErrForbidden
+	}
 
 	role := &models.Role{ID: id}
 	if req.Name != "" {
@@ -133,6 +176,17 @@ func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest
 	result = res.(*models.Role)
 
 	dto := dtos.ToRoleDTO(result)
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "info",
+		Title:   "Role Updated",
+		Message: fmt.Sprintf("Role updated: %s", result.Name),
+		Data: map[string]interface{}{
+			"id":   result.ID,
+			"name": result.Name,
+		},
+	})
+
 	s.Logger.LogEnd("RoleUpdate", "Role updated: %s (ID: %d)", dto.Name, dto.ID)
 	return &dto, nil
 }
@@ -140,6 +194,11 @@ func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest
 // RoleDelete soft deletes a role.
 func (s *Services) RoleDelete(ctx context.Context, id uint) error {
 	s.Logger.LogStart("RoleDelete", "Deleting role ID: %d", id)
+
+	if id == 1 && !s.Access.HasPermission(ctx, "role.index-su") {
+		s.Logger.LogEndWithError("RoleDelete", "Forbidden access to role ID: %d", id)
+		return helpers.ErrForbidden
+	}
 
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
 		role := models.Role{ID: id}
@@ -152,6 +211,15 @@ func (s *Services) RoleDelete(ctx context.Context, id uint) error {
 		s.Logger.LogEndWithError("RoleDelete", "Failed to delete role: %v", err)
 		return err
 	}
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "warning",
+		Title:   "Role Deleted",
+		Message: fmt.Sprintf("Role deleted: ID %d", id),
+		Data: map[string]interface{}{
+			"id": id,
+		},
+	})
 
 	s.Logger.LogEnd("RoleDelete", "Role deleted: ID: %d", id)
 	return nil

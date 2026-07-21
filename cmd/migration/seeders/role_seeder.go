@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// SeedRoles inserts default role data
+// SeedRoles inserts default role data.
 func SeedRoles(db *gorm.DB) map[string]uint {
 	fmt.Println("Seeding roles...")
 
@@ -16,22 +16,10 @@ func SeedRoles(db *gorm.DB) map[string]uint {
 		Name        string
 		Description string
 	}{
-		{
-			Name:        "Super Admin",
-			Description: "Full access to all features",
-		},
-		{
-			Name:        "Admin",
-			Description: "Manage users, roles, and permissions",
-		},
-		{
-			Name:        "Editor",
-			Description: "Manage users and view data",
-		},
-		{
-			Name:        "Viewer",
-			Description: "Read-only access",
-		},
+		{"Super Admin", "Full access to all features"},
+		{"Admin", "Manage users, roles, and permissions"},
+		{"Editor", "Manage users and view data"},
+		{"Viewer", "Read-only access"},
 	}
 
 	resultMap := make(map[string]uint)
@@ -47,7 +35,7 @@ func SeedRoles(db *gorm.DB) map[string]uint {
 
 		role := models.Role{
 			Name:        roleData.Name,
-			Description: strPtr2(roleData.Description),
+			Description: strPtr(roleData.Description),
 		}
 
 		if err := db.Create(&role).Error; err != nil {
@@ -59,8 +47,4 @@ func SeedRoles(db *gorm.DB) map[string]uint {
 
 	fmt.Printf("✓ Seeded %d roles\n", len(resultMap))
 	return resultMap
-}
-
-func strPtr2(s string) *string {
-	return &s
 }

@@ -3,10 +3,11 @@ package database
 import (
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 // PostgreSQLConfig holds PostgreSQL configuration.
@@ -29,12 +30,30 @@ func NewPostgreSQL(cfg PostgreSQLConfig) (*gorm.DB, error) {
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: gormLogger,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to PostgreSQL: %w", err)
 	}
 
 	log.Println("PostgreSQL connection established")
+
+	sqlDB, err := db.DB()
+	if err == nil {
+		maxOpenStr := os.Getenv("DB_MAX_OPEN_CONNS")
+		if maxOpenStr == "" {
+			maxOpenStr = "25"
+		}
+		maxIdleStr := os.Getenv("DB_MAX_IDLE_CONNS")
+		if maxIdleStr == "" {
+			maxIdleStr = "10"
+		}
+		maxOpen, _ := strconv.Atoi(maxOpenStr)
+		maxIdle, _ := strconv.Atoi(maxIdleStr)
+		sqlDB.SetMaxOpenConns(maxOpen)
+		sqlDB.SetMaxIdleConns(maxIdle)
+		log.Printf("PostgreSQL connection pool: max_open=%d, max_idle=%d", maxOpen, maxIdle)
+	}
+
 	return db, nil
 }

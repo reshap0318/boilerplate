@@ -1,15 +1,24 @@
 package helpers
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
+
+// PaginationMeta represents pagination metadata in response.
+type PaginationMeta struct {
+	Total      int64 `json:"total"`
+	Page       int   `json:"page"`
+	PageSize   int   `json:"page_size"`
+	TotalPages int   `json:"total_pages"`
+}
+
+// PaginatedResponseInterface defines the contract for paginated responses.
+type PaginatedResponseInterface interface {
+	GetData() interface{}
+	GetMetadata() PaginationMeta
+}
 
 // Response represents a standard HTTP response structure
 type Response struct {
@@ -43,6 +52,16 @@ func OK(c *gin.Context, message string, data interface{}) {
 	SuccessResponse(c, http.StatusOK, message, data)
 }
 
+// OKWithMetadata sends 200 OK response with pagination metadata extracted from PaginatedResponse
+func OKWithMetadata(c *gin.Context, message string, paginated PaginatedResponseInterface) {
+	c.JSON(http.StatusOK, gin.H{
+		"code":     http.StatusOK,
+		"message":  message,
+		"data":     paginated.GetData(),
+		"metadata": paginated.GetMetadata(),
+	})
+}
+
 // Created sends 201 Created response
 func Created(c *gin.Context, message string, data interface{}) {
 	SuccessResponse(c, http.StatusCreated, message, data)
@@ -73,73 +92,53 @@ func InternalServerError(c *gin.Context, message string) {
 	ErrorResponse(c, http.StatusInternalServerError, message)
 }
 
-// ValidationError sends 422 Unprocessable Entity response for validation errors, or 400 for JSON syntax errors
-func ValidationError(c *gin.Context, err error) {
-	var validationErrs validator.ValidationErrors
-	if errors.As(err, &validationErrs) {
-		resp := Response{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "The given data was invalid.",
-			Errors:  formatValidationError(validationErrs),
-		}
-		c.JSON(http.StatusUnprocessableEntity, resp)
-		return
-	}
-
-	var unmarshalTypeError *json.UnmarshalTypeError
-	if errors.As(err, &unmarshalTypeError) {
-		field := unmarshalTypeError.Field
-		if field == "" {
-			field = "payload"
-		} else {
-			// Convert to lowercase if needed, although Field from unmarshalTypeError is often derived from the json tag directly.
-			field = strings.ToLower(field)
-		}
-		
-		errorsMap := map[string][]string{
-			field: {fmt.Sprintf("The %s field must be of type %s.", field, unmarshalTypeError.Type.String())},
-		}
-
-		resp := Response{
-			Code:    http.StatusUnprocessableEntity,
-			Message: "The given data was invalid.",
-			Errors:  errorsMap,
-		}
-		c.JSON(http.StatusUnprocessableEntity, resp)
-		return
-	}
-
-	// Jika bukan error validasi (misalnya JSON syntax error atau tipe error lainnya)
+// ValidationResponse sends 422 Unprocessable Entity response with pre-formatted errors map.
+func ValidationResponse(c *gin.Context, errorsMap map[string][]string) {
 	resp := Response{
-		Code:    http.StatusBadRequest,
-		Message: "Invalid JSON payload: " + err.Error(),
+		Code:    http.StatusUnprocessableEntity,
+		Message: "The given data was invalid.",
+		Errors:  errorsMap,
 	}
-	c.JSON(http.StatusBadRequest, resp)
+	c.JSON(http.StatusUnprocessableEntity, resp)
 }
 
-func formatValidationError(validationErrs validator.ValidationErrors) map[string][]string {
-	errorsMap := make(map[string][]string)
-
-	for _, e := range validationErrs {
-		field := strings.ToLower(e.Field())
-		errorsMap[field] = append(errorsMap[field], getErrorMessage(e))
-	}
-
-	return errorsMap
+// ValidationError sends 422 Unprocessable Entity response for a single field error.
+func ValidationError(c *gin.Context, field string, message string) {
+	ValidationResponse(c, map[string][]string{
+		field: {message},
+	})
 }
 
-func getErrorMessage(e validator.FieldError) string {
-	field := strings.ToLower(e.Field())
-	switch e.Tag() {
-	case "required":
-		return "The " + field + " field is required."
-	case "email":
-		return "The " + field + " must be a valid email address."
-	case "min":
-		return "The " + field + " must be at least " + e.Param() + " characters."
-	case "max":
-		return "The " + field + " may not be greater than " + e.Param() + " characters."
+// HandleError handles service errors and sends appropriate HTTP response.
+// Returns true if error was handled, false if err is nil.
+func HandleError(c *gin.Context, err error, fallbackMsg string) bool {
+	if err == nil {
+		return false
+	}
+
+	if fe, ok := err.(*FieldError); ok {
+		ValidationError(c, fe.Field, fe.Message)
+		return true
+	}
+
+	if ce, ok := err.(*CustomError); ok {
+		status := ce.Status
+		if status == 0 {
+			status = http.StatusBadRequest
+		}
+		ErrorResponse(c, status, ce.Message)
+		return true
+	}
+
+	switch err {
+	case ErrNotFound:
+		NotFound(c, "Data not found")
+	case ErrForbidden:
+		Forbidden(c, "Forbidden")
+	case ErrInvalidToken, ErrExpiredToken, ErrInvalidCredential, ErrTokenExpired, ErrTokenUsed, ErrTokenInvalid:
+		Unauthorized(c, err.Error())
 	default:
-		return "The " + field + " field is invalid."
+		InternalServerError(c, fallbackMsg)
 	}
+	return true
 }

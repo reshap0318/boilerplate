@@ -4,9 +4,9 @@ import "github.com/reshap0318/go-boilerplate/internal/models"
 
 // RoleRequest represents the request to create or update a role.
 type RoleRequest struct {
-	Name        string  `json:"name" binding:"required,min=3,max=100"`
-	Description *string `json:"description" binding:"omitempty,max=255"`
-	Permissions []uint  `json:"permissions" binding:"required"`
+	Name        string  `json:"name" validate:"required,min=3,max=100"`
+	Description *string `json:"description" validate:"omitempty,max=255"`
+	Permissions []uint  `json:"permissions" validate:"required"`
 }
 
 // RoleDTO represents role data transfer object.

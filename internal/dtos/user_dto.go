@@ -1,13 +1,27 @@
 package dtos
 
-import "github.com/reshap0318/go-boilerplate/internal/models"
+import (
+	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/models"
+)
 
-// UserRequest represents the request to create or update a user.
-type UserRequest struct {
-	Name                 string `json:"name" binding:"required,min=2,max=100"`
-	Email                string `json:"email" binding:"required,email"`
-	Password             string `json:"password" binding:"required,min=6"`
-	PasswordConfirmation string `json:"password_confirmation" binding:"required,eqfield=Password"`
+// UserCreateRequest represents the request to create a user.
+type UserCreateRequest struct {
+	Name                 string `json:"name" validate:"required,min=2,max=100"`
+	Email                string `json:"email" validate:"required,email"`
+	Password             string `json:"password" validate:"required,min=6"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"required,eqfield=Password"`
+	Avatar               string `json:"avatar"`
+	Roles                []uint `json:"roles"`
+}
+
+// UserUpdateRequest represents the request to update a user.
+type UserUpdateRequest struct {
+	Name                 string `json:"name" validate:"required,min=2,max=100"`
+	Email                string `json:"email" validate:"required,email"`
+	Password             string `json:"password" validate:"omitempty,min=6"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"omitempty,eqfield=Password"`
+	Avatar               string `json:"avatar"`
 	Roles                []uint `json:"roles"`
 }
 
@@ -17,6 +31,7 @@ func ToUserDTO(u *models.User) UserDTO {
 		ID:          u.ID,
 		Name:        u.Name,
 		Email:       u.Email,
+		Avatar:      helpers.GetFileURL(u.Avatar),
 		CreatedAt:   u.CreatedAt,
 		Roles:       []RoleMiniDTO{},
 		Permissions: []PermissionDTO{},
@@ -34,6 +49,14 @@ func ToUserDTO(u *models.User) UserDTO {
 	}
 
 	return dto
+}
+
+// ProfileUpdateRequest represents the request to update profile.
+type ProfileUpdateRequest struct {
+	Name                 string `json:"name" validate:"required,min=2,max=100"`
+	Password             string `json:"password" validate:"omitempty,min=6"`
+	PasswordConfirmation string `json:"password_confirmation" validate:"omitempty,eqfield=Password"`
+	Avatar               string `json:"avatar"`
 }
 
 // ToUserDTOList converts a slice of User models to UserDTOs.

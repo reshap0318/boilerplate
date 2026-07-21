@@ -26,9 +26,10 @@ func (r *PasswordResetRepository) FindByEmail(email string) ([]*models.PasswordR
 }
 
 // FindByToken finds a password reset record by token.
-func (r *PasswordResetRepository) FindByToken(token string) (*models.PasswordReset, error) {
+func (r *PasswordResetRepository) FindByToken(tx *gorm.DB, token string) (*models.PasswordReset, error) {
 	var reset models.PasswordReset
-	query := r.DB.Where("token = ? AND used = ?", token, false).First(&reset)
+	db := r.getDB(tx)
+	query := db.Where("token = ? AND used = ?", token, false).First(&reset)
 	if query.Error != nil {
 		return nil, query.Error
 	}

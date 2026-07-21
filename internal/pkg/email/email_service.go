@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/smtp"
 
-	"github.com/reshap0318/go-boilerplate/internal/clients/email/templates"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/pkg/email/templates"
 )
 
 // EmailClient represents an email client for sending emails via SMTP.
@@ -40,7 +40,7 @@ func (c *EmailClient) SendEmail(req EmailRequest) error {
 	}
 
 	if len(req.To) == 0 {
-		return helpers.ErrInvalidEmail
+		return &helpers.FieldError{Field: "email", Message: "invalid email address"}
 	}
 
 	// Build email message
@@ -61,13 +61,28 @@ func (c *EmailClient) SendEmail(req EmailRequest) error {
 
 // SendResetPasswordEmail sends a reset password email.
 func (c *EmailClient) SendResetPasswordEmail(to, token, resetURL string) error {
-	appName := helpers.GetEnv("APP_NAME", "Our Application")
-	
+	appName := helpers.GetEnv("APP_NAME", "API Gateway")
+
 	body := templates.ResetPasswordEmail(token, resetURL, appName)
 
 	req := EmailRequest{
 		To:      []string{to},
 		Subject: "Reset Password Request",
+		Body:    body,
+	}
+
+	return c.SendEmail(req)
+}
+
+// SendVerificationEmail sends an email verification link to the user.
+func (c *EmailClient) SendVerificationEmail(to, verifyURL string) error {
+	appName := helpers.GetEnv("APP_NAME", "API Gateway")
+
+	body := templates.VerifyEmailTemplate(verifyURL, appName)
+
+	req := EmailRequest{
+		To:      []string{to},
+		Subject: "Verifikasi Email Anda — " + appName,
 		Body:    body,
 	}
 

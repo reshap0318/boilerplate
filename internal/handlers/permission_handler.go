@@ -7,34 +7,51 @@ import (
 
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
+	"github.com/reshap0318/go-boilerplate/internal/repositories"
 )
 
 // PermissionCreate handles POST /api/permissions
 func (h *Handlers) PermissionCreate(c *gin.Context) {
 	var req dtos.PermissionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.ValidationError(c, err)
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.PermissionCreate(c.Request.Context(), req)
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to create permission")
+	if helpers.HandleError(c, err, "Failed to create permission") {
 		return
 	}
 
 	helpers.Created(c, "Permission created successfully", dto)
 }
 
-// PermissionGetAll handles GET /api/permissions
+// PermissionGetAll handles GET /api/permissions with optional pagination
+// (page_size omitted or -1 returns all records)
 func (h *Handlers) PermissionGetAll(c *gin.Context) {
-	dtos, err := h.svcs.PermissionGetAll(c.Request.Context())
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to fetch permissions")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "-1"))
+
+	if pageSize < 0 {
+		page = 1
+	}
+
+	opts := &repositories.QueryOptions{
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	result, err := h.svcs.PermissionGetAll(c.Request.Context(), opts)
+	if helpers.HandleError(c, err, "Failed to fetch permissions") {
 		return
 	}
 
-	helpers.OK(c, "Permissions fetched successfully", dtos)
+	helpers.OKWithMetadata(c, "Permissions fetched successfully", result)
 }
 
 // PermissionGetByID handles GET /api/permissions/:id
@@ -46,8 +63,7 @@ func (h *Handlers) PermissionGetByID(c *gin.Context) {
 	}
 
 	dto, err := h.svcs.PermissionGetByID(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.NotFound(c, "Permission not found")
+	if helpers.HandleError(c, err, "Failed to fetch permission") {
 		return
 	}
 
@@ -63,14 +79,18 @@ func (h *Handlers) PermissionUpdate(c *gin.Context) {
 	}
 
 	var req dtos.PermissionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.ValidationError(c, err)
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.PermissionUpdate(c.Request.Context(), uint(id), req)
-	if err != nil {
-		helpers.NotFound(c, "Permission not found")
+	if helpers.HandleError(c, err, "Failed to update permission") {
 		return
 	}
 
@@ -86,8 +106,7 @@ func (h *Handlers) PermissionDelete(c *gin.Context) {
 	}
 
 	err = h.svcs.PermissionDelete(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.NotFound(c, "Permission not found")
+	if helpers.HandleError(c, err, "Failed to delete permission") {
 		return
 	}
 

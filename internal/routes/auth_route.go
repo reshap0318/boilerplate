@@ -7,20 +7,22 @@ import (
 )
 
 // RegisterAuthRoutes registers public authentication routes.
-func RegisterAuthRoutes(r *gin.RouterGroup, handlers *handlers.Handlers) {
+func RegisterAuthRoutes(r *gin.RouterGroup, h *handlers.Handlers) {
 	auth := r.Group("/auth")
 	{
-		auth.POST("/login", handlers.AuthLogin)
-		auth.POST("/refresh", handlers.AuthRefreshToken)
-		auth.POST("/forgot-password", handlers.AuthForgetPassword)
-		auth.POST("/reset-password", handlers.AuthResetPassword)
+		auth.POST("/login", h.AuthLogin)
+		auth.POST("/refresh", h.AuthRefreshToken)
+		auth.POST("/forgot-password", h.AuthForgetPassword)
+		auth.POST("/reset-password", h.AuthResetPassword)
+		auth.POST("/resend-verification", h.AuthResendVerification)
+		auth.POST("/verify-email", h.AuthVerifyEmail)
 	}
 }
 
 // RegisterAuthProtectedRoutes registers protected authentication routes.
-func RegisterAuthProtectedRoutes(r *gin.RouterGroup, handlers *handlers.Handlers) {
+func RegisterAuthProtectedRoutes(r *gin.RouterGroup, h *handlers.Handlers) {
 	auth := r.Group("/auth")
 	{
-		auth.POST("/logout", handlers.AuthLogout)
+		auth.POST("/logout", h.AuthLogout)
 	}
 }

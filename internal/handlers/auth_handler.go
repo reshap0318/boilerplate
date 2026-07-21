@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
@@ -21,14 +23,18 @@ import (
 func (h *Handlers) AuthLogin(c *gin.Context) {
 	var req dtos.LoginRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	response, err := h.svcs.AuthLogin(c.Request.Context(), req.Email, req.Password)
-	if err != nil {
-		helpers.Unauthorized(c, err.Error())
+	if helpers.HandleError(c, err, "Login failed") {
 		return
 	}
 
@@ -49,14 +55,18 @@ func (h *Handlers) AuthLogin(c *gin.Context) {
 func (h *Handlers) AuthRefreshToken(c *gin.Context) {
 	var req dtos.RefreshTokenRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	response, err := h.svcs.AuthRefreshToken(c.Request.Context(), req.RefreshToken)
-	if err != nil {
-		helpers.Unauthorized(c, err.Error())
+	if helpers.HandleError(c, err, "Token refresh failed") {
 		return
 	}
 
@@ -65,14 +75,24 @@ func (h *Handlers) AuthRefreshToken(c *gin.Context) {
 
 // AuthLogout handles user logout.
 // @Summary User logout
-// @Description Logout user (client should clear token)
+// @Description Blacklists the current token so it cannot be reused
 // @Tags auth
 // @Produce json
 // @Security BearerAuth
 // @Success 200 {object} map[string]string
 // @Router /api/auth/logout [post]
 func (h *Handlers) AuthLogout(c *gin.Context) {
-	helpers.OK(c, "Logout successful. Please clear your token on the client side.", nil)
+	authHeader := c.GetHeader("Authorization")
+	parts := strings.SplitN(authHeader, " ", 2)
+	tokenString := parts[1]
+
+	if err := h.svcs.AuthLogout(c.Request.Context(), tokenString); err != nil {
+		if helpers.HandleError(c, err, "Logout failed") {
+			return
+		}
+	}
+
+	helpers.OK(c, "Logout successful", nil)
 }
 
 // AuthForgetPassword handles forget password request.
@@ -89,18 +109,20 @@ func (h *Handlers) AuthLogout(c *gin.Context) {
 func (h *Handlers) AuthForgetPassword(c *gin.Context) {
 	var req dtos.ForgetPasswordRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	if err := h.svcs.AuthForgetPassword(c.Request.Context(), req.Email); err != nil {
-		if err == helpers.ErrNotFound {
-			helpers.NotFound(c, "Email not found")
+		if helpers.HandleError(c, err, err.Error()) {
 			return
 		}
-		helpers.InternalServerError(c, err.Error())
-		return
 	}
 
 	helpers.OK(c, "Reset password email sent", nil)
@@ -120,23 +142,86 @@ func (h *Handlers) AuthForgetPassword(c *gin.Context) {
 func (h *Handlers) AuthResetPassword(c *gin.Context) {
 	var req dtos.ResetPasswordRequest
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.BadRequest(c, err.Error())
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	if err := h.svcs.AuthResetPassword(c.Request.Context(), req.Token, req.NewPassword); err != nil {
-		if err == helpers.ErrTokenInvalid || err == helpers.ErrTokenExpired || err == helpers.ErrTokenUsed {
-			helpers.Unauthorized(c, err.Error())
+		if helpers.HandleError(c, err, err.Error()) {
 			return
 		}
-		if err == helpers.ErrNotFound {
-			helpers.NotFound(c, err.Error())
-			return
-		}
-		helpers.InternalServerError(c, err.Error())
-		return
 	}
 
 	helpers.OK(c, "Password has been reset successfully", nil)
+}
+
+// AuthResendVerification handles resend verification email request.
+// @Summary Resend verification email
+// @Description Resend the email verification link
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body dtos.ResendVerificationRequest true "Email"
+// @Success 200 {object} dtos.MessageResponse
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /api/auth/resend-verification [post]
+func (h *Handlers) AuthResendVerification(c *gin.Context) {
+	var req dtos.ResendVerificationRequest
+
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
+		return
+	}
+
+	if err := h.svcs.AuthResendVerification(c.Request.Context(), req.Email); err != nil {
+		if helpers.HandleError(c, err, err.Error()) {
+			return
+		}
+	}
+
+	helpers.OK(c, "Verification email sent", nil)
+}
+
+// AuthVerifyEmail handles email verification request.
+// @Summary Verify email
+// @Description Verify user email using the token sent via email
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body dtos.VerifyEmailRequest true "Verification token"
+// @Success 200 {object} dtos.MessageResponse
+// @Failure 400 {object} map[string]string
+// @Router /api/auth/verify-email [post]
+func (h *Handlers) AuthVerifyEmail(c *gin.Context) {
+	var req dtos.VerifyEmailRequest
+
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
+		return
+	}
+
+	if err := h.svcs.AuthVerifyEmail(c.Request.Context(), req.Token); err != nil {
+		if helpers.HandleError(c, err, err.Error()) {
+			return
+		}
+	}
+
+	helpers.OK(c, "Email verified successfully", nil)
 }

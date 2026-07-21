@@ -42,25 +42,17 @@ func main() {
 	r.Use(middleware.RateLimit(container.RateLimiter))
 	r.Use(middleware.CORS(allowedOrigins))
 
-	apiGroup := r.Group("/api")
-	{
-		routes.RegisterHealthRoutes(apiGroup, container.Handlers)
-		routes.RegisterAuthRoutes(apiGroup, container.Handlers)
-		routes.RegisterJWKSRoutes(r, container.Handlers)
-	}
+	r.Static("/storage", "./storage")
 
+	r.NoRoute(func(c *gin.Context) {
+		helpers.NotFound(c, "Endpoint not found")
+	})
+
+	apiGroup := r.Group("/api")
 	protected := apiGroup.Group("")
 	protected.Use(middleware.JWTAuth(container.Services))
-	{
-		routes.RegisterAuthProtectedRoutes(protected, container.Handlers)
-		routes.RegisterPermissionRoutes(protected, container.Handlers)
-		routes.RegisterRoleRoutes(protected, container.Handlers)
-		routes.RegisterUserRoutes(protected, container.Handlers)
-	}
 
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
+	routes.RegisterAll(r, apiGroup, protected, container.Handlers, container.Access)
 
 	addr := host + ":" + port
 	log.Printf("Server starting on %s", addr)

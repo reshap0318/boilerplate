@@ -2,12 +2,14 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"gorm.io/gorm"
 
 	"github.com/reshap0318/go-boilerplate/internal/dtos"
 	"github.com/reshap0318/go-boilerplate/internal/helpers"
 	"github.com/reshap0318/go-boilerplate/internal/models"
+	"github.com/reshap0318/go-boilerplate/internal/repositories"
 )
 
 // PermissionCreate creates a new permission.
@@ -23,6 +25,10 @@ func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequ
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
 		var err error
 		result, err = s.repo.Permission.Create(tx, permission)
+		if err != nil {
+			return err
+		}
+
 		return err
 	}); err != nil {
 		s.Logger.LogEndWithError("PermissionCreate", "Failed to create permission: %v", err)
@@ -30,18 +36,56 @@ func (s *Services) PermissionCreate(ctx context.Context, req dtos.PermissionRequ
 	}
 
 	dto := dtos.ToPermissionDTO(result)
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "success",
+		Title:   "Permission Created",
+		Message: fmt.Sprintf("New permission created: %s", req.Name),
+		Data: map[string]interface{}{
+			"id":   result.ID,
+			"name": result.Name,
+		},
+	})
+
 	s.Logger.LogEnd("PermissionCreate", "Permission created: %s (ID: %d)", dto.Name, dto.ID)
 	return &dto, nil
 }
 
-// PermissionGetAll returns all permissions.
-func (s *Services) PermissionGetAll(ctx context.Context) ([]dtos.PermissionDTO, error) {
-	permissions, err := s.repo.Permission.FindAll(nil)
+// PermissionGetAll returns permissions, paginated when opts.PageSize > 0, otherwise all records.
+func (s *Services) PermissionGetAll(ctx context.Context, opts *repositories.QueryOptions) (*repositories.PagedResult[dtos.PermissionDTO], error) {
+	if opts == nil {
+		opts = &repositories.QueryOptions{}
+	}
+	if opts.SortBy == "" {
+		opts.SortBy = "id"
+	}
+	if opts.Order == "" {
+		opts.Order = "ASC"
+	}
+
+	if !s.Access.HasPermission(ctx, "role.index-su") {
+		opts.ConditionGroups = append(opts.ConditionGroups, repositories.ConditionGroup{
+			Logic: "AND",
+			Conditions: []repositories.QueryCondition{
+				{Column: "id", Operator: ">", Value: 23},
+			},
+		})
+	}
+
+	result, err := s.repo.Permission.FindAllWithOpts(nil, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	return dtos.ToPermissionDTOList(permissions), nil
+	dtoList := dtos.ToPermissionDTOList(result.Data)
+
+	return &repositories.PagedResult[dtos.PermissionDTO]{
+		Data:       dtoList,
+		Total:      result.Total,
+		Page:       result.Page,
+		PageSize:   result.PageSize,
+		TotalPages: result.TotalPages,
+	}, nil
 }
 
 // PermissionGetByID returns a permission by ID.
@@ -59,6 +103,11 @@ func (s *Services) PermissionGetByID(ctx context.Context, id uint) (*dtos.Permis
 func (s *Services) PermissionUpdate(ctx context.Context, id uint, req dtos.PermissionRequest) (*dtos.PermissionDTO, error) {
 	s.Logger.LogStart("PermissionUpdate", "Updating permission ID: %d", id)
 
+	if id <= 23 && !s.Access.HasPermission(ctx, "role.index-su") {
+		s.Logger.LogEndWithError("PermissionUpdate", "Forbidden access to permission ID: %d", id)
+		return nil, helpers.ErrForbidden
+	}
+
 	permission := &models.Permission{
 		ID: id,
 	}
@@ -73,6 +122,10 @@ func (s *Services) PermissionUpdate(ctx context.Context, id uint, req dtos.Permi
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
 		var err error
 		result, err = s.repo.Permission.Update(tx, &models.Permission{ID: id}, permission)
+		if err != nil {
+			return err
+		}
+
 		return err
 	}); err != nil {
 		s.Logger.LogEndWithError("PermissionUpdate", "Failed to update permission: %v", err)
@@ -80,6 +133,17 @@ func (s *Services) PermissionUpdate(ctx context.Context, id uint, req dtos.Permi
 	}
 
 	dto := dtos.ToPermissionDTO(result)
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "info",
+		Title:   "Permission Updated",
+		Message: fmt.Sprintf("Permission updated: %s", result.Name),
+		Data: map[string]interface{}{
+			"id":   result.ID,
+			"name": result.Name,
+		},
+	})
+
 	s.Logger.LogEnd("PermissionUpdate", "Permission updated: %s (ID: %d)", dto.Name, dto.ID)
 	return &dto, nil
 }
@@ -88,13 +152,37 @@ func (s *Services) PermissionUpdate(ctx context.Context, id uint, req dtos.Permi
 func (s *Services) PermissionDelete(ctx context.Context, id uint) error {
 	s.Logger.LogStart("PermissionDelete", "Deleting permission ID: %d", id)
 
+	if id <= 23 && !s.Access.HasPermission(ctx, "role.index-su") {
+		s.Logger.LogEndWithError("PermissionDelete", "Forbidden access to permission ID: %d", id)
+		return helpers.ErrForbidden
+	}
+
+	var permission *models.Permission
 	if err := s.repo.TxManager.WithinTransaction(func(tx *gorm.DB) error {
-		_, err := s.repo.Permission.Delete(tx, id)
-		return err
+		var err error
+		permission, err = s.repo.Permission.FindByID(tx, id)
+		if err != nil {
+			return err
+		}
+		_, err = s.repo.Permission.Delete(tx, id)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}); err != nil {
 		s.Logger.LogEndWithError("PermissionDelete", "Failed to delete permission: %v", err)
 		return err
 	}
+
+	_ = s.NotificationCreate(ctx, &NotificationCreateParams{
+		Type:    "warning",
+		Title:   "Permission Deleted",
+		Message: fmt.Sprintf("Permission deleted: %s", permission.Name),
+		Data: map[string]interface{}{
+			"id": permission.ID,
+		},
+	})
 
 	s.Logger.LogEnd("PermissionDelete", "Permission deleted: ID: %d", id)
 	return nil

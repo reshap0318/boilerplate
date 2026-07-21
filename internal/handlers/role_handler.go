@@ -13,24 +13,33 @@ import (
 // RoleCreate handles POST /api/roles
 func (h *Handlers) RoleCreate(c *gin.Context) {
 	var req dtos.RoleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.ValidationError(c, err)
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.RoleCreate(c.Request.Context(), req)
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to create role")
+	if helpers.HandleError(c, err, "Failed to create role") {
 		return
 	}
 
 	helpers.Created(c, "Role created successfully", dto)
 }
 
-// RoleGetAll handles GET /api/roles with pagination
+// RoleGetAll handles GET /api/roles with optional pagination
+// (page_size omitted or -1 returns all records)
 func (h *Handlers) RoleGetAll(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "-1"))
+
+	if pageSize < 0 {
+		page = 1
+	}
 
 	opts := &repositories.QueryOptions{
 		Page:     page,
@@ -38,12 +47,11 @@ func (h *Handlers) RoleGetAll(c *gin.Context) {
 	}
 
 	result, err := h.svcs.RoleGetAll(c.Request.Context(), opts)
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to fetch roles")
+	if helpers.HandleError(c, err, "Failed to fetch roles") {
 		return
 	}
 
-	helpers.OK(c, "Roles fetched successfully", result)
+	helpers.OKWithMetadata(c, "Roles fetched successfully", result)
 }
 
 // RoleGetByID handles GET /api/roles/:id
@@ -55,8 +63,7 @@ func (h *Handlers) RoleGetByID(c *gin.Context) {
 	}
 
 	dto, err := h.svcs.RoleGetByID(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.NotFound(c, "Role not found")
+	if helpers.HandleError(c, err, "Failed to fetch role") {
 		return
 	}
 
@@ -72,14 +79,18 @@ func (h *Handlers) RoleUpdate(c *gin.Context) {
 	}
 
 	var req dtos.RoleRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		helpers.ValidationError(c, err)
+	if err := c.BindJSON(&req); err != nil {
+		helpers.BadRequest(c, "Invalid JSON payload")
+		return
+	}
+
+	if err := h.Validate.Struct(req); err != nil {
+		helpers.ValidationResponse(c, h.getErrorsMap(err))
 		return
 	}
 
 	dto, err := h.svcs.RoleUpdate(c.Request.Context(), uint(id), req)
-	if err != nil {
-		helpers.NotFound(c, "Role not found")
+	if helpers.HandleError(c, err, "Failed to update role") {
 		return
 	}
 
@@ -95,8 +106,7 @@ func (h *Handlers) RoleDelete(c *gin.Context) {
 	}
 
 	err = h.svcs.RoleDelete(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.NotFound(c, "Role not found")
+	if helpers.HandleError(c, err, "Failed to delete role") {
 		return
 	}
 
@@ -112,8 +122,7 @@ func (h *Handlers) RoleGetPermissions(c *gin.Context) {
 	}
 
 	perms, err := h.svcs.RoleGetPermissions(c.Request.Context(), uint(id))
-	if err != nil {
-		helpers.InternalServerError(c, "Failed to fetch role permissions")
+	if helpers.HandleError(c, err, "Failed to fetch role permissions") {
 		return
 	}
 
