@@ -22,7 +22,7 @@ Use this skill when:
 Every new feature or bug fix **MUST** follow this flow:
 
 ### Phase 1: Planning
-1. **Create `plan.md`** in root directory:
+1. **Create `plan.md`** in the `docs/` folder at project root:
    - Feature/bug description
    - Technical analysis (files to create/modify)
    - Implementation steps
@@ -51,7 +51,7 @@ Every new CRUD feature MUST follow this order:
 | 3 | DTO | `internal/dtos/{feature}_dto.go` | Request/Response structs + converter |
 | 4 | Repository | `internal/repositories/{feature}_repository.go` | Extend GenericRepository |
 | 5 | Register Repo | `internal/repositories/00_repository.go` | Add to Repositories struct |
-| 6 | Service | `internal/services/{feature}_service.go` | Business logic + logging + notification |
+| 6 | Service | `internal/services/{feature}_service.go` | Business logic + logging (+ notification, if the project has one) |
 | 7 | Handler | `internal/handlers/{feature}_handler.go` | HTTP handler + validation |
 | 8 | Routes | `internal/routes/{feature}_route.go` | Route registration + middleware |
 | 9 | Register Routes | `internal/routes/00_route.go` | Add call inside RegisterAll() |
@@ -104,7 +104,7 @@ Add repository field to `Repositories` struct and initialize in `NewRepositories
 
 **File:** `internal/services/{feature}_service.go`
 
-Implement CRUD methods on `(s *Services)`. Write ops use transaction. Notification created **after** transaction completes. Read ops return DTOs. See `go-coding-rules` for full patterns.
+Implement CRUD methods on `(s *Services)`. Write ops use transaction. Notification (if the project has one — see `go-coding-rules` "Service Topology") created **after** transaction completes. Read ops return DTOs. See `go-coding-rules` for full patterns.
 
 ---
 
@@ -120,7 +120,7 @@ Implement HTTP handlers on `(h *Handlers)`. Bind JSON, validate, call service, r
 
 **File:** `internal/routes/{feature}_route.go`
 
-Register routes with permission middleware via `middleware.RequirePermission(acc, "permission.name")`.
+Register routes with permission middleware via `middleware.RequirePermission(acc, "permission.name")` — this is the fullservice default. In a microservice behind an api-gateway, permission checks may instead belong in the service layer via `s.Access.HasPermission(ctx, "...")`; check existing `{feature}_route.go` files in the project for the pattern actually in use before assuming route-level middleware.
 
 ---
 
@@ -142,7 +142,7 @@ Add the new route registration call inside `RegisterAll()`. `cmd/api/main.go` ne
 - [ ] Write operations use `TxManager.WithinTransaction()` or `WithinTransactionWithResult()`
 - [ ] Read operations use `nil` (NOT `.DB`)
 - [ ] Logging on Create/Update/Delete
-- [ ] Notification created **after** transaction completes for Create/Update/Delete
+- [ ] Notification created **after** transaction completes for Create/Update/Delete — only if the project has a notification system (skip for services without one, e.g. most microservices behind an api-gateway)
 - [ ] Repository registered in `00_repository.go`
 - [ ] Routes registered in `internal/routes/00_route.go`
 - [ ] Build success (`go build ./...`)

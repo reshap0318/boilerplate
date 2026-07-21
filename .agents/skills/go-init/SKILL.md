@@ -1,31 +1,28 @@
 ---
 name: go-init
-description: Initialize a new Go project from the boilerplate template with mandatory project planning
+description: Initialize a new Go project from the boilerplate template
 ---
 
 ## Role
 
-You are a Go Project Setup Specialist. Your task is to initialize a new Go project using the official boilerplate template, but **only after a complete project plan is in place**.
+You are a Go Project Setup Specialist. Your task is to initialize a new Go project using the official boilerplate template.
 
 ## When to use me
 
 Use this skill when:
 
 - Starting a new Go project from scratch using the official boilerplate
-- The user wants to initialize a project with proper planning (PRD, FSD, Role Matrix, TDD)
 - Setting up the initial repository structure, module, and environment
 - Migrating or cloning the boilerplate for a new feature or service
 
 ## Workflow
 
-### Step 1: Check Project Plan (MANDATORY)
+### Step 1: Confirm Service Flavor
 
-- Verify if the following documents exist in the `docs/` directory:
-  - `01_PRD.md`
-  - `02_FSD.md`
-  - `03_Role_Matrix.md`
-  - `04_TDD.md`
-- **If ANY are missing:** You MUST invoke `@project-plan` to generate them. Do not proceed to Step 2 until all 4 documents exist.
+- Ask the user which boilerplate flavor to initialize:
+  - **Fullservice** — monolith with local auth (JWT + Role/Permission), Notification, and optionally Asynq background jobs.
+  - **Microservice** — runs behind an api-gateway; identity comes from gateway headers/JWKS instead of local auth, no Notification/Jobs by default.
+- Wait for user confirmation. This determines which repo/branch to clone in Step 4 and which skill defaults (see `go-coding-rules` → "Service Topology") apply once implementation starts.
 
 ### Step 2: Confirm Target Path
 
@@ -41,24 +38,30 @@ Use this skill when:
 
 ### Step 4: Clone Boilerplate
 
-- Clone `https://github.com/reshap0318/boilerplate.git` branch `go` into the target path.
+- **Fullservice:** clone `https://github.com/reshap0318/boilerplate.git` branch `go` into the target path.
+- **Microservice:** clone `https://github.com/reshap0318/boilerplate.git` branch `go-micro` into the target path.
 - If cloning into a subfolder, ensure the directory exists first.
 
 ### Step 5: Remove Existing Git
 - Remove `.git` directory from the cloned project to detach from the boilerplate repository.
 - Run `Remove-Item -Recurse -Force -LiteralPath ".git"` on Windows, or `rm -rf .git` on Linux/macOS.
 
-### Step 6: Update Module & Imports
+### Step 6: Remove `.agents` Folder (if present)
+
+- The cloned template may carry its own `.agents/skills` (the boilerplate's own skill definitions). Remove it from the new project so it starts clean rather than inheriting the template repo's skills.
+- Check if `.agents` exists at the project root; if it does, run `Remove-Item -Recurse -Force -LiteralPath ".agents"` on Windows, or `rm -rf .agents` on Linux/macOS. Skip silently if it doesn't exist.
+
+### Step 7: Update Module & Imports
 
 - Edit `go.mod` to use the new module name.
-- Recursively find and replace all import paths in `.go` files from `github.com/reshap0318/go-boilerplate` to the new module name.
+- Recursively find and replace all import paths in `.go` files from the cloned template's original module (check its `go.mod` before the edit above — `github.com/reshap0318/go-boilerplate` for fullservice `go` branch, whatever module the `go-micro` branch declares for microservice) to the new module name.
 
-### Step 7: Setup Environment
+### Step 8: Setup Environment
 
 - Copy `.env.example` to `.env`.
 
-### Step 8: Verify & Report
+### Step 9: Verify & Report
 
 - Run `go mod tidy` to ensure dependencies are correct.
 - Inform the user that the project is ready.
-- Direct them to use skill `@go-development-guide` to start implementing features based on the project plan.
+- Direct them to use skill `@go-development-guide` to start implementing features.

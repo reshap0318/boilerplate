@@ -18,11 +18,24 @@ Use this skill when:
 
 > **READ THIS ENTIRELY before writing any code.** These rules are MANDATORY.
 
+## Service Topology
+
+These rules default to the **fullservice** architecture (local auth, Notification, Asynq jobs). Some projects are a **microservice** running behind an api-gateway instead. Before applying Auth/Access, Notification, or Background Jobs sections below, check which topology applies:
+
+| Signal | Fullservice | Microservice |
+| ------ | ----------- | ------------ |
+| `internal/middleware/gateway_auth.go` exists | No | Yes |
+| Local `User`/`Role`/`Permission` models + login endpoint | Yes | No — identity comes from api-gateway headers |
+| `internal/models/notification.go` or similar exists | Usually | Only if explicitly added |
+| `cmd/worker/` + `internal/jobs/` exist | Usually | Only if explicitly added |
+
+Sections below marked **"Microservice Variant"** describe the deviation. If a project has neither the models/dirs above, the section is fullservice-only — skip it rather than forcing the pattern in.
+
 ## Project Identity
 
 | Item        | Value                              |
 | ----------- | ---------------------------------- |
-| Module      | `github.com/reshap0318/go-boilerplate` |
+| Module      | `github.com/reshap0318/go-boilerplate` (fullservice) — **check `go.mod` for the actual module name**, microservices use their own |
 | Go Version  | 1.25.0+                            |
 | Framework   | Gin, GORM, JWT, Redis, bcrypt      |
 | Database    | MySQL (default) / PostgreSQL       |
@@ -48,6 +61,8 @@ All examples are in `references/` folder:
 - `references/service.go` — CRUD methods with logging + notification
 - `references/handler.go` — HTTP handlers with validation
 - `references/route.go` — Routes with permission middleware
+
+> Reference files import `github.com/reshap0318/go-boilerplate/...` (the fullservice module). Never copy that path literally — substitute the current project's actual module name from `go.mod`.
 
 ---
 
@@ -172,11 +187,19 @@ s.Logger.LogWarn("FuncName", "Warning: %s", value)
 s.Logger.LogInfo("FuncName", "Info: %s", value)
 ```
 
+**Microservice Variant:** if the project has a `middleware.TraceID` (propagating `X-Trace-Id` from the gateway so logs correlate across services), prefer the context-aware form so every log line carries the trace id automatically:
+
+```go
+s.Logger.LogCtx(ctx, "FuncName", "Message: %s", value)
+```
+
 See `references/service.go` for full examples.
 
 ---
 
 ## Notification
+
+**Microservice Variant:** skip this whole section if the project has no notification model/table (check `internal/models/` and `internal/dtos/`) — not every microservice owns a notification system. Don't add one just to satisfy this rule.
 
 Every CREATE/UPDATE/DELETE MUST create notification via `s.NotificationCreate()`:
 
@@ -372,6 +395,8 @@ if s.RedisClient.IsCacheAvailable() {
 
 ### Email — `s.EmailClient`
 
+**Fullservice only** — a microservice behind an api-gateway typically has no `EmailClient` on `Services` at all (email sending, if needed, is its own concern or delegated elsewhere). Don't add it unless the project already has `internal/pkg/email`.
+
 ```go
 s.EmailClient.IsConfigured()
 s.EmailClient.SendResetPasswordEmail(email, token, resetURL)
@@ -379,13 +404,15 @@ s.EmailClient.SendResetPasswordEmail(email, token, resetURL)
 
 ### Access — `s.Access` (Permission/Role)
 
-3-tier cache: L1 (in-memory) → L2 (Redis) → L3 (DB)
+**Fullservice:** 3-tier cache: L1 (in-memory) → L2 (Redis) → L3 (DB), backed by local `User`/`Role`/`Permission` tables.
 
 ```go
 s.Access.HasPermission(ctx, "user.delete")  // Check ANY permission
 s.Access.HasRole(ctx, "admin")              // Check role
 s.Access.Invalidate(userID)                 // Clear cache
 ```
+
+**Microservice Variant:** if `internal/middleware/gateway_auth.go` exists, `Access` has no cache and no `Invalidate()` — it's a stateless reader over roles/permissions the api-gateway already resolved and put in the request context (via `helpers.GetCallerRoles`/`GetCallerPermissions`). The `HasPermission`/`HasRole` call signatures stay the same, so business code reads identically either way — only what backs them differs. Route-level `middleware.RequirePermission(...)` may not exist in this variant; permission checks can instead live in the service layer (call `s.Access.HasPermission(ctx, "...")` directly where the business rule needs it) — check `internal/routes/{feature}_route.go` for a comment confirming this before assuming route middleware enforces it.
 
 Permission naming: `{resource}.{action}` (e.g., `user.create`, `user.delete`)
 
@@ -459,7 +486,7 @@ See `references/route.go` for full examples.
 type Services struct {
     repo         *repositories.Repositories
     RedisClient  *database.RedisCache
-    EmailClient  *pkgEmail.EmailClient    // internal/pkg/email
+    EmailClient  *pkgEmail.EmailClient    // internal/pkg/email — fullservice only, see Packages section
     Access       *helpers.Access
     Logger       *helpers.Logger
     // ...
@@ -472,9 +499,13 @@ type Handlers struct {
 }
 ```
 
+Don't assume every field above exists — check `internal/services/00_services.go` for the actual `ServicesConfig`/`Services` struct of the project at hand before wiring in a dependency.
+
 ---
 
 ## Background Jobs (Asynq)
+
+**Microservice Variant:** skip this whole section if the project has no `cmd/worker/` and `internal/jobs/` — not every microservice needs an async job runner. Don't scaffold one just to satisfy this rule.
 
 Worker runs as a separate binary: `cmd/worker/main.go`. Uses Redis via `internal/pkg/asynq/client.go`.
 
@@ -547,8 +578,8 @@ All 3 steps MUST be done together.
 - [ ] Read ops use `nil` parameter
 - [ ] Read ops return DTOs, NOT models
 - [ ] Paginated reads handle nil opts
-- [ ] CREATE/UPDATE/DELETE have logging + notification
-- [ ] Notification Data = identifier only (id, name, status)
+- [ ] CREATE/UPDATE/DELETE have logging (+ notification, only if the project has a notification system — see Notification section)
+- [ ] Notification Data = identifier only (id, name, status) — if applicable
 - [ ] Repository registered in `00_repository.go`
 - [ ] Custom repo method: prefer generic methods if they can handle the requirement
 - [ ] Handler uses `c.BindJSON()` + `h.Validate.Struct()`
