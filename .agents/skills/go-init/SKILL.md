@@ -22,7 +22,7 @@ Use this skill when:
 - Ask the user which boilerplate flavor to initialize:
   - **Fullservice** — monolith with local auth (JWT + Role/Permission), Notification, and optionally Asynq background jobs.
   - **Microservice** — runs behind an api-gateway; identity comes from gateway headers/JWKS instead of local auth, no Notification/Jobs by default.
-- Wait for user confirmation. This determines which repo/branch to clone in Step 4 and which skill defaults (see `go-coding-rules` → "Service Topology") apply once implementation starts.
+- Wait for user confirmation. This determines which repo to clone in Step 4 and which skill defaults (see `go-coding-rules` → "Service Topology") apply once implementation starts.
 
 ### Step 2: Confirm Target Path
 
@@ -38,11 +38,12 @@ Use this skill when:
 
 ### Step 4: Clone Boilerplate
 
-- **Fullservice:** clone `https://github.com/reshap0318/boilerplate.git` branch `go` into the target path.
-- **Microservice:** clone `https://github.com/reshap0318/boilerplate.git` branch `go-micro` into the target path.
+- **Fullservice:** clone `https://github.com/reshap0318/boilerplate-go.git` into the target path.
+- **Microservice:** clone `https://github.com/reshap0318/boilerplate-service.git` into the target path.
 - If cloning into a subfolder, ensure the directory exists first.
 
 ### Step 5: Remove Existing Git
+
 - Remove `.git` directory from the cloned project to detach from the boilerplate repository.
 - Run `Remove-Item -Recurse -Force -LiteralPath ".git"` on Windows, or `rm -rf .git` on Linux/macOS.
 
@@ -54,7 +55,7 @@ Use this skill when:
 ### Step 7: Update Module & Imports
 
 - Edit `go.mod` to use the new module name.
-- Recursively find and replace all import paths in `.go` files from the cloned template's original module (check its `go.mod` before the edit above — `github.com/reshap0318/go-boilerplate` for fullservice `go` branch, whatever module the `go-micro` branch declares for microservice) to the new module name.
+- Recursively find and replace all import paths in `.go` files from the cloned template's original module (check its `go.mod` before the edit above — differs per repo, e.g. `boilerplate-go` vs `boilerplate-service`) to the new module name.
 
 ### Step 8: Setup Environment
 
