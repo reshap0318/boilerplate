@@ -80,9 +80,13 @@ export const useAuthStore = defineStore('auth', () => {
   async function refreshTokenFn(): Promise<void> {
     if (!refreshToken.value) return
     try {
-      const response = await post<IApiResponse<IRefreshTokenResponse>>('/auth/refresh', {
-        refresh_token: refreshToken.value,
-      })
+      const response = await post<IApiResponse<IRefreshTokenResponse>>(
+        '/auth/refresh',
+        {
+          refresh_token: refreshToken.value,
+        },
+        { headers: { Authorization: '' } },
+      )
       const { token: newToken, refresh_token: newRefreshToken } = response.data.data
 
       token.value = newToken

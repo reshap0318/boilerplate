@@ -13,6 +13,7 @@ declare module 'axios' {
     hideError503?: boolean
     hideError504?: boolean
     hideErrorNetwork?: boolean
+    _retry?: boolean
   }
 }
 
@@ -55,7 +56,7 @@ api.interceptors.request.use(
   (config) => {
     const authStore = useAuthStore()
     const token = authStore.token
-    if (token && !config.headers.Authorization) {
+    if (token && typeof config.headers.Authorization === 'undefined') {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
@@ -65,12 +66,66 @@ api.interceptors.request.use(
 
 // Response interceptor
 let isHandling401 = false
+let refreshPromise: Promise<string | null> | null = null
+
+function refreshAccessToken(authStore: ReturnType<typeof useAuthStore>): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = authStore
+      .refreshTokenFn()
+      .then(() => authStore.token)
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  return refreshPromise
+}
+
+function handle401(error: any, config: any) {
+  const message = error.response?.data?.message
+  if (config?.hideError === true || config?.hideError401 || config?.url?.includes('/auth/login')) {
+    return Promise.reject(error)
+  }
+  if (!isHandling401) {
+    isHandling401 = true
+    swal.error('Unauthorized', message || 'Session expired. Please login again.').then(() => {
+      const authStore = useAuthStore()
+      authStore.logout().finally(() => {
+        isHandling401 = false
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login'
+        }
+      })
+    })
+  }
+  return Promise.reject(error)
+}
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const config = error.config
     const shouldHideAll = config?.hideError === true
+
+    if (
+      error.response?.status === 401 &&
+      !config?._retry &&
+      !config?.url?.includes('/auth/refresh') &&
+      !config?.url?.includes('/auth/login')
+    ) {
+      const authStore = useAuthStore()
+      if (!authStore.refreshToken) {
+        return handle401(error, config)
+      }
+
+      config._retry = true
+
+      const newToken = await refreshAccessToken(authStore)
+      if (!newToken) {
+        return handle401(error, config)
+      }
+      config.headers.Authorization = `Bearer ${newToken}`
+      return api(config)
+    }
 
     // Network error (no response)
     if (!error.response) {
@@ -105,23 +160,7 @@ api.interceptors.response.use(
         break
 
       case 401:
-        if (!config?.hideError401) {
-          if (!isHandling401) {
-            isHandling401 = true
-            swal
-              .error('Unauthorized', message || 'Session expired. Please login again.')
-              .then(() => {
-                const authStore = useAuthStore()
-                authStore.logout().finally(() => {
-                  isHandling401 = false
-                  if (!window.location.pathname.includes('/login')) {
-                    window.location.href = '/login'
-                  }
-                })
-              })
-          }
-        }
-        break
+        return handle401(error, config)
 
       case 403:
         if (!config?.hideError403) {
