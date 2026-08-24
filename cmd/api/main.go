@@ -42,6 +42,7 @@ func main() {
 	r.Use(middleware.RateLimit(container.RateLimiter))
 	r.Use(middleware.CORS(allowedOrigins))
 
+	// storage/ holds only public uploads; secrets (keys/, logs/) live outside it, not web-servable.
 	r.Static("/storage", "./storage")
 
 	r.NoRoute(func(c *gin.Context) {

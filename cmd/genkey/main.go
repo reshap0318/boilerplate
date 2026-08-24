@@ -27,8 +27,8 @@ func main() {
 	}
 
 	// Check if keys already exist
-	privateKeyPath := "storage/keys/private.pem"
-	publicKeyPath := "storage/keys/public.pem"
+	privateKeyPath := "private/keys/private.pem"
+	publicKeyPath := "private/keys/public.pem"
 
 	if _, err := os.Stat(privateKeyPath); err == nil && !*force {
 		fmt.Println("⚠️  WARNING: Existing keys found!")
@@ -58,8 +58,8 @@ func main() {
 	}
 
 	// Create keys directory
-	if err := os.MkdirAll("storage/keys", 0700); err != nil {
-		log.Fatalf("Error creating storage/keys directory: %v", err)
+	if err := os.MkdirAll("private/keys", 0700); err != nil {
+		log.Fatalf("Error creating private/keys directory: %v", err)
 	}
 
 	// Save private key (encrypted)
@@ -73,7 +73,7 @@ func main() {
 	}
 
 	// Save passphrase to file
-	passphraseFilePath := "storage/keys/passphrase"
+	passphraseFilePath := "private/keys/passphrase"
 	if err := savePassphraseFile(passphraseFilePath, passphrase); err != nil {
 		log.Fatalf("Error saving passphrase file: %v", err)
 	}
@@ -88,7 +88,7 @@ func main() {
 	fmt.Printf("📁 Public key: %s\n", publicKeyPath)
 	fmt.Printf("📁 Passphrase: %s\n", passphraseFilePath)
 	fmt.Printf("📁 Updated: %s\n", envPath)
-	fmt.Println("⚠️  Keep storage/keys/ out of version control!")
+	fmt.Println("⚠️  Keep private/keys/ out of version control!")
 	fmt.Println("⚠️  If you regenerate keys, all existing JWT tokens will be invalid!")
 }
 

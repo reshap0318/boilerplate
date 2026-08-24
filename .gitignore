@@ -9,6 +9,7 @@ bin/
 dist/
 tmp/
 storage/
+private/
 
 # Test binary
 *.test

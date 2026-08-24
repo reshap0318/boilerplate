@@ -63,7 +63,7 @@ func NewContainer() (*Container, error) {
 	container := &Container{}
 
 	// Initialize Logger (early, before other components)
-	logger, err := helpers.NewLogger("storage/logs")
+	logger, err := helpers.NewLogger(helpers.GetEnv("LOG_DIR", "private/logs"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -146,13 +146,13 @@ func NewContainer() (*Container, error) {
 
 	// Initialize JWKS Manager
 	jwksManager := &services.JWKSManager{}
-	passphrase, err := helpers.LoadPassphrase(helpers.GetEnv("JWT_PASSPHRASE_PATH", "storage/keys/passphrase"))
+	passphrase, err := helpers.LoadPassphrase(helpers.GetEnv("JWT_PASSPHRASE_PATH", "private/keys/passphrase"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load JWT passphrase: %w", err)
 	}
 	if err := jwksManager.Initialize(
-		helpers.GetEnv("JWT_PRIVATE_KEY_PATH", "storage/keys/private.pem"),
-		helpers.GetEnv("JWT_PUBLIC_KEY_PATH", "storage/keys/public.pem"),
+		helpers.GetEnv("JWT_PRIVATE_KEY_PATH", "private/keys/private.pem"),
+		helpers.GetEnv("JWT_PUBLIC_KEY_PATH", "private/keys/public.pem"),
 		passphrase,
 	); err != nil {
 		return nil, fmt.Errorf("failed to initialize JWKS Manager: %w", err)
