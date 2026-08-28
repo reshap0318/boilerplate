@@ -20,11 +20,9 @@ func main() {
 	force := flag.Bool("f", false, "Force overwrite existing keys without confirmation")
 	flag.Parse()
 
-	// Find .env file
-	envPath, err := findEnvFile()
-	if err != nil {
-		log.Fatalf("Error: %v", err)
-	}
+	// .env update below is best-effort (local dev convenience) — key generation itself
+	// doesn't touch it, so a missing .env just skips that step instead of failing.
+	envPath, hasEnvFile := findEnvFile()
 
 	// Check if keys already exist
 	privateKeyPath := "private/keys/private.pem"
@@ -35,7 +33,7 @@ func main() {
 		fmt.Println("⚠️  This will overwrite existing keys!")
 		fmt.Println("⚠️  All existing JWT tokens will be invalidated!")
 		fmt.Print("❓ Continue? (y/n): ")
-		
+
 		var response string
 		fmt.Scanln(&response)
 		if strings.ToLower(response) != "y" {
@@ -78,16 +76,17 @@ func main() {
 		log.Fatalf("Error saving passphrase file: %v", err)
 	}
 
-	// Update .env file (paths only, no passphrase)
-	if err := updateEnvFile(envPath, privateKeyPath, publicKeyPath, passphraseFilePath); err != nil {
-		log.Fatalf("Error updating .env file: %v", err)
+	// Update .env file (paths only, no passphrase) — skipped if none was found
+	if hasEnvFile {
+		if err := updateEnvFile(envPath, privateKeyPath, publicKeyPath, passphraseFilePath); err != nil {
+			log.Fatalf("Error updating .env file: %v", err)
+		}
 	}
 
 	fmt.Println("✅ Keys generated successfully!")
 	fmt.Printf("📁 Private key: %s (encrypted)\n", privateKeyPath)
 	fmt.Printf("📁 Public key: %s\n", publicKeyPath)
 	fmt.Printf("📁 Passphrase: %s\n", passphraseFilePath)
-	fmt.Printf("📁 Updated: %s\n", envPath)
 	fmt.Println("⚠️  Keep private/keys/ out of version control!")
 	fmt.Println("⚠️  If you regenerate keys, all existing JWT tokens will be invalid!")
 }
@@ -207,17 +206,18 @@ func updateOrAddEnv(lines []string, key, value string) []string {
 	return lines
 }
 
-// findEnvFile searches for .env file in current directory and parent directories
-func findEnvFile() (string, error) {
+// findEnvFile searches for .env file in current directory and parent directories.
+// ok is false if none was found — not fatal, callers just skip updating it.
+func findEnvFile() (path string, ok bool) {
 	// Check current directory first
 	if _, err := os.Stat(".env"); err == nil {
-		return ".env", nil
+		return ".env", true
 	}
 
 	// Get absolute path of current directory
 	absPath, err := filepath.Abs(".")
 	if err != nil {
-		return "", fmt.Errorf("failed to get absolute path: %w", err)
+		return "", false
 	}
 
 	// Search in parent directories (max 5 levels)
@@ -225,10 +225,10 @@ func findEnvFile() (string, error) {
 	for i := 0; i < 4; i++ {
 		envPath := filepath.Join(current, ".env")
 		if _, err := os.Stat(envPath); err == nil {
-			return envPath, nil
+			return envPath, true
 		}
 		current = filepath.Dir(current)
 	}
 
-	return "", fmt.Errorf(".env file not found (create one or run from project root)")
+	return "", false
 }
