@@ -31,3 +31,12 @@ func (r *UserRoleRepository) FindRolesByUserID(userID uint) ([]models.Role, erro
 		Find(&roles).Error
 	return roles, err
 }
+
+// FindUserIDsByRoleID finds all user IDs holding a given role.
+func (r *UserRoleRepository) FindUserIDsByRoleID(roleID uint) ([]uint, error) {
+	var userIDs []uint
+	err := r.DB.Table("user_has_roles").
+		Where("role_id = ?", roleID).
+		Pluck("user_id", &userIDs).Error
+	return userIDs, err
+}

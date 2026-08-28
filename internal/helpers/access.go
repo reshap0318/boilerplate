@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/reshap0318/go-boilerplate/internal/database"
 	"github.com/reshap0318/go-boilerplate/internal/models"
@@ -15,7 +16,21 @@ type userAccessData struct {
 	roles       map[string]bool
 }
 
-// Access handles permission and role checking with 2-tier caching.
+// accessCacheEntry is the JSON shape stored under the shared "session:%d" key.
+// It matches dtos.UserDTO's roles/permissions fields, so it reads the same
+// entry AuthLogin writes and writes back a shape AuthValidateToken can still read.
+type accessCacheEntry struct {
+	Roles []struct {
+		Name string `json:"name"`
+	} `json:"roles"`
+	Permissions []struct {
+		Name string `json:"name"`
+	} `json:"permissions"`
+}
+
+// Access handles permission and role checking.
+// Redis is used exclusively when available; the local in-memory cache is the
+// fallback only while Redis is down. Either way, a miss falls back to the DB.
 type Access struct {
 	redis *database.RedisCache
 	db    *gorm.DB
@@ -32,10 +47,36 @@ func NewAccess(redis *database.RedisCache, db *gorm.DB) *Access {
 	}
 }
 
-// getUserAccess retrieves user permissions and roles using 2-tier cache.
-// L1: Local in-memory cache → L2: Database
+// getUserAccess retrieves user permissions and roles.
+// Redis alive: Redis → DB. Redis down: local cache → DB.
 func (a *Access) getUserAccess(userID uint) (*userAccessData, bool) {
-	// L1: Check local cache
+	if a.redis != nil && a.redis.IsCacheAvailable() {
+		return a.getUserAccessFromRedis(userID)
+	}
+	return a.getUserAccessFromLocal(userID)
+}
+
+func (a *Access) getUserAccessFromRedis(userID uint) (*userAccessData, bool) {
+	key := fmt.Sprintf("session:%d", userID)
+
+	var cached accessCacheEntry
+	if err := a.redis.GetJSON(key, &cached); err == nil {
+		return accessDataFromCacheEntry(&cached), true
+	}
+
+	user, err := a.findUserWithRolesPermissions(userID)
+	if err != nil {
+		return nil, false
+	}
+	data := a.buildAccessDataFromUser(user)
+
+	ttl := time.Duration(GetEnvInt("JWT_EXPIRATION", 24)) * time.Hour
+	_ = a.redis.SetJSON(key, accessCacheEntryFromData(data), ttl)
+
+	return data, true
+}
+
+func (a *Access) getUserAccessFromLocal(userID uint) (*userAccessData, bool) {
 	a.mu.RLock()
 	data, ok := a.cache[userID]
 	a.mu.RUnlock()
@@ -43,12 +84,10 @@ func (a *Access) getUserAccess(userID uint) (*userAccessData, bool) {
 		return data, true
 	}
 
-	// L2: Fallback to DB
 	user, err := a.findUserWithRolesPermissions(userID)
 	if err != nil {
 		return nil, false
 	}
-
 	data = a.buildAccessDataFromUser(user)
 
 	a.mu.Lock()
@@ -56,6 +95,35 @@ func (a *Access) getUserAccess(userID uint) (*userAccessData, bool) {
 	a.mu.Unlock()
 
 	return data, true
+}
+
+func accessDataFromCacheEntry(cached *accessCacheEntry) *userAccessData {
+	data := &userAccessData{
+		permissions: make(map[string]bool),
+		roles:       make(map[string]bool),
+	}
+	for _, r := range cached.Roles {
+		data.roles[r.Name] = true
+	}
+	for _, p := range cached.Permissions {
+		data.permissions[p.Name] = true
+	}
+	return data
+}
+
+func accessCacheEntryFromData(data *userAccessData) *accessCacheEntry {
+	entry := &accessCacheEntry{}
+	for role := range data.roles {
+		entry.Roles = append(entry.Roles, struct {
+			Name string `json:"name"`
+		}{Name: role})
+	}
+	for perm := range data.permissions {
+		entry.Permissions = append(entry.Permissions, struct {
+			Name string `json:"name"`
+		}{Name: perm})
+	}
+	return entry
 }
 
 // findUserWithRolesPermissions fetches user with roles and permissions from DB.

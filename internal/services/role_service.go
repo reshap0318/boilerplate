@@ -187,6 +187,8 @@ func (s *Services) RoleUpdate(ctx context.Context, id uint, req dtos.RoleRequest
 		},
 	})
 
+	go s.invalidateAccessForRole(id)
+
 	s.Logger.LogEnd("RoleUpdate", "Role updated: %s (ID: %d)", dto.Name, dto.ID)
 	return &dto, nil
 }
@@ -221,8 +223,24 @@ func (s *Services) RoleDelete(ctx context.Context, id uint) error {
 		},
 	})
 
+	go s.invalidateAccessForRole(id)
+
 	s.Logger.LogEnd("RoleDelete", "Role deleted: ID: %d", id)
 	return nil
+}
+
+// invalidateAccessForRole clears the cached permission/role data for every
+// user holding roleID, so a role's permission change takes effect immediately
+// instead of waiting for their session cache to expire.
+func (s *Services) invalidateAccessForRole(roleID uint) {
+	userIDs, err := s.repo.UserRole.FindUserIDsByRoleID(roleID)
+	if err != nil {
+		s.Logger.LogWarn("invalidateAccessForRole", "Failed to look up users for role %d: %v", roleID, err)
+		return
+	}
+	for _, userID := range userIDs {
+		s.Access.Invalidate(userID)
+	}
 }
 
 // RoleGetPermissions returns all permissions for a role.
